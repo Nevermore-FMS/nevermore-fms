@@ -1,20 +1,23 @@
-use tokio::sync::Mutex;
-use std::sync::Arc;
-use tokio::net::{TcpSocket, TcpStream, UdpSocket};
-use std::net::SocketAddr;
 use crate::nevermore::RobotMap;
-use tokio::sync::mpsc::Sender;
+use chrono::{Datelike, Local, Timelike};
+use deno_core::Resource;
+use serde::Serialize;
+use std::borrow::Cow;
+use std::net::SocketAddr;
+use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::OwnedWriteHalf;
-use chrono::{Local, Timelike, Datelike};
+use tokio::net::{TcpSocket, TcpStream, UdpSocket};
+use tokio::sync::mpsc::Sender;
+use tokio::sync::Mutex;
 
 pub type ThreadSafeRobot = Arc<Mutex<Robot>>;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Serialize)]
 pub enum Mode {
     TeleOp,
     Test,
-    Autonomous
+    Autonomous,
 }
 
 impl Mode {
@@ -23,7 +26,7 @@ impl Mode {
             0 => Mode::TeleOp,
             1 => Mode::Test,
             2 => Mode::Autonomous,
-            _ => Mode::TeleOp
+            _ => Mode::TeleOp,
         }
     }
 
@@ -36,7 +39,7 @@ impl Mode {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Serialize)]
 pub struct ConfirmedState {
     pub is_emergency_stopped: bool,
     pub robot_comms_active: bool,
@@ -47,7 +50,7 @@ pub struct ConfirmedState {
     pub mode: Mode,
 
     pub team_number: u16,
-    pub battery_voltage: f32
+    pub battery_voltage: f32,
 }
 
 #[derive(Copy, Clone)]
@@ -60,7 +63,7 @@ pub struct State {
     pub team_number: u16,
     pub sequence_number: u16,
     pub time_to_display: u16,
-    pub match_number: u16
+    pub match_number: u16,
 }
 
 pub struct Robot {
@@ -70,23 +73,28 @@ pub struct Robot {
     pub udp_socket: Arc<UdpSocket>,
     pub socket_address: SocketAddr,
     pub robot_map: RobotMap,
-    closing_sender: Sender<()>
+    closing_sender: Sender<()>,
 }
 
 impl Robot {
     // Remember everything is big endian with the FMS because they like suffering.
-    pub async fn handle_connection(mut socket: TcpStream, socket_address: SocketAddr, robot_map: RobotMap, udp_socket: Arc<UdpSocket>) {
+    pub async fn handle_connection(
+        mut socket: TcpStream,
+        socket_address: SocketAddr,
+        robot_map: RobotMap,
+        udp_socket: Arc<UdpSocket>,
+    ) {
         tokio::spawn(async move {
             let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(1);
             let (mut reader, writer) = socket.into_split();
-            let mut robot = Robot{
+            let mut robot = Robot {
                 confirmed_state: None,
                 state: None,
                 tcp_writer: writer,
                 udp_socket,
                 socket_address,
                 robot_map,
-                closing_sender: tx
+                closing_sender: tx,
             };
 
             let thread_safe_robot = Arc::new(Mutex::new(robot));
@@ -106,17 +114,21 @@ impl Robot {
                         }
                     }
                     _ = rx.recv() => {
-                        info!("Closing the tcp socket.");
+                        debug!("Closing the tcp socket.");
 
                         break
                     }
                 }
             }
             {
-                info!("Destroyed tcp socket.");
+                debug!("Destroyed tcp socket.");
                 let locked_robot = thread_safe_robot.lock().await;
                 if locked_robot.state.is_some() {
-                    locked_robot.robot_map.lock().await.remove(&locked_robot.state.unwrap().team_number);
+                    locked_robot
+                        .robot_map
+                        .lock()
+                        .await
+                        .remove(&locked_robot.state.unwrap().team_number);
                 }
             }
         });
@@ -181,24 +193,28 @@ impl Robot {
 
     pub async fn handle_packet(&mut self, buffer: Vec<u8>, robot: ThreadSafeRobot) {
         //let length = buffer[0];
-        info!("Got packet {}", buffer[2]);
+        debug!("Got packet {}", buffer[2]);
         match buffer[2] {
             0x18 => {
                 let team_number = (((buffer[3] as i32) << 8) + (buffer[4] as i32)) as u16;
 
-                info!("Got packet from {}", team_number);
+                debug!("Got packet from {}", team_number);
 
-                self.state = Option::Some(State{
+                self.state = Option::Some(State {
                     emergency_stopped: false,
                     enable: false,
                     mode: Mode::TeleOp,
                     team_number,
                     sequence_number: 0,
                     time_to_display: 0,
-                    match_number: 0
+                    match_number: 0,
                 });
 
-                self.robot_map.clone().lock().await.insert(team_number, robot);
+                self.robot_map
+                    .clone()
+                    .lock()
+                    .await
+                    .insert(team_number, robot);
 
                 self.send_station_info().await;
                 self.send_event_name().await;

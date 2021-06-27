@@ -1,30 +1,36 @@
-use crate::robot::{ThreadSafeRobot, Mode, ConfirmedState, Robot};
-use std::sync::Arc;
-use std::net::SocketAddr;
-use tokio::sync::Mutex;
+use crate::robot::{ConfirmedState, Mode, Robot, ThreadSafeRobot};
 use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::sync::Arc;
 use tokio::net::{TcpListener, UdpSocket};
 use tokio::sync::broadcast::Sender;
+use tokio::sync::Mutex;
 
 use std::str;
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::time::Duration;
-use tokio::io::{BufReader, AsyncBufReadExt};
 
 pub type RobotMap = Arc<Mutex<HashMap<u16, ThreadSafeRobot>>>;
 
 pub struct Nevermore {
-    team_number_to_robot: RobotMap,
+    pub team_number_to_robot: RobotMap,
     udp_socket: Option<Arc<UdpSocket>>,
-    closing_sender: Option<Sender<()>>
+    pub closing_sender: Option<Sender<()>>,
+    pub ticker_sender: Sender<()>,
 }
 
 impl Nevermore {
-    pub async fn new() -> anyhow::Result<Nevermore> {
-        Ok(Nevermore {
+    pub async fn new() -> anyhow::Result<Arc<Mutex<Nevermore>>> {
+        let (tx, _) = tokio::sync::broadcast::channel(10);
+
+        let nevermore = Arc::new(Mutex::new(Nevermore {
             team_number_to_robot: Arc::new(Mutex::new(HashMap::new())),
             udp_socket: Option::None,
-            closing_sender: Option::None
-        })
+            closing_sender: Option::None,
+            ticker_sender: tx,
+        }));
+
+        Ok(nevermore)
     }
 
     pub async fn start(&mut self) -> anyhow::Result<()> {
@@ -32,21 +38,23 @@ impl Nevermore {
         let mut rx2 = tx.subscribe();
         self.closing_sender = Option::Some(tx);
 
-        self.listen_for_udp_messages("10.0.100.5:1160".parse()?,  rx2).await?;
-        self.listen_for_tcp_connections("10.0.100.5:1750".parse()?,  rx1).await?;
+        self.listen_for_udp_messages("10.0.100.5:1160".parse()?, rx2)
+            .await?;
+        self.listen_for_tcp_connections("10.0.100.5:1750".parse()?, rx1)
+            .await?;
         self.start_ticking().await;
 
-
-        let mut input_lines = BufReader::new(tokio::io::stdin()).lines();
+        /*let mut input_lines = BufReader::new(tokio::io::stdin()).lines();
         while let Some(line) = input_lines.next_line().await? {
             println!("length = {}", line.len())
-        }
+        }*/
 
         Ok(())
     }
 
     async fn start_ticking(&self) {
         let robot_map = self.team_number_to_robot.clone();
+        let ticker_sender = self.ticker_sender.clone();
 
         tokio::spawn(async move {
             loop {
@@ -54,12 +62,17 @@ impl Nevermore {
                     info!("Got robot!");
                     robot.lock().await.send_udp_state().await;
                 }
+                ticker_sender.send(());
                 tokio::time::sleep(Duration::from_millis(500)).await;
             }
         });
     }
 
-    async fn listen_for_tcp_connections(&self, tcp_address: SocketAddr, mut closing_channel: tokio::sync::broadcast::Receiver<()>) -> anyhow::Result<()> {
+    async fn listen_for_tcp_connections(
+        &self,
+        tcp_address: SocketAddr,
+        mut closing_channel: tokio::sync::broadcast::Receiver<()>,
+    ) -> anyhow::Result<()> {
         let listener = TcpListener::bind(tcp_address).await?;
         let robot_map = self.team_number_to_robot.clone();
         let udp_socket = self.udp_socket.clone();
@@ -92,7 +105,11 @@ impl Nevermore {
         Ok(())
     }
 
-    async fn listen_for_udp_messages(&mut self, udp_address: SocketAddr, mut closing_channel: tokio::sync::broadcast::Receiver<()>) -> anyhow::Result<()> {
+    async fn listen_for_udp_messages(
+        &mut self,
+        udp_address: SocketAddr,
+        mut closing_channel: tokio::sync::broadcast::Receiver<()>,
+    ) -> anyhow::Result<()> {
         let listener = Arc::new(UdpSocket::bind(udp_address).await?);
         let robot_map = self.team_number_to_robot.clone();
 
@@ -124,13 +141,16 @@ impl Nevermore {
         Ok(())
     }
 
-    async fn decode_udp_message(robot_map: RobotMap, from: SocketAddr, buffer: Vec<u8>) -> anyhow::Result<()> {
+    async fn decode_udp_message(
+        robot_map: RobotMap,
+        from: SocketAddr,
+        buffer: Vec<u8>,
+    ) -> anyhow::Result<()> {
         let is_emergency_stopped = ((buffer[3] as i32) >> 7 & 0x01) == 1;
         let robot_comms_active = ((buffer[3] as i32) >> 5 & 0x01) == 1;
         let can_ping_radio = ((buffer[3] as i32) >> 4 & 0x01) == 1;
         let can_ping_rio = ((buffer[3] as i32) >> 3 & 0x01) == 1;
         let is_enabled = ((buffer[3] as i32) >> 2 & 0x01) == 1;
-
 
         let mode = Mode::from_integer((buffer[3] as i32) & 0x03);
 
@@ -139,16 +159,23 @@ impl Nevermore {
 
         info!("{}", team_number);
 
-        robot_map.lock().await.get_mut(&team_number).ok_or(anyhow::anyhow!("team number doesn't exist"))?.lock().await.update_confirmed_state(ConfirmedState{
-            is_emergency_stopped,
-            robot_comms_active,
-            can_ping_radio,
-            can_ping_rio,
-            is_enabled,
-            mode,
-            team_number,
-            battery_voltage
-        });
+        robot_map
+            .lock()
+            .await
+            .get_mut(&team_number)
+            .ok_or(anyhow::anyhow!("team number doesn't exist"))?
+            .lock()
+            .await
+            .update_confirmed_state(ConfirmedState {
+                is_emergency_stopped,
+                robot_comms_active,
+                can_ping_radio,
+                can_ping_rio,
+                is_enabled,
+                mode,
+                team_number,
+                battery_voltage,
+            });
 
         Ok(())
     }
