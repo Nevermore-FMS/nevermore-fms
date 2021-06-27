@@ -1,6 +1,6 @@
-use std::path::PathBuf;
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 
 fn main() -> std::io::Result<()> {
     let out_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -13,14 +13,14 @@ fn main() -> std::io::Result<()> {
         deno_websocket::get_declaration(),
         deno_crypto::get_declaration(),
         deno_broadcast_channel::get_declaration(),
-        out_dir.join("ts").join("shared-globals.d.ts")
+        out_dir.join("ts").join("shared-globals.d.ts"),
     ];
 
     let mut final_string = String::new();
 
     for extension in extensions {
-        let contents = std::fs::read_to_string(extension)
-            .expect("Something went wrong reading the file");
+        let contents =
+            std::fs::read_to_string(extension).expect("Something went wrong reading the file");
 
         final_string.push_str(&contents);
     }

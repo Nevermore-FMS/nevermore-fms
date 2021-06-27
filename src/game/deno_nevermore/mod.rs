@@ -1,11 +1,6 @@
 use deno_core::include_js_files;
-use deno_core::{op_sync, Extension, OpState, Resource, ResourceId};
+use deno_core::{op_sync, Extension, OpState};
 use serde::Deserialize;
-use std::borrow::Cow;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 pub fn init() -> Extension {
     Extension::builder()
@@ -15,7 +10,7 @@ pub fn init() -> Extension {
             "js/02-main.js",
         ))
         .ops(vec![("op_log", op_sync(op_log))])
-        .state(move |state| {
+        .state(move |_state| {
             //state.put(nevermore);
             Ok(())
         })
@@ -29,7 +24,7 @@ pub struct LogArgs {
     level: u16,
 }
 
-pub fn op_log(state: &mut OpState, args: LogArgs, _: ()) -> anyhow::Result<()> {
+pub fn op_log(_state: &mut OpState, args: LogArgs, _: ()) -> anyhow::Result<()> {
     if args.level > 1 {
         error!("{}", args.msg);
     } else {

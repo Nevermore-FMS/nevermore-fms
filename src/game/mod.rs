@@ -1,6 +1,5 @@
 pub mod deno_nevermore;
 
-use crate::nevermore::Nevermore;
 use deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_core::error::AnyError;
 use deno_core::futures::StreamExt;
@@ -14,8 +13,6 @@ use deno_websocket::NoWebSocketPermissions;
 use std::cell::RefCell;
 use std::pin::Pin;
 use std::rc::Rc;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[derive(Default)]
 struct ModsLoader;
@@ -60,7 +57,7 @@ impl DenoGameEngine {
             })
             .build();
 
-        let mut extensions = vec![
+        let extensions = vec![
             deno_webidl::init(),
             deno_console::init(),
             deno_url::init(),
@@ -75,7 +72,7 @@ impl DenoGameEngine {
         ];
 
         let loader = std::rc::Rc::new(ModsLoader::default());
-        let mut runtime = JsRuntime::new(RuntimeOptions {
+        let runtime = JsRuntime::new(RuntimeOptions {
             module_loader: Some(loader),
             extensions,
             ..Default::default()

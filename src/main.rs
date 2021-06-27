@@ -1,13 +1,8 @@
 mod game;
-mod nevermore;
-mod robot;
+mod field;
 
 #[macro_use]
 extern crate log;
-
-use crate::game::DenoGameEngine;
-use crate::nevermore::Nevermore;
-use log::LevelFilter;
 
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -19,13 +14,16 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting {} v{} by {}...", NAME, VERSION, AUTHORS);
 
-    //let mut application = nevermore::Nevermore::new().await?;
-    //application.lock().await.start().await;
+    let application = field::Field::new("nevermore".to_string()).await?;
 
-    let mut game_engine = DenoGameEngine::new()?;
+    loop {
+
+    }
+
+    /*let mut game_engine = DenoGameEngine::new()?;
     game_engine
         .start(String::from(include_str!("test.js")))
-        .await?;
+        .await?;*/
 
     Ok(())
 }
