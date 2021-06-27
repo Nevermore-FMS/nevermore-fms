@@ -1,7 +1,5 @@
-use crate::nevermore::Nevermore;
-use crate::robot::ThreadSafeRobot;
 use deno_core::include_js_files;
-use deno_core::{op_async, op_sync, Extension, OpState, Resource, ResourceId};
+use deno_core::{op_sync, Extension, OpState, Resource, ResourceId};
 use serde::Deserialize;
 use std::borrow::Cow;
 use std::cell::RefCell;
