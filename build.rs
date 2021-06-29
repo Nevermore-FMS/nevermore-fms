@@ -14,6 +14,7 @@ fn main() -> std::io::Result<()> {
         deno_crypto::get_declaration(),
         deno_broadcast_channel::get_declaration(),
         out_dir.join("ts").join("shared-globals.d.ts"),
+        out_dir.join("ts").join("nevermore.d.ts"),
     ];
 
     let mut final_string = String::new();

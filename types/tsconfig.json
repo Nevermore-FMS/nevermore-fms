@@ -17,6 +17,6 @@
         "forceConsistentCasingInFileNames": true
     },
     "files": [
-        "index.d.ts"
+        "generated.d.ts"
     ]
 }

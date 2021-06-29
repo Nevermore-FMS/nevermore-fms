@@ -1942,3 +1942,260 @@ interface ErrorConstructor {
   // TODO(nayeemrmn): Support `Error.prepareStackTrace()`. We currently use this
   // internally in a way that makes it unavailable for users.
 }
+
+interface MessageEventInit<T = any> extends EventInit {
+  data?: T;
+  origin?: string;
+  lastEventId?: string;
+}
+
+declare class MessageEvent<T = any> extends Event {
+  /**
+   * Returns the data of the message.
+   */
+  readonly data: T;
+  /**
+   * Returns the last event ID string, for server-sent events.
+   */
+  readonly lastEventId: string;
+  /**
+   * Returns transfered ports.
+   */
+  readonly ports: ReadonlyArray<MessagePort>;
+  constructor(type: string, eventInitDict?: MessageEventInit);
+}
+
+type Transferable = ArrayBuffer | MessagePort;
+
+interface PostMessageOptions {
+  transfer?: Transferable[];
+}
+
+/** The MessageChannel interface of the Channel Messaging API allows us to
+ * create a new message channel and send data through it via its two MessagePort
+ * properties. */
+declare class MessageChannel {
+  constructor();
+  readonly port1: MessagePort;
+  readonly port2: MessagePort;
+}
+
+interface MessagePortEventMap {
+  "message": MessageEvent;
+  "messageerror": MessageEvent;
+}
+
+/** The MessagePort interface of the Channel Messaging API represents one of the
+ * two ports of a MessageChannel, allowing messages to be sent from one port and
+ * listening out for them arriving at the other. */
+declare class MessagePort extends EventTarget {
+  onmessage: ((this: MessagePort, ev: MessageEvent) => any) | null;
+  onmessageerror: ((this: MessagePort, ev: MessageEvent) => any) | null;
+  /**
+   * Disconnects the port, so that it is no longer active.
+   */
+  close(): void;
+  /**
+   * Posts a message through the channel. Objects listed in transfer are
+   * transferred, not just cloned, meaning that they are no longer usable on the
+   * sending side.
+   *
+   * Throws a "DataCloneError" DOMException if transfer contains duplicate
+   * objects or port, or if message could not be cloned.
+   */
+  postMessage(message: any, transfer: Transferable[]): void;
+  postMessage(message: any, options?: PostMessageOptions): void;
+  /**
+   * Begins dispatching messages received on the port. This is implictly called
+   * when assiging a value to `this.onmessage`.
+   */
+  start(): void;
+  addEventListener<K extends keyof MessagePortEventMap>(
+    type: K,
+    listener: (this: MessagePort, ev: MessagePortEventMap[K]) => any,
+    options?: boolean | AddEventListenerOptions,
+  ): void;
+  addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | AddEventListenerOptions,
+  ): void;
+  removeEventListener<K extends keyof MessagePortEventMap>(
+    type: K,
+    listener: (this: MessagePort, ev: MessagePortEventMap[K]) => any,
+    options?: boolean | EventListenerOptions,
+  ): void;
+  removeEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | EventListenerOptions,
+  ): void;
+}/**
+ * The `Nevermore` namespace defines the API used to interact with the Nevermore FMS from Worker Scripts.
+ * 
+ * Remember, playing with robots is dangerous, but controlling their safety system is even more dangerous.
+ * Ensure you triple check, test, and verify your workers before ever using them in production.
+ */
+declare namespace Nevermore {
+
+    /**
+     * The `Nevermore.Field` namespace defines the API used to interact with the active field.
+     * 
+     * When the worker script is ran it's assumed that the current field has been fully started and 
+     * all functions may be called.
+     */
+    namespace Field {
+
+        export function on(event: 'tick', listener: () => Promise<void>): void;
+
+        export function on(event: 'close', listener: () => Promise<void>): void;
+
+        /**
+         * Retrieves a teams DriverStation.
+         * 
+         * @param teamNumber The team number for the driver station.
+         */
+        export async function getDriverStation(teamNumber: number): Promise<DriverStation>
+
+        /**
+         * Retrieves all DriverStations.
+         */
+        export async function getAllDriverStations(): Promise<DriverStation[]>
+
+        /**
+         * Adds a team to the alliance station map, thereby allowing it to properly connect.
+         * 
+         * @param teamNumber The team number of the team intended to be added.
+         * @param allianceStation The alliance station of the team.
+         */
+        export async function addTeam(teamNumber: number, allianceStation: AllianceStation): Promise<void>
+
+        /**
+         * Removes a team from the alliance station map, doesn't work after a robot is already connected.
+         * 
+         * @param teamNumber The team number of the team intended to be removed.
+         */
+        export async function removeTeam(teamNumber: number): Promise<void>
+
+        /**
+         * Emergency stops all robots on the field no matter the state of any driverstations.
+         * 
+         * @param emergencyStopped Whether the robots should or shouldn't be emergency stopped.
+         */
+        export async function setOverrideEmergencyStoppedAll(emergencyStopped: boolean): Promise<void>
+
+        /**
+         * Enables or disabes all robots on the field no matter the state of any driverstations.
+         * 
+         * @param enabled Whether the robots should or shouldn't be enabled.
+         */
+        export async function setOverrideEnabledAll(enabled: boolean): Promise<void>
+
+        export async function getTeamAllianceStation(teamNumber: number): Promise<AllianceStation>
+
+        export async function getTeamToAllianceStationMap(): Promise<Map<number, AllianceStation>>
+
+        export enum AllianceStation {
+            RED1,
+            RED2,
+            RED3,
+            BLUE1,
+            BLUE2,
+            BLUE3,
+            NONE
+        }
+
+        export enum DriverStationStatus {
+            GOOD,
+            BAD,
+            WAITING
+        }
+
+        export enum Mode {
+            TELEOP,
+            TEST,
+            AUTONOMOUS
+        }
+
+        export interface DriverStationState {
+            emergencyStop: boolean,
+            enable: boolean,
+            mode: Mode,
+            teamNumber: number,
+            allianceStation: AllianceStation,
+            status: DriverStationStatus,
+            sequenceNumber: number,
+            timeToDisplay: number,
+            matchNumber: number,
+            eventName: string
+        }
+
+        export interface DriverStationConfirmedState {
+            isEmergencyStopped: boolean,
+            robotCommunicationsActive: boolean,
+            canPingRadio: boolean,
+            canPingRio: boolean,
+            isEnabled: boolean,
+            mode: Mode,
+            teamNumber: number,
+            batteryVoltage: number
+        }
+
+        export class DriverStation {
+            private constructor(rid: number)
+
+            async getConfirmedState(): Promise<DriverStationConfirmedState>
+
+            async getState(): Promise<DriverStationState>
+
+            async setState(state: DriverStationState): Promise<DriverStationState>
+
+            async isInCorrectStation(): Promise<boolean>
+
+            async isInMatch(): Promise<boolean>
+
+            async getAddress(): Promise<string>
+        }
+    }
+
+    /**
+     * The `Nevermore.PubSub` namespace defines the API used to send messages to and from the frontend.
+     */
+    namespace PubSub {
+        /**
+         * Message represents and JS object capable of being turned into JSON.
+         */
+        export type PubSubMessage = any
+
+        /**
+         * A callback for a subscriber returning a JS Object.
+         */
+        export type PubSubCallback = (message: PubSubMessage) => Promise<void>;
+
+        /**
+         * Publishes the specified message to the specified topic.
+         * 
+         * Can be accessed on the frontend.
+         * 
+         * @param topic The topic being published to.
+         * @param message The message to publish.
+         */
+        export async function publish(topic: string, message: PubSubMessage): Promise<void>;
+
+        /**
+         * Subscribes to the specified topic and calls the callback when it receives a message.
+         * 
+         * @param topic The topic being subscribed to.
+         * @param callback The callback to be called with the message as a param.
+         */
+        export function subscribe(topic: string, callback: PubSubCallback): void;
+
+        /**
+         * Unsubscribes from the specified topic and calls the callback when it receives a message.
+         * 
+         * @param topic The topic being unsubscribed from.
+         * @param callback The callback being unsubscribed from.
+         */
+        export async function unsubscribe(topic: string, callback: PubSubCallback): Promise<void>;
+    }
+}

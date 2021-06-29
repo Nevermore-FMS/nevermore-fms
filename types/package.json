@@ -2,6 +2,6 @@
   "name": "nevermore-types",
   "version": "1.0.0",
   "description": "",
-  "typings": "./index.d.ts",
+  "typings": "./generated.d.ts",
   "author": "Chase MacDonnell <macdonnell.chase@gmail.com>"
 }

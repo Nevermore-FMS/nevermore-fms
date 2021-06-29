@@ -1,19 +1,22 @@
 use chrono::{Datelike, Local, Timelike};
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
+use crate::field::enums::{AllianceStation, DriverstationStatus, Mode};
+use crate::field::{
+    ThreadSafeAllianceStationMap, ThreadSafeFieldOverride, ThreadSafeDriverStationMap,
+    ThreadSafeStateMap,
+};
+use std::borrow::BorrowMut;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::OwnedWriteHalf;
 use tokio::net::{TcpStream, UdpSocket};
-use tokio::sync::mpsc::Sender;
+use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
-use crate::field::{ThreadSafeRobotMap, ThreadSafeAllianceStationMap};
-use crate::field::enums::{Mode, AllianceStation, DriverstationStatus};
-use std::borrow::BorrowMut;
 
-pub type ThreadSafeRobot = Arc<Mutex<Robot>>;
+pub type ThreadSafeDriverStation = Arc<Mutex<DriverStation>>;
 
 #[derive(Copy, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -30,7 +33,7 @@ pub struct ConfirmedState {
     pub battery_voltage: f32,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct State {
     pub emergency_stop: bool,
@@ -47,55 +50,62 @@ pub struct State {
     pub event_name: String,
 }
 
-#[derive(Copy, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FieldOverride {
-    pub emergency_stop: bool,
-    pub disabled: bool,
-}
-
-pub struct Robot {
+pub struct DriverStation {
     confirmed_state: Option<ConfirmedState>,
-    state: Option<State>,
-    field_override: FieldOverride,
+    team_number: u16,
+    state_map: ThreadSafeStateMap,
+    field_override: ThreadSafeFieldOverride,
     tcp_writer: OwnedWriteHalf,
     udp_socket: Arc<UdpSocket>,
     socket_address: SocketAddr,
-    robot_map: ThreadSafeRobotMap,
+    driver_station_map: ThreadSafeDriverStationMap,
     alliance_station_map: ThreadSafeAllianceStationMap,
     closing_sender: Sender<()>,
     original_event_name: String,
-    has_closed: bool
+    has_closed: bool,
 }
 
-impl Robot {
-    pub fn override_emergency_stop(&mut self, emergency_stop: bool) {
-        self.field_override.emergency_stop = emergency_stop;
-    }
-
-    pub fn override_enabled(&mut self, enabled: bool) {
-        self.field_override.disabled = !enabled;
-    }
-
+impl DriverStation {
     pub fn get_confirmed_state(&self) -> anyhow::Result<ConfirmedState> {
-        self.confirmed_state.ok_or(anyhow::anyhow!("confirmed_state hasn't been formed yet"))
+        self.confirmed_state
+            .ok_or(anyhow::anyhow!("confirmed_state hasn't been formed yet"))
     }
 
-    pub fn get_state(&self) -> anyhow::Result<State> {
-        Ok(self.state.clone().ok_or(anyhow::anyhow!("state hasn't been formed yet"))?.clone())
+    pub async fn get_state(&self) -> anyhow::Result<State> {
+        Ok(self
+            .state_map
+            .lock()
+            .await
+            .get(&self.team_number)
+            .ok_or(anyhow::anyhow!("state not formed yet"))?
+            .clone())
     }
 
-    pub fn set_state(&mut self, state: State) {
-        if self.state.is_some() {
-            let old_state = self.state.clone().unwrap();
-            if old_state.event_name != state.event_name ||
-                old_state.alliance_station != state.alliance_station ||
-                old_state.status != state.status {
-                self.send_event_name();
-                self.send_station_info();
+    pub async fn set_state(&mut self, state: State) {
+        let state_map = self.state_map.clone();
+        let mut locked_state_map = state_map.lock().await;
+
+        let old_state_maybe = locked_state_map.insert(self.team_number, state.clone());
+
+        if old_state_maybe.is_some() {
+            let old_state = old_state_maybe.clone().unwrap();
+            if old_state.event_name != state.event_name
+                || old_state.alliance_station != state.alliance_station
+                || old_state.status != state.status
+            {
+                drop(locked_state_map); // Unlock mutex on state map.
+                self.send_event_name().await;
+                self.send_station_info().await;
             }
         }
-        self.state = Some(state);
+    }
+
+    pub async fn is_in_correct_station(&self) -> anyhow::Result<bool> {
+        Ok(self.get_state().await?.status == DriverstationStatus::Good)
+    }
+
+    pub async fn is_in_match(&self) -> anyhow::Result<bool> {
+        Ok(self.get_state().await?.status != DriverstationStatus::Waiting)
     }
 
     pub fn address(&self) -> SocketAddr {
@@ -112,29 +122,32 @@ impl Robot {
     pub async fn handle_connection(
         socket: TcpStream,
         socket_address: SocketAddr,
-        robot_map: ThreadSafeRobotMap,
+        driver_station_map: ThreadSafeDriverStationMap,
         alliance_station_map: ThreadSafeAllianceStationMap,
+        state_map: ThreadSafeStateMap,
+        field_override: ThreadSafeFieldOverride,
         udp_socket: Arc<UdpSocket>,
-        event_name: String
+        event_name: String,
     ) {
         tokio::spawn(async move {
-            let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(1);
+            let (tx, mut rx) = tokio::sync::broadcast::channel::<()>(1);
             let (mut reader, writer) = socket.into_split();
-            let robot = Robot {
+            let robot = DriverStation {
                 confirmed_state: None,
-                state: None,
-                field_override: FieldOverride { emergency_stop: false, disabled: false },
+                field_override,
                 tcp_writer: writer,
                 udp_socket,
                 socket_address,
-                robot_map,
+                driver_station_map,
                 alliance_station_map,
                 closing_sender: tx,
                 original_event_name: event_name,
-                has_closed: false
+                has_closed: false,
+                team_number: 0,
+                state_map,
             };
 
-            let mut thread_safe_robot = Arc::new(Mutex::new(robot));
+            let thread_safe_robot = Arc::new(Mutex::new(robot));
 
             let mut buffer: Vec<u8> = vec![0; 50];
 
@@ -143,7 +156,7 @@ impl Robot {
                     result = reader.read(&mut buffer) => {
                         match result {
                             Ok(_) => {
-                                thread_safe_robot.lock().await.handle_packet(buffer.clone(), thread_safe_robot.clone()).await;
+                                Self::handle_packet(buffer.clone(), thread_safe_robot.clone()).await;
                             },
                             Err(_) => {
                                 break
@@ -158,42 +171,45 @@ impl Robot {
                 }
             }
             {
-                debug!("Destroyed tcp socket.");
                 let mut locked_robot = thread_safe_robot.lock().await;
                 let mut_robot = locked_robot.borrow_mut();
-                if mut_robot.state.is_some() {
-                    mut_robot
-                        .robot_map
-                        .lock()
-                        .await
-                        .remove(&mut_robot.state.as_ref().unwrap().team_number);
-                    mut_robot.has_closed = true;
-                }
+                debug!("Destroyed tcp socket for {}.", mut_robot.team_number);
+                mut_robot
+                    .driver_station_map
+                    .lock()
+                    .await
+                    .remove(&mut_robot.team_number);
+                mut_robot.has_closed = true;
             }
         });
     }
 
     async fn send_station_info(&mut self) {
-        let mut buffer: Vec<u8> = vec![0x19, 0x01, 0x00];
+        let state = self.get_state().await.unwrap();
+        let mut buffer: Vec<u8> = vec![
+            0x19,
+            state.alliance_station.to_integer() as u8,
+            state.status.to_integer() as u8,
+        ];
 
         buffer = prefix_with_size(buffer);
-        self.tcp_writer.write(&buffer).await;
+        self.tcp_writer.write(&buffer).await.ok();
     }
 
     async fn send_event_name(&mut self) {
-        let name = "test";
+        let name = self.get_state().await.unwrap().event_name;
         let length = name.len() as u8;
         let mut buffer: Vec<u8> = vec![0x14, length];
         buffer.extend_from_slice(name.as_bytes());
 
         buffer = prefix_with_size(buffer);
-        self.tcp_writer.write(&buffer).await;
+        self.tcp_writer.write(&buffer).await.ok();
     }
 
     pub(crate) async fn send_udp_state(&mut self) {
         let mut buffer: Vec<u8> = vec![0; 22];
 
-        let mut state = self.state.as_mut().unwrap();
+        let mut state = self.get_state().await.unwrap();
 
         buffer[0] = (state.sequence_number >> 8 & 0xff) as u8;
         buffer[1] = (state.sequence_number & 0xff) as u8;
@@ -204,11 +220,13 @@ impl Robot {
             buffer[3] |= 0x02
         }
 
-        if state.enable && !self.field_override.disabled {
+        let field_override = self.field_override.read().await;
+
+        if state.enable && !field_override.disabled {
             buffer[3] |= 0x04
         }
 
-        if state.emergency_stop || self.field_override.emergency_stop {
+        if state.emergency_stop || field_override.emergency_stop {
             buffer[3] |= 0x80
         }
 
@@ -236,7 +254,7 @@ impl Robot {
         buffer[21] = (state.time_to_display & 0xff) as u8;
 
         let remote_address = SocketAddr::new(self.socket_address.ip(), 1121);
-        self.udp_socket.send_to(&buffer, remote_address).await;
+        self.udp_socket.send_to(&buffer, remote_address).await.ok();
 
         // Reset to zero if the sequence number gets to high.
         if state.sequence_number + 1 > u16::MAX {
@@ -245,7 +263,7 @@ impl Robot {
         state.sequence_number += 1;
     }
 
-    async fn handle_packet(&mut self, buffer: Vec<u8>, robot: ThreadSafeRobot) {
+    async fn handle_packet(buffer: Vec<u8>, robot: ThreadSafeDriverStation) {
         match buffer[2] {
             0x18 => {
                 let team_number = (((buffer[3] as i32) << 8) + (buffer[4] as i32)) as u16;
@@ -267,33 +285,36 @@ impl Robot {
                 let status = if alliance_station != AllianceStation::None {
                     DriverstationStatus::Good
                 } else {
-                    DriverstationStatus::Good
+                    DriverstationStatus::Waiting
                 };
-
-                self.state = Option::Some(State {
-                    emergency_stop: false,
-                    enable: false,
-                    mode: Mode::TeleOp,
-                    team_number,
-                    alliance_station,
-                    status,
-                    sequence_number: 0,
-                    time_to_display: 0,
-                    match_number: 0,
-                    event_name: self.original_event_name.clone()
-                });
 
                 let mut locked_robot = robot.lock().await;
 
-                // TODO: It may be necessary to bring in a second Robot Map for all robots and verified robots.
-                if status == DriverstationStatus::Good {
-                    locked_robot
-                        .robot_map
-                        .clone()
-                        .lock()
-                        .await
-                        .insert(team_number, robot.clone());
-                }
+                locked_robot.team_number = team_number;
+
+                let event_name = locked_robot.original_event_name.clone();
+
+                locked_robot
+                    .set_state(State {
+                        emergency_stop: false,
+                        enable: false,
+                        mode: Mode::TeleOp,
+                        team_number,
+                        alliance_station,
+                        status,
+                        sequence_number: 0,
+                        time_to_display: 0,
+                        match_number: 0,
+                        event_name,
+                    })
+                    .await;
+
+                locked_robot
+                    .driver_station_map
+                    .clone()
+                    .lock()
+                    .await
+                    .insert(team_number, robot.clone());
 
                 locked_robot.send_station_info().await;
                 locked_robot.send_event_name().await;
@@ -314,4 +335,10 @@ fn prefix_with_size(buffer: Vec<u8>) -> Vec<u8> {
     new_buffer[1] = (length & 0xff) as u8;
     new_buffer.extend_from_slice(&buffer);
     return new_buffer;
+}
+
+impl Drop for DriverStation {
+    fn drop(&mut self) {
+        self.closing_sender.send(()).ok();
+    }
 }

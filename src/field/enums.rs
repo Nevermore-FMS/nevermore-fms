@@ -1,11 +1,12 @@
-use serde::{Serialize, Deserialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
-/// Represents the Alliance of a Robot. Whereby there is a Red and Blue side. (Hardcoded
+/// Represents the Alliance of a DriverStation. Whereby there is a Red and Blue side. (Hardcoded
 /// due to it's use in the network protocol)
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Copy, Clone, Serialize_repr, Deserialize_repr, PartialEq)]
+#[repr(i32)]
 pub enum Alliance {
     Red = 0,
-    Blue
+    Blue,
 }
 
 impl Alliance {
@@ -13,7 +14,7 @@ impl Alliance {
         match integer {
             0 => Alliance::Red,
             1 => Alliance::Blue,
-            _ => Alliance::Red
+            _ => Alliance::Red,
         }
     }
 
@@ -25,9 +26,10 @@ impl Alliance {
     }
 }
 
-/// Represents the AllianceStation of a Robot. There are six different alliance stations around
+/// Represents the AllianceStation of a DriverStation. There are six different alliance stations around
 /// an FRC field, three on each side. (Hardcoded due to it's use in the network protocol)
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Copy, Clone, Serialize_repr, Deserialize_repr, PartialEq)]
+#[repr(i32)]
 pub enum AllianceStation {
     Red1 = 0,
     Red2,
@@ -35,7 +37,7 @@ pub enum AllianceStation {
     Blue1,
     Blue2,
     Blue3,
-    None
+    None,
 }
 
 impl AllianceStation {
@@ -47,7 +49,7 @@ impl AllianceStation {
             3 => AllianceStation::Blue1,
             4 => AllianceStation::Blue2,
             5 => AllianceStation::Blue3,
-            _ => AllianceStation::Red1
+            _ => AllianceStation::Red1,
         }
     }
 
@@ -59,7 +61,7 @@ impl AllianceStation {
             AllianceStation::Blue1 => 3,
             AllianceStation::Blue2 => 4,
             AllianceStation::Blue3 => 5,
-            AllianceStation::None => 0
+            AllianceStation::None => 0,
         }
     }
 }
@@ -69,11 +71,12 @@ impl AllianceStation {
 /// `DriverstationStatus::Good` when in the correct position, `DriverstationStatus::Bad`
 /// when in the wrong position, and `DriverstationStatus::Waiting` when the team isn't in
 /// this match.
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Copy, Clone, Serialize_repr, Deserialize_repr, PartialEq)]
+#[repr(i32)]
 pub enum DriverstationStatus {
     Good = 0,
     Bad,
-    Waiting
+    Waiting,
 }
 
 impl DriverstationStatus {
@@ -97,11 +100,12 @@ impl DriverstationStatus {
 
 /// Represents the Level of the current match being played. I don't really know why this is
 /// sent to the Driverstations, but it's required so it must be included.
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Copy, Clone, Serialize_repr, Deserialize_repr, PartialEq)]
+#[repr(i32)]
 pub enum MatchLevel {
     Good = 0,
     Bad,
-    Waiting
+    Waiting,
 }
 
 impl MatchLevel {
@@ -123,9 +127,10 @@ impl MatchLevel {
     }
 }
 
-/// Represents the Mode of a Robot. These values correspond to the values you can
+/// Represents the Mode of a DriverStation. These values correspond to the values you can
 /// get from WPILib and can set on the Driverstation when directly connected.
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Copy, Clone, Serialize_repr, Deserialize_repr, PartialEq)]
+#[repr(i32)]
 pub enum Mode {
     TeleOp = 0,
     Test,

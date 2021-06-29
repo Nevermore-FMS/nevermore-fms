@@ -65,6 +65,8 @@
       <sourceFolder url="file://$MODULE_DIR$/target/debug/build/async-trait-699f06a46fcb8cc0/out" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/target/debug/build/nevermore-26a7494e842e19a1/out" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/target/debug/build/nevermore-790eab4194385d21/out" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/target/debug/build/nevermore-cf606453d46ff9b8/out" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

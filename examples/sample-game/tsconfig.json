@@ -4,11 +4,13 @@
       "noImplicitAny": true,
       "module": "es6",
       "target": "es5",
+      "allowSyntheticDefaultImports": true,
       "lib": [
         "es2017"
       ],
       "types": [
-        "nevermore-types"
+        "nevermore-types",
+        "react"
       ],
       "jsx": "react",
       "allowJs": true,

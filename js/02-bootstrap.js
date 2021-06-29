@@ -65,6 +65,7 @@
       const fetch = window.__bootstrap.fetch;
       const webidl = window.__bootstrap.webidl;
       const file = window.__bootstrap.file;
+      const nevermore = window.__bootstrap.nevermore;
 
     const windowOrWorkerGlobalScope = {
         Blob: util.nonEnumerable(file.Blob),
@@ -131,6 +132,7 @@
         fetch: util.writable(fetch.fetch),
         setInterval: util.writable(timers.setInterval),
         setTimeout: util.writable(timers.setTimeout),
+        Nevermore: util.nonEnumerable(nevermore.Nevermore)
       };
 
       core.setMacrotaskCallback(timers.handleTimerMacrotask);
