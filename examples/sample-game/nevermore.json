@@ -1,0 +1,7 @@
+{
+    "name": "sample-game",
+    "description": "A Sample Game",
+    "workerPath": "dist/worker.bundle.js",
+    "graphqlEndpoint": "http://localhost:8000/graphql",
+    "enabled": true
+}

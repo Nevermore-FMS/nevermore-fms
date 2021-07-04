@@ -1,4 +1,4 @@
-import React from "react";
+import React from "react"
 
 function Test() {
     return (
@@ -6,4 +6,4 @@ function Test() {
     )
 }
 
-export default Test;
+export default Test

@@ -1,5 +1,6 @@
 ((window) => {
   const pubSubMap = {};
+  const dsMap = {};
 
   const Nevermore = {
     Field: {
@@ -57,20 +58,20 @@
       },
 
       getDriverStation: async function (teamNumber) {
+        if (teamNumber in dsMap) {
+          try {
+            if (!(await dsMap[teamNumber].isClosed())) {
+              return dsMap[teamNumber];
+            }
+          } catch (_) {}
+        }
         const rid = await Deno.core.opAsync(
           "op_get_driver_station",
           teamNumber
         );
-        return new DriverStation(rid);
-      },
-
-      getAllDriverStations: async function () {
-        const driverStations = [];
-        const rids = await Deno.core.opAsync("op_get_driver_stations");
-        for (rid in rids) {
-          driverStations.push(new DriverStation(rid));
-        }
-        return driverStations;
+        const ds = new DriverStation(rid);
+        dsMap[teamNumber] = ds;
+        return ds;
       },
 
       addTeam: async function (teamNumber, allianceStation) {
@@ -182,6 +183,13 @@
     async getAddress() {
       return await Deno.core.opAsync(
         "op_driverstation_get_address",
+        this.rid
+      );
+    }
+
+    async isClosed() {
+      return await Deno.core.opAsync(
+        "op_driverstation_has_closed",
         this.rid
       );
     }

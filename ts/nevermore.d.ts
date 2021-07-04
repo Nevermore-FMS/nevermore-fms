@@ -23,12 +23,7 @@ declare namespace Nevermore {
          * 
          * @param teamNumber The team number for the driver station.
          */
-        export async function getDriverStation(teamNumber: number): Promise<DriverStation>
-
-        /**
-         * Retrieves all DriverStations.
-         */
-        export async function getAllDriverStations(): Promise<DriverStation[]>
+        export function getDriverStation(teamNumber: number): Promise<DriverStation>
 
         /**
          * Adds a team to the alliance station map, thereby allowing it to properly connect.
@@ -36,32 +31,32 @@ declare namespace Nevermore {
          * @param teamNumber The team number of the team intended to be added.
          * @param allianceStation The alliance station of the team.
          */
-        export async function addTeam(teamNumber: number, allianceStation: AllianceStation): Promise<void>
+        export function addTeam(teamNumber: number, allianceStation: AllianceStation): Promise<void>
 
         /**
          * Removes a team from the alliance station map, doesn't work after a robot is already connected.
          * 
          * @param teamNumber The team number of the team intended to be removed.
          */
-        export async function removeTeam(teamNumber: number): Promise<void>
+        export function removeTeam(teamNumber: number): Promise<void>
 
         /**
          * Emergency stops all robots on the field no matter the state of any driverstations.
          * 
          * @param emergencyStopped Whether the robots should or shouldn't be emergency stopped.
          */
-        export async function setOverrideEmergencyStoppedAll(emergencyStopped: boolean): Promise<void>
+        export function setOverrideEmergencyStoppedAll(emergencyStopped: boolean): Promise<void>
 
         /**
          * Enables or disabes all robots on the field no matter the state of any driverstations.
          * 
          * @param enabled Whether the robots should or shouldn't be enabled.
          */
-        export async function setOverrideEnabledAll(enabled: boolean): Promise<void>
+        export function setOverrideEnabledAll(enabled: boolean): Promise<void>
 
-        export async function getTeamAllianceStation(teamNumber: number): Promise<AllianceStation>
+        export function getTeamAllianceStation(teamNumber: number): Promise<AllianceStation>
 
-        export async function getTeamToAllianceStationMap(): Promise<Map<number, AllianceStation>>
+        export function getTeamToAllianceStationMap(): Promise<Map<number, AllianceStation>>
 
         export enum AllianceStation {
             RED1,
@@ -112,17 +107,19 @@ declare namespace Nevermore {
         export class DriverStation {
             private constructor(rid: number)
 
-            async getConfirmedState(): Promise<DriverStationConfirmedState>
+            getConfirmedState(): Promise<DriverStationConfirmedState>
 
-            async getState(): Promise<DriverStationState>
+            getState(): Promise<DriverStationState>
 
-            async setState(state: DriverStationState): Promise<DriverStationState>
+            setState(state: DriverStationState): Promise<DriverStationState>
 
-            async isInCorrectStation(): Promise<boolean>
+            isInCorrectStation(): Promise<boolean>
 
-            async isInMatch(): Promise<boolean>
+            isInMatch(): Promise<boolean>
 
-            async getAddress(): Promise<string>
+            getAddress(): Promise<string>
+
+            isClosed(): Promise<boolean>
         }
     }
 
@@ -148,7 +145,7 @@ declare namespace Nevermore {
          * @param topic The topic being published to.
          * @param message The message to publish.
          */
-        export async function publish(topic: string, message: PubSubMessage): Promise<void>;
+        export function publish(topic: string, message: PubSubMessage): Promise<void>;
 
         /**
          * Subscribes to the specified topic and calls the callback when it receives a message.
@@ -164,6 +161,6 @@ declare namespace Nevermore {
          * @param topic The topic being unsubscribed from.
          * @param callback The callback being unsubscribed from.
          */
-        export async function unsubscribe(topic: string, callback: PubSubCallback): Promise<void>;
+        export function unsubscribe(topic: string, callback: PubSubCallback): Promise<void>;
     }
 }

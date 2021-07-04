@@ -1,5 +1,5 @@
-use crate::field::enums::{AllianceStation, Mode};
 use crate::field::driverstation::{ConfirmedState, DriverStation, State, ThreadSafeDriverStation};
+use crate::field::enums::{AllianceStation, Mode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -9,8 +9,8 @@ use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::Duration;
 
-pub mod enums;
 pub mod driverstation;
+pub mod enums;
 
 pub type ThreadSafeField = Arc<Mutex<Field>>;
 
@@ -73,7 +73,10 @@ impl Field {
     }
 
     /// Retrieves a team from the `ThreadSafeAllianceStationMap`
-    pub async fn get_team_alliance_station(&self, team_number: u16) -> anyhow::Result<AllianceStation> {
+    pub async fn get_team_alliance_station(
+        &self,
+        team_number: u16,
+    ) -> anyhow::Result<AllianceStation> {
         Ok(self
             .team_number_to_station
             .lock()
@@ -84,18 +87,19 @@ impl Field {
     }
 
     // Retrieves the Team to Alliance Station map.
-    pub async fn get_team_alliance_station_map(&self) -> anyhow::Result<HashMap<u16, AllianceStation>> {
-        Ok(self
-            .team_number_to_station
-            .lock()
-            .await
-            .clone())
+    pub async fn get_team_alliance_station_map(
+        &self,
+    ) -> anyhow::Result<HashMap<u16, AllianceStation>> {
+        Ok(self.team_number_to_station.lock().await.clone())
     }
 
     /// Retrieves a driver station by it's team number, keep in mind that once the driver station disconnects the
     /// `ThreadSafeDriverStation` returned here is useless. TODO: Add a function to the driver station to check if
     /// it still exists in the driver station.
-    pub async fn get_driver_station(&self, team_number: u16) -> anyhow::Result<ThreadSafeDriverStation> {
+    pub async fn get_driver_station(
+        &self,
+        team_number: u16,
+    ) -> anyhow::Result<ThreadSafeDriverStation> {
         Ok(self
             .team_number_to_robot
             .lock()
@@ -138,7 +142,7 @@ impl Field {
     pub fn set_event_name(&mut self, event_name: String) {
         self.event_name = event_name;
     }
-    
+
     // Internal API -->
 
     pub(crate) async fn new(event_name: String) -> anyhow::Result<ThreadSafeField> {

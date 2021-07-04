@@ -1,11 +1,8 @@
-
-
 use deno_core::futures::StreamExt;
 use flo_stream::{MessagePublisher, Publisher};
 use serde::de::DeserializeOwned;
-use serde::{Serialize};
+use serde::Serialize;
 use std::collections::HashMap;
-
 
 use std::pin::Pin;
 use std::sync::Arc;

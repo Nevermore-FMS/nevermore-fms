@@ -1,21 +1,35 @@
 pub mod deno_nevermore;
+pub mod inspector_server;
+
+use std::net::SocketAddr;
+use std::sync::Arc;
 
 use crate::field::ThreadSafeField;
+use crate::game::deno_nevermore::LogMessage;
 use crate::pub_sub::ThreadSafePubSub;
 use deno_broadcast_channel::InMemoryBroadcastChannel;
-use deno_core::{
-    Extension, JsRuntime, RuntimeOptions
-};
+use deno_core::{Extension, JsRuntime, RuntimeOptions};
 use deno_fetch::NoFetchPermissions;
 use deno_timers::NoTimersPermission;
 use deno_websocket::NoWebSocketPermissions;
+use inspector_server::InspectorServer;
+use tokio::sync::broadcast::{Receiver, Sender};
+use tokio::sync::Mutex;
 
-pub struct DenoGameEngine {
+pub type ThreadSafeDenoWorker = Arc<Mutex<DenoWorker>>;
+
+pub struct DenoWorker {
     runtime: JsRuntime,
+    inspector_server: Option<InspectorServer>,
 }
 
-impl DenoGameEngine {
-    pub fn new(field: ThreadSafeField, pub_sub: ThreadSafePubSub) -> anyhow::Result<Self> {
+impl DenoWorker {
+    pub fn new(
+        field: ThreadSafeField,
+        pub_sub: ThreadSafePubSub,
+        attach_inspector: bool,
+        log_channel: Sender<LogMessage>,
+    ) -> ThreadSafeDenoWorker {
         let perm_ext = Extension::builder()
             .state(move |state| {
                 state.put::<NoFetchPermissions>(NoFetchPermissions {});
@@ -36,19 +50,38 @@ impl DenoGameEngine {
             deno_timers::init::<NoTimersPermission>(),
             deno_broadcast_channel::init(InMemoryBroadcastChannel::default(), false),
             perm_ext,
-            crate::game::deno_nevermore::init(field, pub_sub), // This is the nevermore specific extension which adds functions.
+            crate::game::deno_nevermore::init(field, pub_sub, log_channel.clone()), // This is the nevermore specific extension which adds functions.
         ];
 
-        let runtime = JsRuntime::new(RuntimeOptions {
+        let mut runtime = JsRuntime::new(RuntimeOptions {
             extensions,
+            attach_inspector,
             ..Default::default()
         });
 
-        Ok(DenoGameEngine { runtime })
+        let inspector_server = if attach_inspector {
+            let listener: SocketAddr = "127.0.0.1:9229".parse().unwrap();
+            let inspector_maybe = runtime.inspector();
+            let inspector = inspector_maybe.unwrap();
+            let inspector_server = InspectorServer::new(listener, "main".to_string());
+            inspector_server.register_inspector(
+                inspector.get_session_sender(),
+                inspector.add_deregister_handler(),
+            );
+            Some(inspector_server)
+        } else {
+            None
+        };
+
+        Arc::new(Mutex::new(Self {
+            runtime,
+            inspector_server,
+        }))
     }
 
     pub fn run_code(&mut self, id: String, code: String) -> anyhow::Result<()> {
-        self.runtime.execute(format!("deno:{}.js", id).as_str(), code.as_str())?;
+        self.runtime
+            .execute(format!("deno:{}.js", id).as_str(), code.as_str())?;
 
         Ok(())
     }

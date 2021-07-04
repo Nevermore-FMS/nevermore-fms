@@ -1,10 +1,10 @@
 use chrono::{Datelike, Local, Timelike};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::field::enums::{AllianceStation, DriverstationStatus, Mode};
 use crate::field::{
-    ThreadSafeAllianceStationMap, ThreadSafeFieldOverride, ThreadSafeDriverStationMap,
+    ThreadSafeAllianceStationMap, ThreadSafeDriverStationMap, ThreadSafeFieldOverride,
     ThreadSafeStateMap,
 };
 use std::borrow::BorrowMut;

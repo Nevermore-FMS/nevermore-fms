@@ -1,9 +1,10 @@
-use crate::field::ThreadSafeField;
 use crate::field::driverstation::ConfirmedState;
 use crate::field::driverstation::State;
 use crate::field::driverstation::ThreadSafeDriverStation;
 use crate::field::enums::AllianceStation;
+use crate::field::ThreadSafeField;
 use crate::pub_sub::ThreadSafePubSub;
+use async_graphql::*;
 use deno_core::{include_js_files, op_async, op_sync, Extension, OpState, Resource, ResourceId};
 use serde::Deserialize;
 use std::cell::RefCell;
@@ -11,11 +12,15 @@ use std::collections::HashMap;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::vec;
-use tokio::sync::broadcast::Receiver;
+use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
 
-pub fn init(field: ThreadSafeField, pub_sub: ThreadSafePubSub) -> Extension {
+pub fn init(
+    field: ThreadSafeField,
+    pub_sub: ThreadSafePubSub,
+    logger: Sender<LogMessage>,
+) -> Extension {
     Extension::builder()
         .js(include_js_files!(
             prefix "deno:extensions/nevermore",
@@ -42,20 +47,46 @@ pub fn init(field: ThreadSafeField, pub_sub: ThreadSafePubSub) -> Extension {
             ("op_get_driver_stations", op_async(op_get_driver_stations)),
             ("op_add_team", op_async(op_add_team)),
             ("op_remove_team", op_async(op_remove_team)),
-            ("op_set_emergency_stop_all", op_async(op_set_emergency_stop_all)),
+            (
+                "op_set_emergency_stop_all",
+                op_async(op_set_emergency_stop_all),
+            ),
             ("op_set_enabled_all", op_async(op_set_enabled_all)),
             ("op_get_team", op_async(op_get_team)),
             ("op_get_team_map", op_async(op_get_team_map)),
-            ("op_driverstation_get_confirmed_state", op_async(op_driverstation_get_confirmed_state)),
-            ("op_driverstation_get_state", op_async(op_driverstation_get_state)),
-            ("op_driverstation_set_state", op_async(op_driverstation_set_state)),
-            ("op_driverstation_is_in_correct_station", op_async(op_driverstation_is_in_correct_station)),
-            ("op_driverstation_is_in_match", op_async(op_driverstation_is_in_match)),
-            ("op_driverstation_get_address", op_async(op_driverstation_get_address))
+            (
+                "op_driverstation_get_confirmed_state",
+                op_async(op_driverstation_get_confirmed_state),
+            ),
+            (
+                "op_driverstation_get_state",
+                op_async(op_driverstation_get_state),
+            ),
+            (
+                "op_driverstation_set_state",
+                op_async(op_driverstation_set_state),
+            ),
+            (
+                "op_driverstation_is_in_correct_station",
+                op_async(op_driverstation_is_in_correct_station),
+            ),
+            (
+                "op_driverstation_is_in_match",
+                op_async(op_driverstation_is_in_match),
+            ),
+            (
+                "op_driverstation_get_address",
+                op_async(op_driverstation_get_address),
+            ),
+            (
+                "op_driverstation_has_closed",
+                op_async(op_driverstation_has_closed),
+            ),
         ])
         .state(move |state| {
             state.put(pub_sub.clone());
             state.put(field.clone());
+            state.put(logger.clone());
             Ok(())
         })
         .build()
@@ -63,20 +94,23 @@ pub fn init(field: ThreadSafeField, pub_sub: ThreadSafePubSub) -> Extension {
 
 // Events -->
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, Deserialize, SimpleObject)]
 #[serde(rename_all = "camelCase")]
-pub struct LogArgs {
-    msg: String,
+pub struct LogMessage {
+    calling_function: String,
+    file_name: String,
+    message: String,
     level: u16,
+    date_time: String,
 }
 
-pub fn op_log(_state: &mut OpState, args: LogArgs, _: ()) -> anyhow::Result<()> {
-    if args.level > 1 {
-        error!("{}", args.msg);
-    } else {
-        info!("{}", args.msg);
-    }
+pub fn op_log(state: &mut OpState, message: LogMessage, _: ()) -> anyhow::Result<()> {
+    let mut logger = state.try_borrow::<Sender<LogMessage>>();
+    debug!("{}: {}", message.message, message.level);
 
+    if let Some(logger) = logger.take() {
+        logger.send(message).ok();
+    }
     Ok(())
 }
 
@@ -196,9 +230,12 @@ pub async fn op_tick_subscribe(
             .clone()
     };
 
-    let id = state.try_borrow_mut()?.resource_table.add(ReceiverResource {
-        receiver: Mutex::new(field.lock().await.subscribe_to_tick_channel()?),
-    });
+    let id = state
+        .try_borrow_mut()?
+        .resource_table
+        .add(ReceiverResource {
+            receiver: Mutex::new(field.lock().await.subscribe_to_tick_channel()?),
+        });
 
     Ok(id)
 }
@@ -232,9 +269,12 @@ pub async fn op_close_subscribe(
             .clone()
     };
 
-    let id = state.try_borrow_mut()?.resource_table.add(ReceiverResource {
-        receiver: Mutex::new(field.lock().await.subscribe_to_close_channel()?),
-    });
+    let id = state
+        .try_borrow_mut()?
+        .resource_table
+        .add(ReceiverResource {
+            receiver: Mutex::new(field.lock().await.subscribe_to_close_channel()?),
+        });
 
     Ok(id)
 }
@@ -257,7 +297,7 @@ pub async fn op_close_subscription_next(
 
 // Field -->
 struct DriverStationResource {
-    driver_station: ThreadSafeDriverStation
+    driver_station: ThreadSafeDriverStation,
 }
 
 impl Resource for DriverStationResource {}
@@ -275,9 +315,12 @@ pub async fn op_get_driver_station(
             .clone()
     };
 
-    let id = state.try_borrow_mut()?.resource_table.add(DriverStationResource {
-        driver_station: field.lock().await.get_driver_station(team_number).await?,
-    });
+    let id = state
+        .try_borrow_mut()?
+        .resource_table
+        .add(DriverStationResource {
+            driver_station: field.lock().await.get_driver_station(team_number).await?,
+        });
 
     Ok(id)
 }
@@ -298,9 +341,12 @@ pub async fn op_get_driver_stations(
     let mut ids: Vec<ResourceId> = vec![];
 
     for driver_station in field.lock().await.driver_stations().await? {
-        let id = state.try_borrow_mut()?.resource_table.add(DriverStationResource {
-            driver_station: driver_station,
-        });
+        let id = state
+            .try_borrow_mut()?
+            .resource_table
+            .add(DriverStationResource {
+                driver_station: driver_station,
+            });
         ids.push(id);
     }
 
@@ -327,7 +373,14 @@ pub async fn op_add_team(
             .clone()
     };
 
-    field.lock().await.add_team(args.team_number, AllianceStation::from_integer(args.alliance_station)).await?;
+    field
+        .lock()
+        .await
+        .add_team(
+            args.team_number,
+            AllianceStation::from_integer(args.alliance_station),
+        )
+        .await?;
 
     Ok(())
 }
@@ -363,7 +416,11 @@ pub async fn op_set_emergency_stop_all(
             .clone()
     };
 
-    field.lock().await.set_emergency_stop_all(emergency_stopped).await?;
+    field
+        .lock()
+        .await
+        .set_emergency_stop_all(emergency_stopped)
+        .await?;
 
     Ok(())
 }
@@ -399,7 +456,12 @@ pub async fn op_get_team(
             .clone()
     };
 
-    let alliance_station =field.lock().await.get_team_alliance_station(team_number).await?.to_integer();
+    let alliance_station = field
+        .lock()
+        .await
+        .get_team_alliance_station(team_number)
+        .await?
+        .to_integer();
 
     Ok(alliance_station)
 }
@@ -484,7 +546,12 @@ pub async fn op_driverstation_set_state(
             .ok_or(anyhow::anyhow!("driverstation already dropped"))?
     };
 
-    resource.driver_station.lock().await.set_state(args.state).await;
+    resource
+        .driver_station
+        .lock()
+        .await
+        .set_state(args.state)
+        .await;
 
     Ok(())
 }
@@ -502,7 +569,12 @@ pub async fn op_driverstation_is_in_correct_station(
             .ok_or(anyhow::anyhow!("driverstation already dropped"))?
     };
 
-    let is_in_correct_station = resource.driver_station.lock().await.is_in_correct_station().await?;
+    let is_in_correct_station = resource
+        .driver_station
+        .lock()
+        .await
+        .is_in_correct_station()
+        .await?;
 
     Ok(is_in_correct_station)
 }
@@ -541,4 +613,22 @@ pub async fn op_driverstation_get_address(
     let is_in_match = resource.driver_station.lock().await.address();
 
     Ok(is_in_match.to_string())
+}
+
+pub async fn op_driverstation_has_closed(
+    state: Rc<RefCell<OpState>>,
+    id: ResourceId,
+    _: (),
+) -> anyhow::Result<bool> {
+    let resource = {
+        state
+            .try_borrow()?
+            .resource_table
+            .get::<DriverStationResource>(id)
+            .ok_or(anyhow::anyhow!("driverstation already dropped"))?
+    };
+
+    let has_closed = resource.driver_station.lock().await.has_closed();
+
+    Ok(has_closed)
 }

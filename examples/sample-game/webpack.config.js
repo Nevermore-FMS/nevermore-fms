@@ -2,14 +2,14 @@ const path = require('path');
 
 module.exports = {
   entry: {
-    worker: './src/worker.ts',
-    frontend: './src/frontend.tsx'
+      worker: './worker/index.ts',
+      frontend: './frontend/index.tsx'
   },
+  devtool: "eval-source-map",
   externals: {
-    react: 'React'
+    react: 'react',
   },
   externalsType: 'window',
-  target: 'web',
   module: {
     rules: [
       {
@@ -26,4 +26,5 @@ module.exports = {
     filename: '[name].bundle.js',
     path: path.resolve(__dirname, 'dist'),
   },
+  stats: 'minimal'
 };

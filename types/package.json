@@ -1,6 +1,6 @@
 {
-  "name": "nevermore-types",
-  "version": "1.0.0",
+  "name": "@nevermore-fms/worker-types",
+  "version": "0.0.1",
   "description": "",
   "typings": "./generated.d.ts",
   "author": "Chase MacDonnell <macdonnell.chase@gmail.com>"
