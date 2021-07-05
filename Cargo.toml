@@ -1,5 +1,5 @@
 [package]
-name = "nevermore"
+name = "nevermore-fms"
 version = "0.1.0"
 authors = ["McMackety <mcmackety@rodiconmc.com>"]
 edition = "2018"
