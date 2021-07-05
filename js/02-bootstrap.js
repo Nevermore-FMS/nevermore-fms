@@ -147,7 +147,7 @@
           fileName,
           message,
           level,
-          dateTime: date.toLocaleString('en')
+          dateTime: date.toLocaleString("en")
         })
       })
     ),

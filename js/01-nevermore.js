@@ -33,10 +33,10 @@
             while (true) {
               try {
                 await Deno.core.opAsync("op_tick_subscription_next", ticker);
-                await callback();
               } catch (_) {
                 break;
               }
+              await callback();
             }
             break;
           }
@@ -45,16 +45,29 @@
             while (true) {
               try {
                 await Deno.core.opAsync("op_close_subscription_next", closer);
-                await callback();
               } catch (_) {
                 break;
               }
+              await callback();
             }
             break;
           }
           default:
             break;
         }
+      },
+
+      getDriverStations: async function (teamNumber) {
+        const teamNumbers = await Deno.core.opAsync(
+          "op_get_driver_station_team_numbers"
+        );
+        let driverStations = [];
+        for (let teamNumber of teamNumbers) {
+          try {
+            driverStations.push(await Nevermore.Field.getDriverStation(teamNumber))
+          } catch(_) {}
+        }
+        return driverStations;
       },
 
       getDriverStation: async function (teamNumber) {

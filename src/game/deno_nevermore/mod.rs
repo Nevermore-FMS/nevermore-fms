@@ -15,6 +15,7 @@ use std::vec;
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
+use log::debug;
 
 pub fn init(
     field: ThreadSafeField,
@@ -44,7 +45,7 @@ pub fn init(
                 op_async(op_close_subscription_next),
             ),
             ("op_get_driver_station", op_async(op_get_driver_station)),
-            ("op_get_driver_stations", op_async(op_get_driver_stations)),
+            ("op_get_driver_station_team_numbers", op_async(op_get_driver_station_team_numbers)),
             ("op_add_team", op_async(op_add_team)),
             ("op_remove_team", op_async(op_remove_team)),
             (
@@ -97,11 +98,11 @@ pub fn init(
 #[derive(Clone, Debug, Deserialize, SimpleObject)]
 #[serde(rename_all = "camelCase")]
 pub struct LogMessage {
-    calling_function: String,
-    file_name: String,
-    message: String,
-    level: u16,
-    date_time: String,
+    pub calling_function: String,
+    pub file_name: String,
+    pub message: String,
+    pub level: u16,
+    pub date_time: String,
 }
 
 pub fn op_log(state: &mut OpState, message: LogMessage, _: ()) -> anyhow::Result<()> {
@@ -325,11 +326,11 @@ pub async fn op_get_driver_station(
     Ok(id)
 }
 
-pub async fn op_get_driver_stations(
+pub async fn op_get_driver_station_team_numbers(
     state: Rc<RefCell<OpState>>,
     _: (),
     _: (),
-) -> anyhow::Result<Vec<ResourceId>> {
+) -> anyhow::Result<Vec<u16>> {
     let field = {
         let borrowed_state = state.try_borrow()?;
         borrowed_state
@@ -338,17 +339,7 @@ pub async fn op_get_driver_stations(
             .clone()
     };
 
-    let mut ids: Vec<ResourceId> = vec![];
-
-    for driver_station in field.lock().await.driver_stations().await? {
-        let id = state
-            .try_borrow_mut()?
-            .resource_table
-            .add(DriverStationResource {
-                driver_station: driver_station,
-            });
-        ids.push(id);
-    }
+    let ids = field.lock().await.driver_station_team_numbers().await?;
 
     Ok(ids)
 }

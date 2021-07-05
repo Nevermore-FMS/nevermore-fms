@@ -9,7 +9,7 @@
         "es2017"
       ],
       "types": [
-        "nevermore-types",
+        "@nevermore-fms/worker-types",
         "react"
       ],
       "jsx": "react",

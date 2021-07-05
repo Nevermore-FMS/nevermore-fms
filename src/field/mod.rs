@@ -8,6 +8,7 @@ use tokio::net::{TcpListener, UdpSocket};
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::Duration;
+use log::info;
 
 pub mod driverstation;
 pub mod enums;
@@ -119,6 +120,21 @@ impl Field {
             .await
             .values()
             .cloned()
+            .collect())
+    }
+
+    /// Retrieves the team numbers of all connected driver stations, keep in mind that once the driver station disconnects the
+    /// `ThreadSafeDriverStation` returned here is useless. TODO: Add a function to the driver station to check if
+    /// it still exists in the driver station.
+    pub async fn driver_station_team_numbers(&self) -> anyhow::Result<Vec<u16>> {
+        Ok(self
+            .team_number_to_robot
+            .lock()
+            .await
+            .keys()
+            .map(|x| {
+                *x
+            })
             .collect())
     }
 

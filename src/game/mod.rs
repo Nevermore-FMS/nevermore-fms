@@ -1,7 +1,9 @@
 pub mod deno_nevermore;
 pub mod inspector_server;
 
+
 use std::net::SocketAddr;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::field::ThreadSafeField;
@@ -13,8 +15,9 @@ use deno_fetch::NoFetchPermissions;
 use deno_timers::NoTimersPermission;
 use deno_websocket::NoWebSocketPermissions;
 use inspector_server::InspectorServer;
-use tokio::sync::broadcast::{Receiver, Sender};
+use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
+use log::info;
 
 pub type ThreadSafeDenoWorker = Arc<Mutex<DenoWorker>>;
 
@@ -54,6 +57,9 @@ impl DenoWorker {
         ];
 
         let mut runtime = JsRuntime::new(RuntimeOptions {
+            js_error_create_fn: Some(Rc::new(move |core_js_error| {
+                core_js_error.into()
+              })),
             extensions,
             attach_inspector,
             ..Default::default()

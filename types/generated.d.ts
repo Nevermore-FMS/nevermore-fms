@@ -2058,6 +2058,11 @@ declare namespace Nevermore {
         export function getDriverStation(teamNumber: number): Promise<DriverStation>
 
         /**
+         * Retrieves all connected DriverStations
+         */
+         export function getDriverStations(): Promise<DriverStation[]>
+
+        /**
          * Adds a team to the alliance station map, thereby allowing it to properly connect.
          * 
          * @param teamNumber The team number of the team intended to be added.

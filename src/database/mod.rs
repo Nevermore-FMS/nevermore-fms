@@ -22,23 +22,22 @@ impl Database {
 
         let database = Self { conn };
 
-        database.create_tables();
+        database.create_tables()?;
 
         Ok(Arc::new(Mutex::new(database)))
     }
 
-    pub fn create_tables(&self) {
-        user::User::create_table(self);
-        worker::Worker::create_table(self);
+    pub fn create_tables(&self) -> anyhow::Result<()> {
+        user::User::create_table(self)?;
+        worker::Worker::create_table(self)?;
+        Ok(())
     }
 }
 
 mod tests {
-    use super::*;
-
     #[tokio::test]
     async fn test_creation_of_tables() -> anyhow::Result<()> {
-        Database::new(true, None)?;
+        super::Database::new(true, None)?;
         Ok(())
     }
 }

@@ -5,8 +5,7 @@ pub mod game;
 pub mod graph;
 pub mod pub_sub;
 
-#[macro_use]
-extern crate log;
+use log::info;
 
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");

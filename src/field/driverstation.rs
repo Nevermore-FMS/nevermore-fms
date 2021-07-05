@@ -15,6 +15,7 @@ use tokio::net::tcp::OwnedWriteHalf;
 use tokio::net::{TcpStream, UdpSocket};
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
+use log::debug;
 
 pub type ThreadSafeDriverStation = Arc<Mutex<DriverStation>>;
 
