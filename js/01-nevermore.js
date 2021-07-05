@@ -127,15 +127,11 @@
         const subscription = await Deno.core.opAsync("op_subscribe", topic);
         pubSubMap[[topic, callback]] = subscription;
         while (true) {
-          try {
-            await callback(
-              JSON.parse(
-                await Deno.core.opAsync("op_subscription_next", subscription)
-              )
-            );
-          } catch (_) {
-            break;
-          }
+          await callback(
+            JSON.parse(
+              await Deno.core.opAsync("op_subscription_next", subscription)
+            )
+          );
         }
       },
 
