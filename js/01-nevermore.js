@@ -64,8 +64,10 @@
         let driverStations = [];
         for (let teamNumber of teamNumbers) {
           try {
-            driverStations.push(await Nevermore.Field.getDriverStation(teamNumber))
-          } catch(_) {}
+            driverStations.push(
+              await Nevermore.Field.getDriverStation(teamNumber)
+            );
+          } catch (_) {}
         }
         return driverStations;
       },
@@ -159,20 +161,14 @@
     }
 
     async getState() {
-      return await Deno.core.opAsync(
-        "op_driverstation_get_state",
-        this.rid
-      );
+      return await Deno.core.opAsync("op_driverstation_get_state", this.rid);
     }
 
     async setState(state) {
-      return await Deno.core.opAsync(
-        "op_driverstation_set_state",
-        {
-          rid: this.rid,
-          state
-        }
-      );
+      return await Deno.core.opAsync("op_driverstation_set_state", {
+        rid: this.rid,
+        state,
+      });
     }
 
     async isInCorrectStation() {
@@ -183,27 +179,18 @@
     }
 
     async isInMatch() {
-      return await Deno.core.opAsync(
-        "op_driverstation_is_in_match",
-        this.rid
-      );
+      return await Deno.core.opAsync("op_driverstation_is_in_match", this.rid);
     }
 
     async getAddress() {
-      return await Deno.core.opAsync(
-        "op_driverstation_get_address",
-        this.rid
-      );
+      return await Deno.core.opAsync("op_driverstation_get_address", this.rid);
     }
 
     async isClosed() {
-      return await Deno.core.opAsync(
-        "op_driverstation_has_closed",
-        this.rid
-      );
+      return await Deno.core.opAsync("op_driverstation_has_closed", this.rid);
     }
   }
 
-  Nevermore.Field.DriverStation = DriverStation
+  Nevermore.Field.DriverStation = DriverStation;
   window.__bootstrap.nevermore = { Nevermore };
 })(this);

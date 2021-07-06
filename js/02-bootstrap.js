@@ -130,15 +130,6 @@
         // mcmackety: TODO: This method of getting the calling function clearly isn't working. Got any ideas?
         let callingFunction = "unknown";
         let fileName = "unknown";
-        try {
-          var err = getErrorObject();
-          var callerLine = err.stack.split("\n")[4];
-          var index = callerLine.indexOf("at ");
-          var clean = callerLine.slice(index+2, callerLine.length);
-          var splitClean = clean.split(" ");
-          callingFunction = splitClean[1];
-          fileName = splitClean[2].replace("(", "").replace(")", "")
-        } catch(_){}
 
         let date = new Date();
 

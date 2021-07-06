@@ -1,7 +1,8 @@
 pub mod deno_nevermore;
 pub mod inspector_server;
 
-
+use std::borrow::Borrow;
+use std::cell::RefCell;
 use std::net::SocketAddr;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -10,20 +11,20 @@ use crate::field::ThreadSafeField;
 use crate::game::deno_nevermore::LogMessage;
 use crate::pub_sub::ThreadSafePubSub;
 use deno_broadcast_channel::InMemoryBroadcastChannel;
-use deno_core::{Extension, JsRuntime, RuntimeOptions};
+use deno_core::v8::inspector::{StringView, V8InspectorClientImpl, V8StackTrace};
+use deno_core::{Extension, InspectorSessionProxy, JsRuntime, JsRuntimeInspector, RuntimeOptions};
 use deno_fetch::NoFetchPermissions;
 use deno_timers::NoTimersPermission;
 use deno_websocket::NoWebSocketPermissions;
-use inspector_server::InspectorServer;
+use futures::channel::mpsc::UnboundedSender;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
-use log::info;
 
 pub type ThreadSafeDenoWorker = Arc<Mutex<DenoWorker>>;
 
 pub struct DenoWorker {
     runtime: JsRuntime,
-    inspector_server: Option<InspectorServer>,
+    inspector_sender: Option<UnboundedSender<InspectorSessionProxy>>,
 }
 
 impl DenoWorker {
@@ -57,32 +58,20 @@ impl DenoWorker {
         ];
 
         let mut runtime = JsRuntime::new(RuntimeOptions {
-            js_error_create_fn: Some(Rc::new(move |core_js_error| {
-                core_js_error.into()
-              })),
             extensions,
             attach_inspector,
             ..Default::default()
         });
 
-        let inspector_server = if attach_inspector {
-            let listener: SocketAddr = "127.0.0.1:9229".parse().unwrap();
+        let inspector_sender = if attach_inspector {
             let inspector_maybe = runtime.inspector();
             let inspector = inspector_maybe.unwrap();
-            let inspector_server = InspectorServer::new(listener, "main".to_string());
-            inspector_server.register_inspector(
-                inspector.get_session_sender(),
-                inspector.add_deregister_handler(),
-            );
-            Some(inspector_server)
+            Some(inspector.get_session_sender())
         } else {
             None
         };
 
-        Arc::new(Mutex::new(Self {
-            runtime,
-            inspector_server,
-        }))
+        Arc::new(Mutex::new(Self { runtime, inspector_sender }))
     }
 
     pub fn run_code(&mut self, id: String, code: String) -> anyhow::Result<()> {
@@ -94,5 +83,9 @@ impl DenoWorker {
 
     pub async fn run_event_loop(&mut self) -> anyhow::Result<()> {
         self.runtime.run_event_loop(false).await
+    }
+
+    pub fn get_session_sender(&self) -> Option<UnboundedSender<InspectorSessionProxy>> {
+        self.inspector_sender.clone()
     }
 }

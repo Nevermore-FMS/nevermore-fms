@@ -1,5 +1,6 @@
 use crate::field::driverstation::{ConfirmedState, DriverStation, State, ThreadSafeDriverStation};
 use crate::field::enums::{AllianceStation, Mode};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -8,7 +9,6 @@ use tokio::net::{TcpListener, UdpSocket};
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::Duration;
-use log::info;
 
 pub mod driverstation;
 pub mod enums;
@@ -132,9 +132,7 @@ impl Field {
             .lock()
             .await
             .keys()
-            .map(|x| {
-                *x
-            })
+            .map(|x| *x)
             .collect())
     }
 

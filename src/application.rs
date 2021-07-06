@@ -1,12 +1,20 @@
-use std::{sync::Arc, thread::JoinHandle};
+use futures::channel::mpsc::UnboundedSender;
 use log::debug;
+use std::{sync::Arc, thread::JoinHandle};
 
-use crate::{field::{Field, ThreadSafeField}, game::{DenoWorker, deno_nevermore::LogMessage}, pub_sub::{PubSub, ThreadSafePubSub}};
+use crate::{
+    field::{Field, ThreadSafeField},
+    game::{deno_nevermore::LogMessage, DenoWorker},
+    pub_sub::{PubSub, ThreadSafePubSub},
+};
 
 use crate::database::worker::Worker;
 use crate::database::{Database, ThreadSafeDatabase};
 use chrono::Local;
-use deno_core::futures::channel::oneshot::{channel, Receiver, Sender};
+use deno_core::{
+    futures::channel::oneshot::{channel, Receiver, Sender},
+    InspectorSessionProxy,
+};
 use tokio::sync::Mutex;
 
 pub type ThreadSafeApplication = Arc<Mutex<Application>>;
@@ -18,6 +26,7 @@ pub struct Application {
     deno_handle: Option<JoinHandle<()>>,
     closing_sender: Option<Sender<()>>,
     pub log_sender: tokio::sync::broadcast::Sender<LogMessage>,
+    pub inspector_sender: Option<UnboundedSender<InspectorSessionProxy>>,
 }
 
 impl Application {
@@ -30,18 +39,24 @@ impl Application {
 
         let (log_sender, _) = tokio::sync::broadcast::channel::<LogMessage>(10);
 
-        let mut application = Self {
+        let application = Self {
             field,
             deno_pub_sub,
             database: database.clone(),
             deno_handle: None,
             closing_sender: None,
             log_sender: log_sender.clone(),
+            inspector_sender: None,
         };
 
-        application.restart_deno_worker(true, database.clone(), log_sender);
+        let application = Arc::new(Mutex::new(application));
 
-        Ok(Arc::new(Mutex::new(application)))
+        application
+            .lock()
+            .await
+            .restart_deno_worker(true, application.clone());
+
+        Ok(application)
     }
 
     pub fn subscribe_to_log(&mut self) -> tokio::sync::broadcast::Receiver<LogMessage> {
@@ -51,8 +66,7 @@ impl Application {
     pub fn restart_deno_worker(
         &mut self,
         attach_inspector: bool,
-        database: ThreadSafeDatabase,
-        log_sender: tokio::sync::broadcast::Sender<LogMessage>,
+        application: ThreadSafeApplication,
     ) {
         if let Some(sender) = self.closing_sender.take() {
             if let Some(join_handle) = self.deno_handle.take() {
@@ -63,23 +77,10 @@ impl Application {
 
         let (tx, rx) = channel();
 
-        let field = self.field.clone();
-        let deno_pub_sub = self.deno_pub_sub.clone();
-
         let join_handle = std::thread::spawn(move || {
             let rt = create_basic_runtime();
             let local = tokio::task::LocalSet::new();
-            local.block_on(
-                &rt,
-                run_deno(
-                    rx,
-                    field,
-                    deno_pub_sub,
-                    attach_inspector,
-                    database,
-                    log_sender,
-                ),
-            )
+            local.block_on(&rt, run_deno(rx, attach_inspector, application))
         });
 
         self.closing_sender = Some(tx);
@@ -89,49 +90,64 @@ impl Application {
 
 async fn run_deno(
     closing_receiver: Receiver<()>,
-    field: ThreadSafeField,
-    deno_pub_sub: ThreadSafePubSub,
     attach_inspector: bool,
-    database: ThreadSafeDatabase,
-    log_sender: tokio::sync::broadcast::Sender<LogMessage>,
+    application: ThreadSafeApplication,
 ) {
     tokio::select! {
-        _ = run_event_loop_forever(field, deno_pub_sub, attach_inspector, database, log_sender) => {}
+        _ = run_event_loop_forever(attach_inspector, application) => {}
         _ = closing_receiver => {}
     }
 }
 
-async fn run_event_loop_forever(
-    field: ThreadSafeField,
-    deno_pub_sub: ThreadSafePubSub,
-    attach_inspector: bool,
-    database: ThreadSafeDatabase,
-    log_sender: tokio::sync::broadcast::Sender<LogMessage>,
-) {
+async fn run_event_loop_forever(attach_inspector: bool, application: ThreadSafeApplication) {
     loop {
-        let deno_worker_safe = DenoWorker::new(
-            field.clone(),
-            deno_pub_sub.clone(),
-            attach_inspector,
-            log_sender.clone(),
-        );
+        let (log_sender, database, deno_worker_safe) = {
+            let mut locked_application = application.lock().await;
+            let deno_worker_safe = DenoWorker::new(
+                locked_application.field.clone(),
+                locked_application.deno_pub_sub.clone(),
+                attach_inspector,
+                locked_application.log_sender.clone(),
+            );
+            if attach_inspector {
+                let sender = deno_worker_safe.lock().await.get_session_sender();
+                if sender.is_some() {
+                    let sender = sender.unwrap();
+                    locked_application.inspector_sender = Some(sender);
+                }
+            }
+            (
+                locked_application.log_sender.clone(),
+                locked_application.database.clone(),
+                deno_worker_safe,
+            )
+        };
         let mut deno_worker = deno_worker_safe.lock().await;
         let mut workers = Worker::get_all_workers_to_load(database.clone()).await.ok();
         if let Some(workers) = workers.take() {
             for worker in workers {
-                let result = deno_worker.run_code(worker.name, worker.code);
+                let result = deno_worker.run_code(worker.name.clone(), worker.code);
                 if result.is_err() {
-                    send_log_error_message(log_sender.clone(), format!("Compilation Error: {}", result.err().unwrap()).to_string());
+                    send_log_error_message(
+                        log_sender.clone(),
+                        format!("Compilation Error: {}", result.err().unwrap()).to_string(),
+                    );
                 }
             }
         }
 
         let result = deno_worker.run_event_loop().await;
         if result.is_err() {
-            send_log_error_message(log_sender.clone(), format!("Runtime Error: {}", result.err().unwrap()).to_string());
+            send_log_error_message(
+                log_sender.clone(),
+                format!("Runtime Error: {}", result.err().unwrap()).to_string(),
+            );
         }
 
-        send_log_error_message(log_sender.clone(), "Worker exited early, restarting in 15 seconds...".to_string());
+        send_log_error_message(
+            log_sender.clone(),
+            "Worker exited early, restarting in 15 seconds...".to_string(),
+        );
         tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
         send_log_error_message(log_sender.clone(), "Restarting worker...\n\n".to_string());
     }
@@ -139,13 +155,17 @@ async fn run_event_loop_forever(
 
 fn send_log_error_message(log_sender: tokio::sync::broadcast::Sender<LogMessage>, message: String) {
     debug!("[Worker] {}", message);
-    log_sender.send(LogMessage{
-        calling_function: "global".to_string(),
-        file_name: "global".to_string(),
-        message: message,
-        level: 3,
-        date_time: Local::now().format("%-m/%-d/%-Y, %-I:%-M:%S %p").to_string(),
-    }).ok();
+    log_sender
+        .send(LogMessage {
+            calling_function: "global".to_string(),
+            file_name: "global".to_string(),
+            message: message,
+            level: 3,
+            date_time: Local::now()
+                .format("%-m/%-d/%-Y, %-I:%-M:%S %p")
+                .to_string(),
+        })
+        .ok();
 }
 
 pub fn create_basic_runtime() -> tokio::runtime::Runtime {

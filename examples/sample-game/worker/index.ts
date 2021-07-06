@@ -1,6 +1,3 @@
-async function onTick() {
-  console.log("Tick")
-  let ds = await Nevermore.Field.getDriverStation(5276);
-}
-
-Nevermore.Field.on("tick", onTick)
+Nevermore.Field.on("tick", async function() {
+  console.log(new Error())
+})

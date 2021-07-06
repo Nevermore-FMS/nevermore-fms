@@ -6,6 +6,7 @@ use crate::field::ThreadSafeField;
 use crate::pub_sub::ThreadSafePubSub;
 use async_graphql::*;
 use deno_core::{include_js_files, op_async, op_sync, Extension, OpState, Resource, ResourceId};
+use log::debug;
 use serde::Deserialize;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -15,7 +16,6 @@ use std::vec;
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
-use log::debug;
 
 pub fn init(
     field: ThreadSafeField,
@@ -45,7 +45,10 @@ pub fn init(
                 op_async(op_close_subscription_next),
             ),
             ("op_get_driver_station", op_async(op_get_driver_station)),
-            ("op_get_driver_station_team_numbers", op_async(op_get_driver_station_team_numbers)),
+            (
+                "op_get_driver_station_team_numbers",
+                op_async(op_get_driver_station_team_numbers),
+            ),
             ("op_add_team", op_async(op_add_team)),
             ("op_remove_team", op_async(op_remove_team)),
             (

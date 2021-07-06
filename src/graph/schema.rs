@@ -31,7 +31,7 @@ impl Mutation {
         let mut app_locked = app.lock().await;
         let log_sender = app_locked.log_sender.clone();
         let database = app_locked.database.clone();
-        app_locked.restart_deno_worker(true, database, log_sender);
+        app_locked.restart_deno_worker(true, app.clone());
         Ok(true)
     }
 
@@ -64,7 +64,8 @@ impl Subscription {
     async fn dev_log<'ctx>(
         &self,
         ctx: &Context<'ctx>,
-    ) -> Result<impl tokio_stream::Stream<Item = Result<crate::game::deno_nevermore::LogMessage>>> {
+    ) -> Result<impl tokio_stream::Stream<Item = Result<crate::game::deno_nevermore::LogMessage>>>
+    {
         use tokio_stream::StreamExt;
 
         let app = ctx.data::<ThreadSafeApplication>()?;

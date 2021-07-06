@@ -7,6 +7,7 @@ use crate::field::{
     ThreadSafeAllianceStationMap, ThreadSafeDriverStationMap, ThreadSafeFieldOverride,
     ThreadSafeStateMap,
 };
+use log::debug;
 use std::borrow::BorrowMut;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -15,7 +16,6 @@ use tokio::net::tcp::OwnedWriteHalf;
 use tokio::net::{TcpStream, UdpSocket};
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
-use log::debug;
 
 pub type ThreadSafeDriverStation = Arc<Mutex<DriverStation>>;
 

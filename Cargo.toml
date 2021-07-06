@@ -12,6 +12,7 @@ developer = []
 [dependencies]
 # Field and Worker Deps
 deno_core = "0.91.0"
+sourcemap = "6.0.1"
 tokio = { version = "1.7.0", features = ["full", "io-util"] }
 tokio-stream = { version = "0.1.6", features = ["sync"] }
 futures = "0.3"
