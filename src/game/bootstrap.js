@@ -126,7 +126,7 @@
     clearInterval: util.writable(timers.clearInterval),
     clearTimeout: util.writable(timers.clearTimeout),
     console: util.writable(
-      new Console((message, level) => {
+      /*new Console((message, level) => {
         // mcmackety: TODO: This method of getting the calling function clearly isn't working. Got any ideas?
         let callingFunction = "unknown";
         let fileName = "unknown";
@@ -140,7 +140,8 @@
           level,
           dateTime: date.toLocaleString("en")
         })
-      })
+      })*/
+      window.console
     ),
     crypto: util.readOnly(crypto.crypto),
     Crypto: util.nonEnumerable(crypto.Crypto),
@@ -153,8 +154,16 @@
 
   core.setMacrotaskCallback(timers.handleTimerMacrotask);
 
+  const consoleFromV8 = window.console;
+  const wrapConsole = window.__bootstrap.console.wrapConsole;
+
   delete globalThis.__bootstrap;
   delete globalThis.bootstrap;
+
+  const consoleFromDeno = globalThis.console;
+  try {
+    wrapConsole(consoleFromDeno, consoleFromV8);
+  } catch(_) {}
 
   Object.defineProperties(globalThis, windowOrWorkerGlobalScope);
 })(this);

@@ -1,7 +1,6 @@
 use async_graphql::*;
 
 use crate::application::ThreadSafeApplication;
-
 #[cfg(feature = "developer")]
 use crate::database::worker::{CreateWorkerParams, Worker};
 
@@ -29,8 +28,6 @@ impl Mutation {
     async fn dev_restart_worker<'ctx>(&self, ctx: &Context<'ctx>) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let mut app_locked = app.lock().await;
-        let log_sender = app_locked.log_sender.clone();
-        let database = app_locked.database.clone();
         app_locked.restart_deno_worker(true, app.clone());
         Ok(true)
     }

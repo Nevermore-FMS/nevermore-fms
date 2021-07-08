@@ -1,18 +1,13 @@
 pub mod deno_nevermore;
-pub mod inspector_server;
 
-use std::borrow::Borrow;
-use std::cell::RefCell;
-use std::net::SocketAddr;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::field::ThreadSafeField;
 use crate::game::deno_nevermore::LogMessage;
 use crate::pub_sub::ThreadSafePubSub;
 use deno_broadcast_channel::InMemoryBroadcastChannel;
-use deno_core::v8::inspector::{StringView, V8InspectorClientImpl, V8StackTrace};
-use deno_core::{Extension, InspectorSessionProxy, JsRuntime, JsRuntimeInspector, RuntimeOptions};
+use deno_core::{Extension, Snapshot};
+use deno_core::{InspectorSessionProxy, JsRuntime, RuntimeOptions};
 use deno_fetch::NoFetchPermissions;
 use deno_timers::NoTimersPermission;
 use deno_websocket::NoWebSocketPermissions;
@@ -60,18 +55,23 @@ impl DenoWorker {
         let mut runtime = JsRuntime::new(RuntimeOptions {
             extensions,
             attach_inspector,
+            startup_snapshot: Some(Snapshot::Static(include_bytes!("v8_snapshots/SNAPSHOT.bin"))),
             ..Default::default()
         });
 
+        runtime.execute("deno:bootstrap.js", include_str!("bootstrap.js")).ok();
+
         let inspector_sender = if attach_inspector {
-            let inspector_maybe = runtime.inspector();
-            let inspector = inspector_maybe.unwrap();
-            Some(inspector.get_session_sender())
+            let maybe_inspector = runtime.inspector();
+            Some(maybe_inspector.unwrap().get_session_sender())
         } else {
             None
         };
 
-        Arc::new(Mutex::new(Self { runtime, inspector_sender }))
+        Arc::new(Mutex::new(Self {
+            runtime,
+            inspector_sender,
+        }))
     }
 
     pub fn run_code(&mut self, id: String, code: String) -> anyhow::Result<()> {

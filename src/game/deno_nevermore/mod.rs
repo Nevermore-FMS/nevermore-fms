@@ -25,8 +25,7 @@ pub fn init(
     Extension::builder()
         .js(include_js_files!(
             prefix "deno:extensions/nevermore",
-            "js/01-nevermore.js",
-            "js/02-bootstrap.js",
+            "runtime/js/01-nevermore.js",
         ))
         .ops(vec![
             ("op_log", op_sync(op_log)),
@@ -101,8 +100,6 @@ pub fn init(
 #[derive(Clone, Debug, Deserialize, SimpleObject)]
 #[serde(rename_all = "camelCase")]
 pub struct LogMessage {
-    pub calling_function: String,
-    pub file_name: String,
     pub message: String,
     pub level: u16,
     pub date_time: String,

@@ -2,7 +2,7 @@ pub mod application;
 pub mod database;
 pub mod field;
 pub mod game;
-pub mod graph;
+pub mod http;
 pub mod pub_sub;
 
 use log::info;
@@ -19,7 +19,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = application::Application::new().await?;
 
-    graph::start(app).await;
+    http::start(app).await;
 
     Ok(())
 }

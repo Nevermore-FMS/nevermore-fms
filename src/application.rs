@@ -11,10 +11,8 @@ use crate::{
 use crate::database::worker::Worker;
 use crate::database::{Database, ThreadSafeDatabase};
 use chrono::Local;
-use deno_core::{
-    futures::channel::oneshot::{channel, Receiver, Sender},
-    InspectorSessionProxy,
-};
+use deno_core::InspectorSessionProxy;
+use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
 
 pub type ThreadSafeApplication = Arc<Mutex<Application>>;
@@ -24,7 +22,7 @@ pub struct Application {
     pub deno_pub_sub: ThreadSafePubSub,
     pub database: ThreadSafeDatabase,
     deno_handle: Option<JoinHandle<()>>,
-    closing_sender: Option<Sender<()>>,
+    pub closing_sender: Option<Sender<()>>,
     pub log_sender: tokio::sync::broadcast::Sender<LogMessage>,
     pub inspector_sender: Option<UnboundedSender<InspectorSessionProxy>>,
 }
@@ -75,7 +73,7 @@ impl Application {
             }
         }
 
-        let (tx, rx) = channel();
+        let (tx, rx) = channel(2);
 
         let join_handle = std::thread::spawn(move || {
             let rt = create_basic_runtime();
@@ -89,13 +87,13 @@ impl Application {
 }
 
 async fn run_deno(
-    closing_receiver: Receiver<()>,
+    mut closing_receiver: Receiver<()>,
     attach_inspector: bool,
     application: ThreadSafeApplication,
 ) {
     tokio::select! {
         _ = run_event_loop_forever(attach_inspector, application) => {}
-        _ = closing_receiver => {}
+        _ = closing_receiver.recv() => {}
     }
 }
 
@@ -110,11 +108,8 @@ async fn run_event_loop_forever(attach_inspector: bool, application: ThreadSafeA
                 locked_application.log_sender.clone(),
             );
             if attach_inspector {
-                let sender = deno_worker_safe.lock().await.get_session_sender();
-                if sender.is_some() {
-                    let sender = sender.unwrap();
-                    locked_application.inspector_sender = Some(sender);
-                }
+                locked_application.inspector_sender =
+                    deno_worker_safe.lock().await.get_session_sender();
             }
             (
                 locked_application.log_sender.clone(),
