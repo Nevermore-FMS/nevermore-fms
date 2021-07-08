@@ -1,7 +1,6 @@
 pub mod deno_nevermore;
 
 use std::sync::Arc;
-
 use crate::field::ThreadSafeField;
 use crate::game::deno_nevermore::LogMessage;
 use crate::pub_sub::ThreadSafePubSub;

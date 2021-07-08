@@ -152,8 +152,6 @@ fn send_log_error_message(log_sender: tokio::sync::broadcast::Sender<LogMessage>
     debug!("[Worker] {}", message);
     log_sender
         .send(LogMessage {
-            calling_function: "global".to_string(),
-            file_name: "global".to_string(),
             message: message,
             level: 3,
             date_time: Local::now()
