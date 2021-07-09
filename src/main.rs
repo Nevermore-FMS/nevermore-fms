@@ -1,7 +1,7 @@
 pub mod application;
 pub mod database;
 pub mod field;
-pub mod game;
+pub mod worker;
 pub mod http;
 pub mod pub_sub;
 

@@ -131,7 +131,7 @@ fn build_snapshot() {
 
     println!("cargo:rustc-env=TARGET={}", env::var("TARGET").unwrap());
     println!("cargo:rustc-env=PROFILE={}", env::var("PROFILE").unwrap());
-    let out = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("src").join("game").join("v8_snapshots");
+    let out = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("src").join("worker").join("v8_snapshots");
 
     // Main snapshot
     let runtime_snapshot_path = out.join("SNAPSHOT.bin");

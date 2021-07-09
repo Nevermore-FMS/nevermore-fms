@@ -2,7 +2,7 @@ pub mod deno_nevermore;
 
 use std::sync::Arc;
 use crate::field::ThreadSafeField;
-use crate::game::deno_nevermore::LogMessage;
+use crate::worker::deno_nevermore::LogMessage;
 use crate::pub_sub::ThreadSafePubSub;
 use deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_core::{Extension, Snapshot};
@@ -48,7 +48,7 @@ impl DenoWorker {
             deno_timers::init::<NoTimersPermission>(),
             deno_broadcast_channel::init(InMemoryBroadcastChannel::default(), false),
             perm_ext,
-            crate::game::deno_nevermore::init(field, pub_sub, log_channel.clone()), // This is the nevermore specific extension which adds functions.
+            crate::worker::deno_nevermore::init(field, pub_sub, log_channel.clone()), // This is the nevermore specific extension which adds functions.
         ];
 
         let mut runtime = JsRuntime::new(RuntimeOptions {

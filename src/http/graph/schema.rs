@@ -1,8 +1,9 @@
 use async_graphql::*;
+use async_graphql::connection::*;
 
-use crate::application::ThreadSafeApplication;
+use crate::{application::ThreadSafeApplication, database::worker::Worker};
 #[cfg(feature = "developer")]
-use crate::database::worker::{CreateWorkerParams, Worker};
+use crate::database::worker::CreateWorkerParams;
 
 pub type NevermoreSchema = Schema<Query, Mutation, Subscription>;
 
@@ -10,11 +11,40 @@ pub struct Query;
 
 #[Object]
 impl Query {
+    async fn workers<'ctx>(&self,
+        ctx: &Context<'ctx>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<String, Worker, EmptyFields, EmptyFields>> {
+        query(after, before, first, last, |after, before, mut first, mut last| async move {
+            let app = ctx.data::<ThreadSafeApplication>()?;
+            let db = app.lock().await.database.clone();
+            let mut is_inverted = false;
+            let mut number_of_docs: usize = 10;
+            if let Some(first) = first.take() {
+                number_of_docs = first;
+            }
+            if let Some(last) = last.take() {
+                is_inverted = true;
+                number_of_docs = last;
+            }
+            let (has_prev_page, has_next_page, workers) = Worker::get_all_paginated(db, is_inverted, number_of_docs, after, before).await?;
+            let mut connection: Connection<String, Worker> = Connection::new(has_prev_page, has_next_page);
+            connection.append(workers.into_iter().map(|worker| {
+                Edge::new(worker.name.clone(), worker)
+            }));
+
+            Ok(connection)
+        }).await
+    }
+
     #[cfg(feature = "developer")]
     async fn dev_workers<'ctx>(&self, ctx: &Context<'ctx>) -> Result<Vec<Worker>> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.lock().await;
-        Ok(Worker::get_all_workers(app_locked.database.clone()).await?)
+        Ok(Worker::get_all(app_locked.database.clone()).await?)
     }
 }
 
@@ -61,7 +91,7 @@ impl Subscription {
     async fn dev_log<'ctx>(
         &self,
         ctx: &Context<'ctx>,
-    ) -> Result<impl tokio_stream::Stream<Item = Result<crate::game::deno_nevermore::LogMessage>>>
+    ) -> Result<impl tokio_stream::Stream<Item = Result<crate::worker::deno_nevermore::LogMessage>>>
     {
         use tokio_stream::StreamExt;
 

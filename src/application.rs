@@ -4,7 +4,7 @@ use std::{sync::Arc, thread::JoinHandle};
 
 use crate::{
     field::{Field, ThreadSafeField},
-    game::{deno_nevermore::LogMessage, DenoWorker},
+    worker::{deno_nevermore::LogMessage, DenoWorker},
     pub_sub::{PubSub, ThreadSafePubSub},
 };
 
@@ -118,7 +118,7 @@ async fn run_event_loop_forever(attach_inspector: bool, application: ThreadSafeA
             )
         };
         let mut deno_worker = deno_worker_safe.lock().await;
-        let mut workers = Worker::get_all_workers_to_load(database.clone()).await.ok();
+        let mut workers = Worker::get_all_to_load(database.clone()).await.ok();
         if let Some(workers) = workers.take() {
             for worker in workers {
                 let result = deno_worker.run_code(worker.name.clone(), worker.code);

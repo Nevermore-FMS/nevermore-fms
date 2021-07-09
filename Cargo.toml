@@ -1,7 +1,7 @@
 [package]
 name = "nevermore-fms"
 version = "0.1.0"
-authors = ["McMackety <mcmackety@rodiconmc.com>"]
+authors = ["McMackety <macdonnell.chase@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -23,15 +23,17 @@ flo_stream = "0.6.0"
 anyhow = "1.0.41"
 pretty_env_logger = "0.4.0"
 log = "0.4.14"
-chrono = "0.4.19"
+chrono = { version = "0.4.19", features = ["serde"] }
 serde = { version = "1.0.126", features = ["derive"] }
 
 # Database Deps
 rusqlite = { version = "0.25.3", features = ["bundled"] }
+rust-argon2 = "0.8"
+base64 = "0.13.0"
 
 # Web Deps
 warp = "0.3.1"
-async-graphql = "2.9.7"
+async-graphql = { version = "2.9.7", features = ["chrono"] }
 async-graphql-warp = "2.9.7"
 include_dir = "0.6.1"
 percent-encoding = "1.0.1"
