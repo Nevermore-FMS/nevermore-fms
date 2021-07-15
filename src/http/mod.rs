@@ -8,9 +8,9 @@ use crate::application::ThreadSafeApplication;
 pub mod graph;
 
 pub async fn start(application: ThreadSafeApplication) {
-    let schema = graph::schema::create_schema(application.clone());
+    let schema = graph::create_schema(application.clone());
     let graphql_post = async_graphql_warp::graphql(schema.clone()).and_then(
-        |(schema, request): (graph::schema::NevermoreSchema, async_graphql::Request)| async move {
+        |(schema, request): (graph::NevermoreSchema, async_graphql::Request)| async move {
             Ok::<_, Infallible>(Response::from(schema.execute(request).await))
         },
     );

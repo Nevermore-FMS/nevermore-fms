@@ -851,6 +851,95 @@ interface TransformStreamDefaultControllerTransformCallback<I, O> {
     controller: TransformStreamDefaultController<O>,
   ): void | PromiseLike<void>;
 }
+
+interface MessageEventInit<T = any> extends EventInit {
+  data?: T;
+  origin?: string;
+  lastEventId?: string;
+}
+
+declare class MessageEvent<T = any> extends Event {
+  /**
+   * Returns the data of the message.
+   */
+  readonly data: T;
+  /**
+   * Returns the last event ID string, for server-sent events.
+   */
+  readonly lastEventId: string;
+  /**
+   * Returns transfered ports.
+   */
+  readonly ports: ReadonlyArray<MessagePort>;
+  constructor(type: string, eventInitDict?: MessageEventInit);
+}
+
+type Transferable = ArrayBuffer | MessagePort;
+
+interface PostMessageOptions {
+  transfer?: Transferable[];
+}
+
+/** The MessageChannel interface of the Channel Messaging API allows us to
+ * create a new message channel and send data through it via its two MessagePort
+ * properties. */
+declare class MessageChannel {
+  constructor();
+  readonly port1: MessagePort;
+  readonly port2: MessagePort;
+}
+
+interface MessagePortEventMap {
+  "message": MessageEvent;
+  "messageerror": MessageEvent;
+}
+
+/** The MessagePort interface of the Channel Messaging API represents one of the
+ * two ports of a MessageChannel, allowing messages to be sent from one port and
+ * listening out for them arriving at the other. */
+declare class MessagePort extends EventTarget {
+  onmessage: ((this: MessagePort, ev: MessageEvent) => any) | null;
+  onmessageerror: ((this: MessagePort, ev: MessageEvent) => any) | null;
+  /**
+   * Disconnects the port, so that it is no longer active.
+   */
+  close(): void;
+  /**
+   * Posts a message through the channel. Objects listed in transfer are
+   * transferred, not just cloned, meaning that they are no longer usable on the
+   * sending side.
+   *
+   * Throws a "DataCloneError" DOMException if transfer contains duplicate
+   * objects or port, or if message could not be cloned.
+   */
+  postMessage(message: any, transfer: Transferable[]): void;
+  postMessage(message: any, options?: PostMessageOptions): void;
+  /**
+   * Begins dispatching messages received on the port. This is implictly called
+   * when assiging a value to `this.onmessage`.
+   */
+  start(): void;
+  addEventListener<K extends keyof MessagePortEventMap>(
+    type: K,
+    listener: (this: MessagePort, ev: MessagePortEventMap[K]) => any,
+    options?: boolean | AddEventListenerOptions,
+  ): void;
+  addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | AddEventListenerOptions,
+  ): void;
+  removeEventListener<K extends keyof MessagePortEventMap>(
+    type: K,
+    listener: (this: MessagePort, ev: MessagePortEventMap[K]) => any,
+    options?: boolean | EventListenerOptions,
+  ): void;
+  removeEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | EventListenerOptions,
+  ): void;
+}
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
 // deno-lint-ignore-file no-explicit-any
@@ -1407,6 +1496,157 @@ type BinaryType = "arraybuffer" | "blob";
 
 declare var crypto: Crypto;
 
+interface Algorithm {
+  name: string;
+}
+
+interface KeyAlgorithm {
+  name: string;
+}
+
+type AlgorithmIdentifier = string | Algorithm;
+type HashAlgorithmIdentifier = AlgorithmIdentifier;
+type KeyType = "private" | "public" | "secret";
+type KeyUsage =
+  | "decrypt"
+  | "deriveBits"
+  | "deriveKey"
+  | "encrypt"
+  | "sign"
+  | "unwrapKey"
+  | "verify"
+  | "wrapKey";
+
+type NamedCurve = string;
+
+interface HmacKeyGenParams extends Algorithm {
+  hash: HashAlgorithmIdentifier;
+  length?: number;
+}
+
+interface EcKeyGenParams extends Algorithm {
+  namedCurve: NamedCurve;
+}
+
+interface EcdsaParams extends Algorithm {
+  hash: HashAlgorithmIdentifier;
+}
+
+interface RsaHashedKeyGenParams extends RsaKeyGenParams {
+  hash: HashAlgorithmIdentifier;
+}
+
+interface RsaKeyGenParams extends Algorithm {
+  modulusLength: number;
+  publicExponent: Uint8Array;
+}
+
+interface RsaPssParams extends Algorithm {
+  saltLength: number;
+}
+
+/** The CryptoKey dictionary of the Web Crypto API represents a cryptographic key. */
+interface CryptoKey {
+  readonly algorithm: KeyAlgorithm;
+  readonly extractable: boolean;
+  readonly type: KeyType;
+  readonly usages: KeyUsage[];
+}
+
+declare var CryptoKey: {
+  prototype: CryptoKey;
+  new (): CryptoKey;
+};
+
+/** The CryptoKeyPair dictionary of the Web Crypto API represents a key pair for an asymmetric cryptography algorithm, also known as a public-key algorithm. */
+interface CryptoKeyPair {
+  privateKey: CryptoKey;
+  publicKey: CryptoKey;
+}
+
+declare var CryptoKeyPair: {
+  prototype: CryptoKeyPair;
+  new (): CryptoKeyPair;
+};
+
+/** This Web Crypto API interface provides a number of low-level cryptographic functions. It is accessed via the Crypto.subtle properties available in a window context (via Window.crypto). */
+interface SubtleCrypto {
+  generateKey(
+    algorithm: RsaHashedKeyGenParams | EcKeyGenParams,
+    extractable: boolean,
+    keyUsages: KeyUsage[],
+  ): Promise<CryptoKeyPair>;
+  generateKey(
+    algorithm: HmacKeyGenParams,
+    extractable: boolean,
+    keyUsages: KeyUsage[],
+  ): Promise<CryptoKey>;
+  generateKey(
+    algorithm: AlgorithmIdentifier,
+    extractable: boolean,
+    keyUsages: KeyUsage[],
+  ): Promise<CryptoKeyPair | CryptoKey>;
+  sign(
+    algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams,
+    key: CryptoKey,
+    data:
+      | Int8Array
+      | Int16Array
+      | Int32Array
+      | Uint8Array
+      | Uint16Array
+      | Uint32Array
+      | Uint8ClampedArray
+      | Float32Array
+      | Float64Array
+      | DataView
+      | ArrayBuffer,
+  ): Promise<ArrayBuffer>;
+  verify(
+    algorithm: AlgorithmIdentifier | RsaPssParams,
+    key: CryptoKey,
+    signature:
+      | Int8Array
+      | Int16Array
+      | Int32Array
+      | Uint8Array
+      | Uint16Array
+      | Uint32Array
+      | Uint8ClampedArray
+      | Float32Array
+      | Float64Array
+      | DataView
+      | ArrayBuffer,
+    data:
+      | Int8Array
+      | Int16Array
+      | Int32Array
+      | Uint8Array
+      | Uint16Array
+      | Uint32Array
+      | Uint8ClampedArray
+      | Float32Array
+      | Float64Array
+      | DataView
+      | ArrayBuffer,
+  ): Promise<boolean>;
+  digest(
+    algorithm: AlgorithmIdentifier,
+    data:
+      | Int8Array
+      | Int16Array
+      | Int32Array
+      | Uint8Array
+      | Uint16Array
+      | Uint32Array
+      | Uint8ClampedArray
+      | Float32Array
+      | Float64Array
+      | DataView
+      | ArrayBuffer,
+  ): Promise<ArrayBuffer>;
+}
+
 declare interface Crypto {
   readonly subtle: SubtleCrypto;
   getRandomValues<
@@ -1432,31 +1672,10 @@ interface Algorithm {
   name: string;
 }
 
-/** This Web Crypto API interface provides a number of low-level cryptographic functions. It is accessed via the Crypto.subtle properties available in a window context (via Window.crypto). */
-interface SubtleCrypto {
-  digest(
-    algorithm: AlgorithmIdentifier,
-    data:
-      | Int8Array
-      | Int16Array
-      | Int32Array
-      | Uint8Array
-      | Uint16Array
-      | Uint32Array
-      | Uint8ClampedArray
-      | Float32Array
-      | Float64Array
-      | DataView
-      | ArrayBuffer,
-  ): Promise<ArrayBuffer>;
-}
-
 declare var SubtleCrypto: {
   prototype: SubtleCrypto;
   new (): SubtleCrypto;
 };
-
-type AlgorithmIdentifier = string | Algorithm;
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
 // deno-lint-ignore-file no-explicit-any
@@ -1512,6 +1731,155 @@ declare var BroadcastChannel: {
   prototype: BroadcastChannel;
   new (name: string): BroadcastChannel;
 };
+// Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+
+/// <reference no-default-lib="true" />
+/// <reference lib="esnext" />
+
+declare namespace Deno {
+  export interface NetAddr {
+    transport: "tcp" | "udp";
+    hostname: string;
+    port: number;
+  }
+
+  export interface UnixAddr {
+    transport: "unix" | "unixpacket";
+    path: string;
+  }
+
+  export type Addr = NetAddr | UnixAddr;
+
+  /** A generic network listener for stream-oriented protocols. */
+  export interface Listener extends AsyncIterable<Conn> {
+    /** Waits for and resolves to the next connection to the `Listener`. */
+    accept(): Promise<Conn>;
+    /** Close closes the listener. Any pending accept promises will be rejected
+   * with errors. */
+    close(): void;
+    /** Return the address of the `Listener`. */
+    readonly addr: Addr;
+
+    /** Return the rid of the `Listener`. */
+    readonly rid: number;
+
+    [Symbol.asyncIterator](): AsyncIterableIterator<Conn>;
+  }
+
+  export interface Conn extends Reader, Writer, Closer {
+    /** The local address of the connection. */
+    readonly localAddr: Addr;
+    /** The remote address of the connection. */
+    readonly remoteAddr: Addr;
+    /** The resource ID of the connection. */
+    readonly rid: number;
+    /** Shuts down (`shutdown(2)`) the write side of the connection. Most
+   * callers should just use `close()`. */
+    closeWrite(): Promise<void>;
+  }
+
+  export interface ListenOptions {
+    /** The port to listen on. */
+    port: number;
+    /** A literal IP address or host name that can be resolved to an IP address.
+   * If not specified, defaults to `0.0.0.0`. */
+    hostname?: string;
+  }
+
+  /** Listen announces on the local transport address.
+ *
+ * ```ts
+ * const listener1 = Deno.listen({ port: 80 })
+ * const listener2 = Deno.listen({ hostname: "192.0.2.1", port: 80 })
+ * const listener3 = Deno.listen({ hostname: "[2001:db8::1]", port: 80 });
+ * const listener4 = Deno.listen({ hostname: "golang.org", port: 80, transport: "tcp" });
+ * ```
+ *
+ * Requires `allow-net` permission. */
+  export function listen(
+    options: ListenOptions & { transport?: "tcp" },
+  ): Listener;
+
+  export interface ListenTlsOptions extends ListenOptions {
+    /** Server certificate file. */
+    certFile: string;
+    /** Server public key file. */
+    keyFile: string;
+
+    transport?: "tcp";
+  }
+
+  /** Listen announces on the local transport address over TLS (transport layer
+ * security).
+ *
+ * ```ts
+ * const lstnr = Deno.listenTls({ port: 443, certFile: "./server.crt", keyFile: "./server.key" });
+ * ```
+ *
+ * Requires `allow-net` permission. */
+  export function listenTls(options: ListenTlsOptions): Listener;
+
+  export interface ConnectOptions {
+    /** The port to connect to. */
+    port: number;
+    /** A literal IP address or host name that can be resolved to an IP address.
+   * If not specified, defaults to `127.0.0.1`. */
+    hostname?: string;
+    transport?: "tcp";
+  }
+
+  /**
+ * Connects to the hostname (default is "127.0.0.1") and port on the named
+ * transport (default is "tcp"), and resolves to the connection (`Conn`).
+ *
+ * ```ts
+ * const conn1 = await Deno.connect({ port: 80 });
+ * const conn2 = await Deno.connect({ hostname: "192.0.2.1", port: 80 });
+ * const conn3 = await Deno.connect({ hostname: "[2001:db8::1]", port: 80 });
+ * const conn4 = await Deno.connect({ hostname: "golang.org", port: 80, transport: "tcp" });
+ * ```
+ *
+ * Requires `allow-net` permission for "tcp". */
+  export function connect(options: ConnectOptions): Promise<Conn>;
+
+  export interface ConnectTlsOptions {
+    /** The port to connect to. */
+    port: number;
+    /** A literal IP address or host name that can be resolved to an IP address.
+   * If not specified, defaults to `127.0.0.1`. */
+    hostname?: string;
+    /** Server certificate file. */
+    certFile?: string;
+  }
+
+  /** Establishes a secure connection over TLS (transport layer security) using
+ * an optional cert file, hostname (default is "127.0.0.1") and port.  The
+ * cert file is optional and if not included Mozilla's root certificates will
+ * be used (see also https://github.com/ctz/webpki-roots for specifics)
+ *
+ * ```ts
+ * const conn1 = await Deno.connectTls({ port: 80 });
+ * const conn2 = await Deno.connectTls({ certFile: "./certs/my_custom_root_CA.pem", hostname: "192.0.2.1", port: 80 });
+ * const conn3 = await Deno.connectTls({ hostname: "[2001:db8::1]", port: 80 });
+ * const conn4 = await Deno.connectTls({ certFile: "./certs/my_custom_root_CA.pem", hostname: "golang.org", port: 80});
+ * ```
+ *
+ * Requires `allow-net` permission.
+ */
+  export function connectTls(options: ConnectTlsOptions): Promise<Conn>;
+
+  /** Shutdown socket send operations.
+ *
+ * Matches behavior of POSIX shutdown(3).
+ *
+ * ```ts
+ * const listener = Deno.listen({ port: 80 });
+ * const conn = await listener.accept();
+ * Deno.shutdown(conn.rid);
+ * ```
+ */
+  export function shutdown(rid: number): Promise<void>;
+}
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
 // Documentation partially adapted from [MDN](https://developer.mozilla.org/),
@@ -2060,7 +2428,7 @@ declare namespace Nevermore {
         /**
          * Retrieves all connected DriverStations
          */
-         export function getDriverStations(): Promise<DriverStation[]>
+        export function getDriverStations(): Promise<DriverStation[]>
 
         /**
          * Adds a team to the alliance station map, thereby allowing it to properly connect.
@@ -2159,15 +2527,74 @@ declare namespace Nevermore {
             isClosed(): Promise<boolean>
         }
     }
+}declare namespace Nevermore {
+    /**
+     * The `Nevermore.Database` namespace defines the functions involved with storing and retrieving persistent data using SQL.
+     */
+    namespace Database {
+        /**
+         * Retrieves the SQLDatabase assigned for this Plugin. The database is isolated based upon the name defined.
+         * 
+         * This function caches the result until `SQLDatabase.close` is called, so once a database is created it always will return the same database.
+         * 
+         * @param name The name of the database you want to retrieve.
+         */
+        export function get(name: string): Promise<SQLDatabase>
 
+        export type ParameterImpl = object | number | string | null
+
+        /**
+         * Defines a JSON compatible parameter.
+         */
+        export type Parameter = ParameterImpl | ParameterImpl[]
+
+        /**
+         * An SQL Database backed by SQLite.
+         */
+        export class SQLDatabase {
+            private constructor(rid: number)
+
+            /**
+             * Runs an SQL statement without returning anything.
+             * 
+             * @param stmt The SQL statement.
+             * @param params The parameters for the statement.
+             */
+            run(stmt: string, params: Parameter[]): Promise<void>
+
+            /**
+             * Runs an SQL statement and returns the first row.
+             * 
+             * @param stmt The SQL statement.
+             * @param params The parameters for the statement.
+             */
+            get<T>(stmt: string, params: Parameter[]): Promise<T>
+
+            /**
+             * Runs an SQL statement and returns all rows.
+             * 
+             * @param stmt The SQL statement.
+             * @param params The parameters for the statement.
+             */
+            all<T>(stmt: string, params: Parameter[]): Promise<T[]>
+
+            /**
+             * Closes the SQLite database.
+             */
+            close(): void
+        }
+    }
+}declare namespace Nevermore {
     /**
      * The `Nevermore.PubSub` namespace defines the API used to send messages to and from the frontend.
      */
     namespace PubSub {
+        export type PubSubMessageImpl = object | number | string | null
+
         /**
          * Message represents and JS object capable of being turned into JSON.
          */
-        export type PubSubMessage = any
+        export type PubSubMessage = PubSubMessageImpl | PubSubMessageImpl[]
 
         /**
          * A callback for a subscriber returning a JS Object.

@@ -12,6 +12,7 @@ use tokio::time::Duration;
 
 pub mod driverstation;
 pub mod enums;
+pub mod network;
 
 pub type ThreadSafeField = Arc<Mutex<Field>>;
 

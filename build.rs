@@ -31,11 +31,14 @@ fn build_types() -> std::io::Result<()> {
         deno_websocket::get_declaration(),
         deno_crypto::get_declaration(),
         deno_broadcast_channel::get_declaration(),
+        deno_net::get_declaration(),
         out_dir
             .join("runtime")
             .join("ts")
             .join("shared-globals.d.ts"),
         out_dir.join("runtime").join("ts").join("nevermore.d.ts"),
+        out_dir.join("runtime").join("ts").join("database.d.ts"),
+        out_dir.join("runtime").join("ts").join("pubsub.d.ts"),
     ];
 
     let mut final_string = String::new();
@@ -131,7 +134,10 @@ fn build_snapshot() {
 
     println!("cargo:rustc-env=TARGET={}", env::var("TARGET").unwrap());
     println!("cargo:rustc-env=PROFILE={}", env::var("PROFILE").unwrap());
-    let out = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("src").join("worker").join("v8_snapshots");
+    let out = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
+        .join("src")
+        .join("worker")
+        .join("v8_snapshots");
 
     // Main snapshot
     let runtime_snapshot_path = out.join("SNAPSHOT.bin");
@@ -163,7 +169,7 @@ fn create_snapshot(mut js_runtime: JsRuntime, snapshot_path: &Path, files: Vec<P
         let display_path = file.strip_prefix(display_root).unwrap();
         let display_path_str = display_path.display().to_string();
         js_runtime
-            .execute(
+            .execute_script(
                 &("deno:".to_string() + &display_path_str.replace('\\', "/")),
                 &std::fs::read_to_string(&file).unwrap(),
             )
@@ -182,8 +188,9 @@ fn create_runtime_snapshot(snapshot_path: &Path, files: Vec<PathBuf>) {
         deno_webidl::init(),
         deno_console::init(),
         deno_url::init(),
-        deno_web::init(deno_web::BlobUrlStore::default(), Default::default()),
-        deno_fetch::init::<deno_fetch::NoFetchPermissions>("".to_owned(), None),
+        deno_web::init(Default::default(), Default::default()),
+        deno_fetch::init::<deno_fetch::NoFetchPermissions>("".to_owned(), None, None),
+        deno_net::init::<deno_net::NoNetPermissions>(false),
         deno_websocket::init::<deno_websocket::NoWebSocketPermissions>("".to_owned(), None),
         deno_crypto::init(None),
         deno_timers::init::<deno_timers::NoTimersPermission>(),

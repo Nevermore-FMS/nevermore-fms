@@ -1,16 +1,19 @@
 pub mod deno_nevermore;
+pub mod deno_pubsub;
+pub mod deno_database;
 
-use std::sync::Arc;
 use crate::field::ThreadSafeField;
-use crate::worker::deno_nevermore::LogMessage;
 use crate::pub_sub::ThreadSafePubSub;
+use crate::worker::deno_nevermore::LogMessage;
 use deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_core::{Extension, Snapshot};
 use deno_core::{InspectorSessionProxy, JsRuntime, RuntimeOptions};
 use deno_fetch::NoFetchPermissions;
+use deno_net::NoNetPermissions;
 use deno_timers::NoTimersPermission;
 use deno_websocket::NoWebSocketPermissions;
 use futures::channel::mpsc::UnboundedSender;
+use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
 
@@ -18,14 +21,13 @@ pub type ThreadSafeDenoWorker = Arc<Mutex<DenoWorker>>;
 
 pub struct DenoWorker {
     runtime: JsRuntime,
-    inspector_sender: Option<UnboundedSender<InspectorSessionProxy>>,
+    inspector_sender: UnboundedSender<InspectorSessionProxy>,
 }
 
 impl DenoWorker {
     pub fn new(
         field: ThreadSafeField,
         pub_sub: ThreadSafePubSub,
-        attach_inspector: bool,
         log_channel: Sender<LogMessage>,
     ) -> ThreadSafeDenoWorker {
         let perm_ext = Extension::builder()
@@ -33,6 +35,7 @@ impl DenoWorker {
                 state.put::<NoFetchPermissions>(NoFetchPermissions {});
                 state.put::<NoWebSocketPermissions>(NoWebSocketPermissions {});
                 state.put::<NoTimersPermission>(NoTimersPermission {});
+                state.put::<NoNetPermissions>(NoNetPermissions {});
                 Ok(())
             })
             .build();
@@ -42,30 +45,31 @@ impl DenoWorker {
             deno_console::init(),
             deno_url::init(),
             deno_web::init(Default::default(), Default::default()),
-            deno_fetch::init::<NoFetchPermissions>("nevermore".to_owned(), None),
+            deno_fetch::init::<NoFetchPermissions>("nevermore".to_owned(), None, None),
+            deno_net::init::<NoNetPermissions>(false),
             deno_websocket::init::<NoWebSocketPermissions>("nevermore".to_owned(), None),
             deno_crypto::init(None),
             deno_timers::init::<NoTimersPermission>(),
             deno_broadcast_channel::init(InMemoryBroadcastChannel::default(), false),
             perm_ext,
-            crate::worker::deno_nevermore::init(field, pub_sub, log_channel.clone()), // This is the nevermore specific extension which adds functions.
+            deno_nevermore::init(field, log_channel.clone()),
+            deno_pubsub::init(pub_sub),
+            deno_database::init(),
         ];
 
         let mut runtime = JsRuntime::new(RuntimeOptions {
             extensions,
-            attach_inspector,
-            startup_snapshot: Some(Snapshot::Static(include_bytes!("v8_snapshots/SNAPSHOT.bin"))),
+            startup_snapshot: Some(Snapshot::Static(include_bytes!(
+                "v8_snapshots/SNAPSHOT.bin"
+            ))),
             ..Default::default()
         });
 
-        runtime.execute("deno:bootstrap.js", include_str!("bootstrap.js")).ok();
+        runtime
+            .execute_script("deno:bootstrap.js", include_str!("bootstrap.js"))
+            .ok();
 
-        let inspector_sender = if attach_inspector {
-            let maybe_inspector = runtime.inspector();
-            Some(maybe_inspector.unwrap().get_session_sender())
-        } else {
-            None
-        };
+        let inspector_sender = runtime.inspector().get_session_sender();
 
         Arc::new(Mutex::new(Self {
             runtime,
@@ -75,7 +79,7 @@ impl DenoWorker {
 
     pub fn run_code(&mut self, id: String, code: String) -> anyhow::Result<()> {
         self.runtime
-            .execute(format!("deno:{}.js", id).as_str(), code.as_str())?;
+            .execute_script(format!("deno:{}.js", id).as_str(), code.as_str())?;
 
         Ok(())
     }
@@ -84,7 +88,7 @@ impl DenoWorker {
         self.runtime.run_event_loop(false).await
     }
 
-    pub fn get_session_sender(&self) -> Option<UnboundedSender<InspectorSessionProxy>> {
+    pub fn get_session_sender(&self) -> UnboundedSender<InspectorSessionProxy> {
         self.inspector_sender.clone()
     }
 }

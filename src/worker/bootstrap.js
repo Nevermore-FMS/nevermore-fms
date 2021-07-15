@@ -48,9 +48,6 @@
 ((window) => {
   const core = Deno.core;
   const util = window.__bootstrap.util;
-  const eventTarget = window.__bootstrap.eventTarget;
-  const globalInterfaces = window.__bootstrap.globalInterfaces;
-  const location = window.__bootstrap.location;
   const timers = window.__bootstrap.timers;
   const base64 = window.__bootstrap.base64;
   const encoding = window.__bootstrap.encoding;
@@ -62,7 +59,6 @@
   const webSocket = window.__bootstrap.webSocket;
   const broadcastChannel = window.__bootstrap.broadcastChannel;
   const fetch = window.__bootstrap.fetch;
-  const webidl = window.__bootstrap.webidl;
   const file = window.__bootstrap.file;
   const nevermore = window.__bootstrap.nevermore;
 
@@ -126,22 +122,15 @@
     clearInterval: util.writable(timers.clearInterval),
     clearTimeout: util.writable(timers.clearTimeout),
     console: util.writable(
-      /*new Console((message, level) => {
-        // mcmackety: TODO: This method of getting the calling function clearly isn't working. Got any ideas?
-        let callingFunction = "unknown";
-        let fileName = "unknown";
-
+      new Console((message, level) => {
         let date = new Date();
 
         core.opSync("op_log", {
-          callingFunction,
-          fileName,
           message,
           level,
           dateTime: date.toLocaleString("en")
         })
-      })*/
-      window.console
+      })
     ),
     crypto: util.readOnly(crypto.crypto),
     Crypto: util.nonEnumerable(crypto.Crypto),
@@ -160,10 +149,8 @@
   delete globalThis.__bootstrap;
   delete globalThis.bootstrap;
 
-  const consoleFromDeno = globalThis.console;
-  try {
-    wrapConsole(consoleFromDeno, consoleFromV8);
-  } catch(_) {}
-
   Object.defineProperties(globalThis, windowOrWorkerGlobalScope);
+  
+  const consoleFromDeno = globalThis.console;
+  wrapConsole(consoleFromDeno, consoleFromV8);
 })(this);

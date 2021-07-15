@@ -1,4 +1,4 @@
-use crate::database::{Database, ThreadSafeDatabase};
+use crate::models::{Database, ThreadSafeDatabase};
 use async_graphql::*;
 use serde::{Deserialize, Serialize};
 
@@ -23,13 +23,13 @@ pub struct Worker {
     pub enabled: bool,
     pub author: String,
     pub email: String,
-    pub url: String
+    pub url: String,
 }
 
 #[Object]
 impl Worker {
-    pub async fn id(&self) -> String {
-        base64::encode(self.name.as_bytes())
+    pub async fn id(&self) -> ID {
+        base64::encode(format!("Worker:{}", self.name).as_bytes()).into()
     }
 
     pub async fn readme(&self) -> String {
@@ -70,7 +70,7 @@ pub struct CreateWorkerParams {
     pub enabled: bool,
     pub author: String,
     pub email: String,
-    pub url: String
+    pub url: String,
 }
 
 impl Worker {
@@ -101,9 +101,7 @@ impl Worker {
         Ok(())
     }
 
-    pub async fn get_all_to_load(
-        database: ThreadSafeDatabase,
-    ) -> anyhow::Result<Vec<Worker>> {
+    pub async fn get_all_to_load(database: ThreadSafeDatabase) -> anyhow::Result<Vec<Worker>> {
         let database = database.lock().await;
         let mut stmt = database
             .conn
@@ -117,7 +115,7 @@ impl Worker {
                 enabled: true,
                 author: row.get(4)?,
                 email: row.get(5)?,
-                url: row.get(6)?
+                url: row.get(6)?,
             })
         })?;
 
@@ -150,9 +148,9 @@ impl Worker {
 
     pub async fn get_all(database: ThreadSafeDatabase) -> anyhow::Result<Vec<Worker>> {
         let database = database.lock().await;
-        let mut stmt = database
-            .conn
-            .prepare("SELECT name, readme, code, frontend_code, enabled, author, email, url FROM workers")?;
+        let mut stmt = database.conn.prepare(
+            "SELECT name, readme, code, frontend_code, enabled, author, email, url FROM workers",
+        )?;
         let worker_scripts = stmt.query_map([], |row| {
             Ok(Worker {
                 name: row.get(0)?,
@@ -162,7 +160,7 @@ impl Worker {
                 enabled: row.get(4)?,
                 author: row.get(5)?,
                 email: row.get(6)?,
-                url: row.get(7)?
+                url: row.get(7)?,
             })
         })?;
 
@@ -171,27 +169,31 @@ impl Worker {
         Ok(worker_scripts.collect())
     }
 
-    pub async fn get_all_paginated(database: ThreadSafeDatabase, is_inverted: bool, limit: usize, after: Option<String>, before: Option<String>) -> anyhow::Result<(bool, bool, Vec<Worker>)> {
+    pub async fn get_all_paginated(
+        database: ThreadSafeDatabase,
+        is_inverted: bool,
+        limit: usize,
+        after: Option<String>,
+        before: Option<String>,
+    ) -> anyhow::Result<(bool, bool, Vec<Worker>)> {
         if limit > 50 {
-            return Err(anyhow::anyhow!("maximum limit is 50"))
+            return Err(anyhow::anyhow!("maximum limit is 50"));
         }
         let database = database.lock().await;
 
-        let order_by = if is_inverted {
-            "DESC"
-        } else {
-            "ASC"
-        };
+        let order_by = if is_inverted { "DESC" } else { "ASC" };
 
-        let mut query_string = String::from("SELECT name, readme, code, frontend_code, enabled, author, email, url FROM workers");
+        let mut query_string = String::from(
+            "SELECT name, readme, code, frontend_code, enabled, author, email, url FROM workers",
+        );
         let params = rusqlite::params![after.clone(), before.clone(), limit + 1];
-        let mut is_first_where = true;
+        let mut _is_first_where = true;
         if after.is_some() || before.is_some() {
             query_string.push_str(" WHERE");
         }
         if after.is_some() {
-            if is_first_where {
-                is_first_where = false;
+            if _is_first_where {
+                _is_first_where = false;
             } else {
                 query_string.push_str(" AND");
             }
@@ -199,8 +201,8 @@ impl Worker {
         };
 
         if before.is_some() {
-            if is_first_where {
-                is_first_where = false;
+            if _is_first_where {
+                _is_first_where = false;
             } else {
                 query_string.push_str(" AND");
             }
@@ -222,7 +224,7 @@ impl Worker {
                 enabled: row.get(4)?,
                 author: row.get(5)?,
                 email: row.get(6)?,
-                url: row.get(7)?
+                url: row.get(7)?,
             })
         })?;
 
@@ -244,50 +246,66 @@ impl Worker {
 
 mod tests {
     #[tokio::test]
-    async fn test_workers_model() -> anyhow::Result<()> {
-        let db = super::super::Database::new(true, None)?;
+    async fn test_users_model() -> anyhow::Result<()> {
+        let db = super::super::Database::new(true, true, None).await?;
 
         // Insert Test Data
-        super::Worker::create(db.clone(), super::CreateWorkerParams{
-            name: "test".to_string(),
-            readme: "test".to_string(),
-            code: "test".to_string(),
-            frontend_code: "test".to_string(),
-            enabled: false,
-            author: "test".to_string(),
-            email: "test".to_string(),
-            url: "test".to_string(),
-        }).await?;
-        super::Worker::create(db.clone(), super::CreateWorkerParams{
-            name: "test1".to_string(),
-            readme: "test".to_string(),
-            code: "test".to_string(),
-            frontend_code: "test".to_string(),
-            enabled: true,
-            author: "test".to_string(),
-            email: "test".to_string(),
-            url: "test".to_string(),
-        }).await?;
-        super::Worker::create(db.clone(), super::CreateWorkerParams{
-            name: "test2".to_string(),
-            readme: "test".to_string(),
-            code: "test".to_string(),
-            frontend_code: "test".to_string(),
-            enabled: true,
-            author: "test".to_string(),
-            email: "test".to_string(),
-            url: "test".to_string(),
-        }).await?;
-        super::Worker::create(db.clone(), super::CreateWorkerParams{
-            name: "test3".to_string(),
-            readme: "test".to_string(),
-            code: "test".to_string(),
-            frontend_code: "test".to_string(),
-            enabled: false,
-            author: "test".to_string(),
-            email: "test".to_string(),
-            url: "test".to_string(),
-        }).await?;
+        super::Worker::create(
+            db.clone(),
+            super::CreateWorkerParams {
+                name: "test".to_string(),
+                readme: "test".to_string(),
+                code: "test".to_string(),
+                frontend_code: "test".to_string(),
+                enabled: false,
+                author: "test".to_string(),
+                email: "test".to_string(),
+                url: "test".to_string(),
+            },
+        )
+        .await?;
+        super::Worker::create(
+            db.clone(),
+            super::CreateWorkerParams {
+                name: "test1".to_string(),
+                readme: "test".to_string(),
+                code: "test".to_string(),
+                frontend_code: "test".to_string(),
+                enabled: true,
+                author: "test".to_string(),
+                email: "test".to_string(),
+                url: "test".to_string(),
+            },
+        )
+        .await?;
+        super::Worker::create(
+            db.clone(),
+            super::CreateWorkerParams {
+                name: "test2".to_string(),
+                readme: "test".to_string(),
+                code: "test".to_string(),
+                frontend_code: "test".to_string(),
+                enabled: true,
+                author: "test".to_string(),
+                email: "test".to_string(),
+                url: "test".to_string(),
+            },
+        )
+        .await?;
+        super::Worker::create(
+            db.clone(),
+            super::CreateWorkerParams {
+                name: "test3".to_string(),
+                readme: "test".to_string(),
+                code: "test".to_string(),
+                frontend_code: "test".to_string(),
+                enabled: false,
+                author: "test".to_string(),
+                email: "test".to_string(),
+                url: "test".to_string(),
+            },
+        )
+        .await?;
 
         // Try Getting
         let _ = super::Worker::get(db.clone(), "test".to_string()).await?;
@@ -307,26 +325,54 @@ mod tests {
         assert_eq!(workers.len(), 3);
 
         // Try Pagination
-        let (has_prev_page, has_next_page, workers) = super::Worker::get_all_paginated(db.clone(), false, 10, None, None).await?;
+        let (has_prev_page, has_next_page, workers) =
+            super::Worker::get_all_paginated(db.clone(), false, 10, None, None).await?;
         assert_eq!(has_prev_page, false);
         assert_eq!(has_next_page, false);
         assert_eq!(workers.len(), 3);
 
-        let (has_prev_page, has_next_page, workers) = super::Worker::get_all_paginated(db.clone(), false, 2, None, None).await?;
+        let (has_prev_page, has_next_page, workers) =
+            super::Worker::get_all_paginated(db.clone(), false, 2, None, None).await?;
         assert_eq!(has_prev_page, false);
         assert_eq!(has_next_page, true);
         assert_eq!(workers.len(), 2);
 
-        let (has_prev_page, has_next_page, workers) = super::Worker::get_all_paginated(db.clone(), false, 10, Some("test1".to_string()), None).await?;
+        let (has_prev_page, has_next_page, workers) = super::Worker::get_all_paginated(
+            db.clone(),
+            false,
+            10,
+            Some("test1".to_string()),
+            None,
+        )
+        .await?;
         assert_eq!(has_prev_page, true);
         assert_eq!(has_next_page, false);
         assert_eq!(workers.len(), 2);
 
-        let (has_prev_page, has_next_page, workers) = super::Worker::get_all_paginated(db.clone(), false, 10, Some("test1".to_string()), Some("test2".to_string())).await?;
+        let (has_prev_page, has_next_page, workers) = super::Worker::get_all_paginated(
+            db.clone(),
+            false,
+            10,
+            Some("test1".to_string()),
+            Some("test2".to_string()),
+        )
+        .await?;
         assert_eq!(has_prev_page, true);
         assert_eq!(has_next_page, false);
         assert_eq!(workers.len(), 0);
-        
+
+        let (has_prev_page, has_next_page, workers) = super::Worker::get_all_paginated(
+            db.clone(),
+            false,
+            10,
+            None,
+            Some("test2".to_string()),
+        )
+        .await?;
+        assert_eq!(has_prev_page, false);
+        assert_eq!(has_next_page, false);
+        assert_eq!(workers.len(), 1);
+
         Ok(())
     }
 }

@@ -4,12 +4,12 @@ use std::{sync::Arc, thread::JoinHandle};
 
 use crate::{
     field::{Field, ThreadSafeField},
-    worker::{deno_nevermore::LogMessage, DenoWorker},
     pub_sub::{PubSub, ThreadSafePubSub},
+    worker::{deno_nevermore::LogMessage, DenoWorker},
 };
 
-use crate::database::worker::Worker;
-use crate::database::{Database, ThreadSafeDatabase};
+use crate::models::worker::Worker;
+use crate::models::{Database, ThreadSafeDatabase};
 use chrono::Local;
 use deno_core::InspectorSessionProxy;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
@@ -33,7 +33,7 @@ impl Application {
 
         let deno_pub_sub = PubSub::new();
 
-        let database = Database::new(false, Some("test.db".to_string()))?;
+        let database = Database::new(true, false, Some("test.db".to_string())).await?;
 
         let (log_sender, _) = tokio::sync::broadcast::channel::<LogMessage>(10);
 
@@ -52,7 +52,7 @@ impl Application {
         application
             .lock()
             .await
-            .restart_deno_worker(true, application.clone());
+            .restart_deno_worker(application.clone());
 
         Ok(application)
     }
@@ -63,7 +63,6 @@ impl Application {
 
     pub fn restart_deno_worker(
         &mut self,
-        attach_inspector: bool,
         application: ThreadSafeApplication,
     ) {
         if let Some(sender) = self.closing_sender.take() {
@@ -78,7 +77,7 @@ impl Application {
         let join_handle = std::thread::spawn(move || {
             let rt = create_basic_runtime();
             let local = tokio::task::LocalSet::new();
-            local.block_on(&rt, run_deno(rx, attach_inspector, application))
+            local.block_on(&rt, run_deno(rx, application))
         });
 
         self.closing_sender = Some(tx);
@@ -88,29 +87,25 @@ impl Application {
 
 async fn run_deno(
     mut closing_receiver: Receiver<()>,
-    attach_inspector: bool,
     application: ThreadSafeApplication,
 ) {
     tokio::select! {
-        _ = run_event_loop_forever(attach_inspector, application) => {}
+        _ = run_event_loop_forever(application) => {}
         _ = closing_receiver.recv() => {}
     }
 }
 
-async fn run_event_loop_forever(attach_inspector: bool, application: ThreadSafeApplication) {
+async fn run_event_loop_forever(application: ThreadSafeApplication) {
     loop {
         let (log_sender, database, deno_worker_safe) = {
             let mut locked_application = application.lock().await;
             let deno_worker_safe = DenoWorker::new(
                 locked_application.field.clone(),
                 locked_application.deno_pub_sub.clone(),
-                attach_inspector,
                 locked_application.log_sender.clone(),
             );
-            if attach_inspector {
-                locked_application.inspector_sender =
-                    deno_worker_safe.lock().await.get_session_sender();
-            }
+            locked_application.inspector_sender =
+                    Some(deno_worker_safe.lock().await.get_session_sender());
             (
                 locked_application.log_sender.clone(),
                 locked_application.database.clone(),

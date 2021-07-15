@@ -1,5 +1,4 @@
 ((window) => {
-  const pubSubMap = {};
   const dsMap = {};
 
   const Nevermore = {
@@ -67,7 +66,7 @@
             driverStations.push(
               await Nevermore.Field.getDriverStation(teamNumber)
             );
-          } catch (_) {}
+          } catch (_) { }
         }
         return driverStations;
       },
@@ -78,7 +77,7 @@
             if (!(await dsMap[teamNumber].isClosed())) {
               return dsMap[teamNumber];
             }
-          } catch (_) {}
+          } catch (_) { }
         }
         const rid = await Deno.core.opAsync(
           "op_get_driver_station",
@@ -115,37 +114,7 @@
       getTeamToAllianceStationMap: async function () {
         return await Deno.core.opAsync("op_get_team_map");
       },
-    },
-
-    PubSub: {
-      publish: async function (topic, message) {
-        await Deno.core.opAsync("op_publish", {
-          topic,
-          message: JSON.stringify(message),
-        });
-      },
-
-      subscribe: async function (topic, callback) {
-        const subscription = await Deno.core.opAsync("op_subscribe", topic);
-        pubSubMap[[topic, callback]] = subscription;
-        while (true) {
-          await callback(
-            JSON.parse(
-              await Deno.core.opAsync("op_subscription_next", subscription)
-            )
-          );
-        }
-      },
-
-      unsubscribe: async function (topic, callback) {
-        if ([topic, callback] in pubSubMap) {
-          await Deno.core.opAsync(
-            "op_unsubscribe",
-            pubSubMap[[topic, callback]]
-          );
-        }
-      },
-    },
+    }
   };
 
   class DriverStation {
