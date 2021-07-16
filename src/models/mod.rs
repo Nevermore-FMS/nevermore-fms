@@ -1,5 +1,6 @@
 pub mod user;
 pub mod worker;
+pub mod config;
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -81,6 +82,7 @@ impl Database {
     pub fn create_tables(&self) -> anyhow::Result<()> {
         user::User::create_table(self)?;
         worker::Worker::create_table(self)?;
+        config::Config::create_table(self)?;
         Ok(())
     }
 }
@@ -164,7 +166,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_query_row() -> anyhow::Result<()> {
-        let db = super::Database::new(false, true, None).await?;
+        let db = super::Database::new(true, true, None).await?;
         let out = db
             .lock()
             .await

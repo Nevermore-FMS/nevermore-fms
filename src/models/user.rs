@@ -184,7 +184,7 @@ impl User {
 
 mod tests {
     #[tokio::test]
-    async fn test_workers_model() -> anyhow::Result<()> {
+    async fn test_users_model() -> anyhow::Result<()> {
         let db = super::super::Database::new(true, true, None).await?;
 
         // Insert Test Data

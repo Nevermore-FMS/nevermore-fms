@@ -8,6 +8,7 @@ const CREATE_WORKER_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS workers
     readme        TEXT                NOT NULL,
     code          TEXT                NOT NULL,
     frontend_code TEXT                NOT NULL,
+    has_frontend  BOOLEAN             NOT NULL,
     enabled       BOOLEAN             NOT NULL,
     author        TEXT                NOT NULL,
     email         TEXT                NOT NULL,
@@ -20,6 +21,7 @@ pub struct Worker {
     pub readme: String,
     pub code: String,
     pub frontend_code: String,
+    pub has_frontend: bool,
     pub enabled: bool,
     pub author: String,
     pub email: String,
@@ -42,6 +44,10 @@ impl Worker {
 
     pub async fn frontend_code(&self) -> String {
         self.code.clone()
+    }
+
+    pub async fn has_frontend(&self) -> bool {
+        self.has_frontend
     }
 
     pub async fn enabled(&self) -> bool {
@@ -67,6 +73,7 @@ pub struct CreateWorkerParams {
     pub readme: String,
     pub code: String,
     pub frontend_code: String,
+    pub has_frontend: bool,
     pub enabled: bool,
     pub author: String,
     pub email: String,
@@ -85,9 +92,9 @@ impl Worker {
     ) -> anyhow::Result<()> {
         let database = database.lock().await;
         database.conn.execute(
-            "INSERT OR REPLACE INTO workers (name, readme, code, frontend_code, enabled, author, email, url)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            rusqlite::params![params.name, params.readme, params.code, params.frontend_code, params.enabled, params.author, params.email, params.url],
+            "INSERT OR REPLACE INTO workers (name, readme, code, frontend_code, has_frontend, enabled, author, email, url)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            rusqlite::params![params.name, params.readme, params.code, params.frontend_code, params.has_frontend, params.enabled, params.author, params.email, params.url],
         )?;
         Ok(())
     }
@@ -105,17 +112,18 @@ impl Worker {
         let database = database.lock().await;
         let mut stmt = database
             .conn
-            .prepare("SELECT name, readme, code, frontend_code, author, email, url FROM workers WHERE enabled = 1")?;
+            .prepare("SELECT name, readme, code, frontend_code, has_frontend, author, email, url FROM workers WHERE enabled = 1")?;
         let worker_scripts = stmt.query_map([], |row| {
             Ok(Worker {
                 name: row.get(0)?,
                 readme: row.get(1)?,
                 code: row.get(2)?,
                 frontend_code: row.get(3)?,
+                has_frontend: row.get(4)?,
                 enabled: true,
-                author: row.get(4)?,
-                email: row.get(5)?,
-                url: row.get(6)?,
+                author: row.get(5)?,
+                email: row.get(6)?,
+                url: row.get(7)?,
             })
         })?;
 
@@ -127,7 +135,7 @@ impl Worker {
     pub async fn get(database: ThreadSafeDatabase, name: String) -> anyhow::Result<Worker> {
         let database = database.lock().await;
         let worker = database.conn.query_row(
-            "SELECT name, readme, code, frontend_code, enabled, author, email, url FROM workers WHERE name = ?1",
+            "SELECT name, readme, code, frontend_code, has_frontend, enabled, author, email, url FROM workers WHERE name = ?1",
             rusqlite::params![name],
                 |row| {
                     Ok(Worker {
@@ -135,10 +143,11 @@ impl Worker {
                         readme: row.get(1)?,
                         code: row.get(2)?,
                         frontend_code: row.get(3)?,
-                        enabled: row.get(4)?,
-                        author: row.get(5)?,
-                        email: row.get(6)?,
-                        url: row.get(7)?
+                        has_frontend: row.get(4)?,
+                        enabled: row.get(5)?,
+                        author: row.get(6)?,
+                        email: row.get(7)?,
+                        url: row.get(8)?
                     })
                 }
         )?;
@@ -149,7 +158,7 @@ impl Worker {
     pub async fn get_all(database: ThreadSafeDatabase) -> anyhow::Result<Vec<Worker>> {
         let database = database.lock().await;
         let mut stmt = database.conn.prepare(
-            "SELECT name, readme, code, frontend_code, enabled, author, email, url FROM workers",
+            "SELECT name, readme, code, frontend_code, has_frontend, enabled, author, email, url FROM workers",
         )?;
         let worker_scripts = stmt.query_map([], |row| {
             Ok(Worker {
@@ -157,10 +166,11 @@ impl Worker {
                 readme: row.get(1)?,
                 code: row.get(2)?,
                 frontend_code: row.get(3)?,
-                enabled: row.get(4)?,
-                author: row.get(5)?,
-                email: row.get(6)?,
-                url: row.get(7)?,
+                has_frontend: row.get(4)?,
+                enabled: row.get(5)?,
+                author: row.get(6)?,
+                email: row.get(7)?,
+                url: row.get(8)?,
             })
         })?;
 
@@ -184,7 +194,7 @@ impl Worker {
         let order_by = if is_inverted { "DESC" } else { "ASC" };
 
         let mut query_string = String::from(
-            "SELECT name, readme, code, frontend_code, enabled, author, email, url FROM workers",
+            "SELECT name, readme, code, frontend_code, has_frontend, enabled, author, email, url FROM workers",
         );
         let params = rusqlite::params![after.clone(), before.clone(), limit + 1];
         let mut _is_first_where = true;
@@ -221,10 +231,11 @@ impl Worker {
                 readme: row.get(1)?,
                 code: row.get(2)?,
                 frontend_code: row.get(3)?,
-                enabled: row.get(4)?,
-                author: row.get(5)?,
-                email: row.get(6)?,
-                url: row.get(7)?,
+                has_frontend: row.get(4)?,
+                enabled: row.get(5)?,
+                author: row.get(6)?,
+                email: row.get(7)?,
+                url: row.get(8)?,
             })
         })?;
 
@@ -246,7 +257,7 @@ impl Worker {
 
 mod tests {
     #[tokio::test]
-    async fn test_users_model() -> anyhow::Result<()> {
+    async fn test_workers_model() -> anyhow::Result<()> {
         let db = super::super::Database::new(true, true, None).await?;
 
         // Insert Test Data
@@ -257,6 +268,7 @@ mod tests {
                 readme: "test".to_string(),
                 code: "test".to_string(),
                 frontend_code: "test".to_string(),
+                has_frontend: false,
                 enabled: false,
                 author: "test".to_string(),
                 email: "test".to_string(),
@@ -271,6 +283,7 @@ mod tests {
                 readme: "test".to_string(),
                 code: "test".to_string(),
                 frontend_code: "test".to_string(),
+                has_frontend: false,
                 enabled: true,
                 author: "test".to_string(),
                 email: "test".to_string(),
@@ -285,6 +298,7 @@ mod tests {
                 readme: "test".to_string(),
                 code: "test".to_string(),
                 frontend_code: "test".to_string(),
+                has_frontend: false,
                 enabled: true,
                 author: "test".to_string(),
                 email: "test".to_string(),
@@ -299,6 +313,7 @@ mod tests {
                 readme: "test".to_string(),
                 code: "test".to_string(),
                 frontend_code: "test".to_string(),
+                has_frontend: false,
                 enabled: false,
                 author: "test".to_string(),
                 email: "test".to_string(),

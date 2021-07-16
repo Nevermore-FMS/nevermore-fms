@@ -1,13 +1,15 @@
 ((window) => {
     const Nevermore = window.__bootstrap.nevermore.Nevermore;
-    let db = null;
+    let dbMap = {};
 
     Nevermore.Database = {
         get: async function (name) {
-            if (!db) {
-                db = new Database(await Deno.core.opAsync("op_create_database", name))
+            if (name in dbMap) {
+                return dbMap[name];
             }
-            return db
+            let db = new Database(await Deno.core.opAsync("op_create_database", name));
+            dbMap[name] = db;
+            return db;
         }
     };
 

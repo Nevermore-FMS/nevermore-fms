@@ -64,7 +64,7 @@ async fn inspector_connected(ws: WebSocket, application: ThreadSafeApplication) 
         rx: inbound_rx,
     };
 
-    let locked_application = application.lock().await;
+    let locked_application = application.read().await;
 
     let pump = async move {
         let (websocket_tx, websocket_rx) = ws.split();

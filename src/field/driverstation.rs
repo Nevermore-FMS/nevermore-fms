@@ -8,16 +8,15 @@ use crate::field::{
     ThreadSafeStateMap,
 };
 use log::debug;
-use std::borrow::BorrowMut;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::OwnedWriteHalf;
 use tokio::net::{TcpStream, UdpSocket};
 use tokio::sync::broadcast::Sender;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
-pub type ThreadSafeDriverStation = Arc<Mutex<DriverStation>>;
+pub type ThreadSafeDriverStation = Arc<RwLock<DriverStation>>;
 
 #[derive(Copy, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -75,7 +74,7 @@ impl DriverStation {
     pub async fn get_state(&self) -> anyhow::Result<State> {
         Ok(self
             .state_map
-            .lock()
+            .read()
             .await
             .get(&self.team_number)
             .ok_or(anyhow::anyhow!("state not formed yet"))?
@@ -84,7 +83,7 @@ impl DriverStation {
 
     pub async fn set_state(&mut self, state: State) {
         let state_map = self.state_map.clone();
-        let mut locked_state_map = state_map.lock().await;
+        let mut locked_state_map = state_map.write().await;
 
         let old_state_maybe = locked_state_map.insert(self.team_number, state.clone());
 
@@ -148,7 +147,7 @@ impl DriverStation {
                 state_map,
             };
 
-            let thread_safe_robot = Arc::new(Mutex::new(robot));
+            let thread_safe_robot = Arc::new(RwLock::new(robot));
 
             let mut buffer: Vec<u8> = vec![0; 50];
 
@@ -172,15 +171,14 @@ impl DriverStation {
                 }
             }
             {
-                let mut locked_robot = thread_safe_robot.lock().await;
-                let mut_robot = locked_robot.borrow_mut();
-                debug!("Destroyed tcp socket for {}.", mut_robot.team_number);
-                mut_robot
+                let mut locked_robot = thread_safe_robot.write().await;
+                debug!("Destroyed tcp socket for {}.", locked_robot.team_number);
+                locked_robot
                     .driver_station_map
-                    .lock()
+                    .write()
                     .await
-                    .remove(&mut_robot.team_number);
-                mut_robot.has_closed = true;
+                    .remove(&locked_robot.team_number);
+                locked_robot.has_closed = true;
             }
         });
     }
@@ -270,12 +268,12 @@ impl DriverStation {
                 let team_number = (((buffer[3] as i32) << 8) + (buffer[4] as i32)) as u16;
 
                 let alliance_station_map = {
-                    let locked_robot = robot.lock().await;
+                    let locked_robot = robot.read().await;
 
                     locked_robot.alliance_station_map.clone()
                 };
 
-                let locked_alliance_station_map = alliance_station_map.lock().await;
+                let locked_alliance_station_map = alliance_station_map.read().await;
 
                 let alliance_station = if locked_alliance_station_map.contains_key(&team_number) {
                     *locked_alliance_station_map.get(&team_number).unwrap()
@@ -289,7 +287,7 @@ impl DriverStation {
                     DriverstationStatus::Waiting
                 };
 
-                let mut locked_robot = robot.lock().await;
+                let mut locked_robot = robot.write().await;
 
                 locked_robot.team_number = team_number;
 
@@ -313,7 +311,7 @@ impl DriverStation {
                 locked_robot
                     .driver_station_map
                     .clone()
-                    .lock()
+                    .write()
                     .await
                     .insert(team_number, robot.clone());
 

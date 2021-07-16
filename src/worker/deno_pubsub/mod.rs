@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::vec;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use tokio_stream::{Stream, StreamExt};
 
 pub fn init(pub_sub: ThreadSafePubSub) -> Extension {
@@ -53,7 +53,7 @@ pub async fn op_publish(
 
 struct StreamResource {
     topic: String,
-    stream: Mutex<Pin<Box<dyn Stream<Item = String>>>>,
+    stream: RwLock<Pin<Box<dyn Stream<Item = String>>>>,
 }
 
 impl Resource for StreamResource {}
@@ -73,7 +73,7 @@ pub async fn op_subscribe(
 
     let id = state.try_borrow_mut()?.resource_table.add(StreamResource {
         topic: topic.clone(),
-        stream: Mutex::new(pub_sub.subscribe(topic.clone()).await),
+        stream: RwLock::new(pub_sub.subscribe(topic.clone()).await),
     });
 
     Ok(id)
@@ -118,7 +118,7 @@ pub async fn op_subscription_next(
         .get::<StreamResource>(id)
         .ok_or(anyhow::anyhow!("subscription already dropped"))?;
 
-    let mut stream = resource.stream.lock().await;
+    let mut stream = resource.stream.write().await;
 
     stream
         .next()

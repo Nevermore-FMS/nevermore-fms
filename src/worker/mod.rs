@@ -1,6 +1,7 @@
 pub mod deno_nevermore;
 pub mod deno_pubsub;
 pub mod deno_database;
+pub mod deno_network;
 
 use crate::field::ThreadSafeField;
 use crate::pub_sub::ThreadSafePubSub;
@@ -15,9 +16,9 @@ use deno_websocket::NoWebSocketPermissions;
 use futures::channel::mpsc::UnboundedSender;
 use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
-pub type ThreadSafeDenoWorker = Arc<Mutex<DenoWorker>>;
+pub type ThreadSafeDenoWorker = Arc<RwLock<DenoWorker>>;
 
 pub struct DenoWorker {
     runtime: JsRuntime,
@@ -71,7 +72,7 @@ impl DenoWorker {
 
         let inspector_sender = runtime.inspector().get_session_sender();
 
-        Arc::new(Mutex::new(Self {
+        Arc::new(RwLock::new(Self {
             runtime,
             inspector_sender,
         }))
@@ -86,6 +87,10 @@ impl DenoWorker {
 
     pub async fn run_event_loop(&mut self) -> anyhow::Result<()> {
         self.runtime.run_event_loop(false).await
+    }
+
+    pub async fn run_event_loop_thread_safe(worker: ThreadSafeDenoWorker) -> anyhow::Result<()> {
+        worker.write().await.run_event_loop().await
     }
 
     pub fn get_session_sender(&self) -> UnboundedSender<InspectorSessionProxy> {

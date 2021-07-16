@@ -17,7 +17,7 @@ impl Query {
         id: ID
     ) -> Result<Node> {
         let app = ctx.data::<ThreadSafeApplication>()?;
-        let db = app.lock().await.database.clone();
+        let db = app.read().await.database.clone();
         let (type_name, id) = decode_id(id)?;
         match type_name.as_str() {
             "Worker" => {
@@ -47,7 +47,7 @@ impl Query {
             last,
             |after, before, mut first, mut last| async move {
                 let app = ctx.data::<ThreadSafeApplication>()?;
-                let db = app.lock().await.database.clone();
+                let db = app.read().await.database.clone();
                 let mut is_inverted = false;
                 let mut number_of_docs: usize = 10;
                 if let Some(first) = first.take() {
@@ -89,7 +89,7 @@ impl Query {
             last,
             |after, before, mut first, mut last| async move {
                 let app = ctx.data::<ThreadSafeApplication>()?;
-                let db = app.lock().await.database.clone();
+                let db = app.read().await.database.clone();
                 let mut is_inverted = false;
                 let mut number_of_docs: usize = 10;
                 if let Some(first) = first.take() {
@@ -119,7 +119,7 @@ impl Query {
     #[cfg(feature = "developer")]
     async fn dev_workers<'ctx>(&self, ctx: &Context<'ctx>) -> Result<Vec<Worker>> {
         let app = ctx.data::<ThreadSafeApplication>()?;
-        let app_locked = app.lock().await;
+        let app_locked = app.read().await;
         Ok(Worker::get_all(app_locked.database.clone()).await?)
     }
 }
@@ -133,7 +133,7 @@ impl Mutation {
     #[cfg(feature = "developer")]
     async fn dev_restart_worker<'ctx>(&self, ctx: &Context<'ctx>) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
-        let mut app_locked = app.lock().await;
+        let mut app_locked = app.write().await;
         app_locked.restart_deno_worker(app.clone());
         Ok(true)
     }
@@ -145,7 +145,7 @@ impl Mutation {
         params: CreateWorkerParams,
     ) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
-        let app_locked = app.lock().await;
+        let app_locked = app.read().await;
         Worker::create(app_locked.database.clone(), params).await?;
         Ok(true)
     }
@@ -153,7 +153,7 @@ impl Mutation {
     #[cfg(feature = "developer")]
     async fn dev_delete_worker<'ctx>(&self, ctx: &Context<'ctx>, name: String) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
-        let app_locked = app.lock().await;
+        let app_locked = app.read().await;
         Worker::delete(app_locked.database.clone(), name).await?;
         Ok(true)
     }
@@ -172,7 +172,7 @@ impl Subscription {
         use tokio_stream::StreamExt;
 
         let app = ctx.data::<ThreadSafeApplication>()?;
-        let mut app_locked = app.lock().await;
+        let mut app_locked = app.write().await;
         Ok(
             tokio_stream::wrappers::BroadcastStream::new(app_locked.subscribe_to_log())
                 .map(|x| Ok(x?)),

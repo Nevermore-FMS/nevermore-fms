@@ -7,20 +7,22 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::{TcpListener, UdpSocket};
 use tokio::sync::broadcast::{Receiver, Sender};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{RwLock};
 use tokio::time::Duration;
+
+use self::network::{NetworkConfiguratorMap, ThreadSafeNetworkConfiguratorMap};
 
 pub mod driverstation;
 pub mod enums;
 pub mod network;
 
-pub type ThreadSafeField = Arc<Mutex<Field>>;
+pub type ThreadSafeField = Arc<RwLock<Field>>;
 
-pub type ThreadSafeDriverStationMap = Arc<Mutex<HashMap<u16, ThreadSafeDriverStation>>>;
+pub type ThreadSafeDriverStationMap = Arc<RwLock<HashMap<u16, ThreadSafeDriverStation>>>;
 
-pub type ThreadSafeAllianceStationMap = Arc<Mutex<HashMap<u16, AllianceStation>>>;
+pub type ThreadSafeAllianceStationMap = Arc<RwLock<HashMap<u16, AllianceStation>>>;
 
-pub type ThreadSafeStateMap = Arc<Mutex<HashMap<u16, State>>>;
+pub type ThreadSafeStateMap = Arc<RwLock<HashMap<u16, State>>>;
 
 pub type ThreadSafeFieldOverride = Arc<RwLock<FieldOverride>>;
 
@@ -40,6 +42,7 @@ pub struct Field {
     ticker_sender: Sender<()>,
     event_name: String,
     field_override: ThreadSafeFieldOverride,
+    network_configurator_map: ThreadSafeNetworkConfiguratorMap
 }
 
 impl Field {
@@ -58,7 +61,7 @@ impl Field {
     /// Adds a team to the `ThreadSafeAllianceStationMap`, this allows the team to properly connect to the FMS.
     pub async fn add_team(&self, team_number: u16, station: AllianceStation) -> anyhow::Result<()> {
         self.team_number_to_station
-            .lock()
+            .write()
             .await
             .insert(team_number, station);
         Ok(())
@@ -67,7 +70,7 @@ impl Field {
     /// Removes a team from the `ThreadSafeAllianceStationMap`
     pub async fn remove_team(&self, team_number: u16) -> anyhow::Result<()> {
         self.team_number_to_station
-            .lock()
+            .write()
             .await
             .remove(&team_number)
             .ok_or(anyhow::anyhow!("team doesn't exist"))?;
@@ -81,7 +84,7 @@ impl Field {
     ) -> anyhow::Result<AllianceStation> {
         Ok(self
             .team_number_to_station
-            .lock()
+            .read()
             .await
             .get(&team_number)
             .ok_or(anyhow::anyhow!("team doesn't exist"))?
@@ -92,7 +95,7 @@ impl Field {
     pub async fn get_team_alliance_station_map(
         &self,
     ) -> anyhow::Result<HashMap<u16, AllianceStation>> {
-        Ok(self.team_number_to_station.lock().await.clone())
+        Ok(self.team_number_to_station.read().await.clone())
     }
 
     /// Retrieves a driver station by it's team number, keep in mind that once the driver station disconnects the
@@ -104,7 +107,7 @@ impl Field {
     ) -> anyhow::Result<ThreadSafeDriverStation> {
         Ok(self
             .team_number_to_robot
-            .lock()
+            .read()
             .await
             .get(&team_number)
             .ok_or(anyhow::anyhow!("team number not in map"))?
@@ -117,7 +120,7 @@ impl Field {
     pub async fn driver_stations(&self) -> anyhow::Result<Vec<ThreadSafeDriverStation>> {
         Ok(self
             .team_number_to_robot
-            .lock()
+            .read()
             .await
             .values()
             .cloned()
@@ -130,7 +133,7 @@ impl Field {
     pub async fn driver_station_team_numbers(&self) -> anyhow::Result<Vec<u16>> {
         Ok(self
             .team_number_to_robot
-            .lock()
+            .read()
             .await
             .keys()
             .map(|x| *x)
@@ -148,14 +151,19 @@ impl Field {
         Ok(self.ticker_sender.subscribe())
     }
 
-    // Gets the event name sent to robots.
+    /// Gets the event name sent to robots.
     pub fn get_event_name(&self) -> String {
         self.event_name.clone()
     }
 
-    // Sets the event name sent to robots.
+    /// Sets the event name sent to robots.
     pub fn set_event_name(&mut self, event_name: String) {
         self.event_name = event_name;
+    }
+
+    // Returns the network configurator map.
+    pub fn network_configurator_map(&self) -> ThreadSafeNetworkConfiguratorMap {
+        self.network_configurator_map.clone()
     }
 
     // Internal API -->
@@ -170,10 +178,10 @@ impl Field {
 
         let udp_socket = Arc::new(UdpSocket::bind(udp_address).await?);
 
-        let field = Arc::new(Mutex::new(Field {
-            team_number_to_robot: Arc::new(Mutex::new(HashMap::new())),
-            team_number_to_state: Arc::new(Mutex::new(HashMap::new())),
-            team_number_to_station: Arc::new(Mutex::new(HashMap::new())),
+        let field = Arc::new(RwLock::new(Field {
+            team_number_to_robot: Arc::new(RwLock::new(HashMap::new())),
+            team_number_to_state: Arc::new(RwLock::new(HashMap::new())),
+            team_number_to_station: Arc::new(RwLock::new(HashMap::new())),
             udp_socket: udp_socket.clone(),
             closing_sender,
             ticker_sender,
@@ -182,6 +190,7 @@ impl Field {
                 emergency_stop: false,
                 disabled: false,
             })),
+            network_configurator_map: NetworkConfiguratorMap::new()
         }));
 
         Self::listen_for_udp_messages(field.clone(), udp_socket.clone(), rx2).await?;
@@ -192,14 +201,14 @@ impl Field {
     }
 
     async fn start_ticking(field: ThreadSafeField) {
-        let locked_field = field.lock().await;
+        let locked_field = field.read().await;
         let driver_station_map = locked_field.team_number_to_robot.clone();
         let ticker_sender = locked_field.ticker_sender.clone();
 
         tokio::spawn(async move {
             loop {
-                for (_, robot) in driver_station_map.lock().await.iter() {
-                    robot.lock().await.send_udp_state().await;
+                for (_, robot) in driver_station_map.read().await.iter() {
+                    robot.write().await.send_udp_state().await;
                 }
                 ticker_sender.send(()).ok();
                 tokio::time::sleep(Duration::from_millis(500)).await;
@@ -214,7 +223,7 @@ impl Field {
     ) -> anyhow::Result<()> {
         let listener = TcpListener::bind(tcp_address).await?;
         let cloned_field = field.clone();
-        let locked_field = cloned_field.lock().await;
+        let locked_field = cloned_field.read().await;
         let driver_station_map = locked_field.team_number_to_robot.clone();
         let alliance_station_map = locked_field.team_number_to_station.clone();
         let state_map = locked_field.team_number_to_state.clone();
@@ -228,7 +237,7 @@ impl Field {
                         match socket {
                             Ok((stream, address)) => {
                                 let cloned_field = field.clone();
-                                let event_name = &cloned_field.lock().await.event_name;
+                                let event_name = &cloned_field.read().await.event_name;
 
                                 DriverStation::handle_connection(stream, address, driver_station_map.clone(), alliance_station_map.clone(), state_map.clone(), field_override.clone(), udp_socket.clone(), event_name.clone()).await;
                             },
@@ -254,7 +263,7 @@ impl Field {
         udp_socket: Arc<UdpSocket>,
         mut closing_channel: tokio::sync::broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
-        let locked_field = field.lock().await;
+        let locked_field = field.read().await;
         let driver_station_map = locked_field.team_number_to_robot.clone();
 
         tokio::spawn(async move {
@@ -300,11 +309,11 @@ impl Field {
         let battery_voltage = (buffer[6] as f32) + ((buffer[7] as f32) / 256.0);
 
         driver_station_map
-            .lock()
+            .write()
             .await
             .get_mut(&team_number)
             .ok_or(anyhow::anyhow!("team number doesn't exist"))?
-            .lock()
+            .write()
             .await
             .update_confirmed_state(ConfirmedState {
                 is_emergency_stopped,

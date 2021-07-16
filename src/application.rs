@@ -12,10 +12,9 @@ use crate::models::worker::Worker;
 use crate::models::{Database, ThreadSafeDatabase};
 use chrono::Local;
 use deno_core::InspectorSessionProxy;
-use tokio::sync::broadcast::{channel, Receiver, Sender};
-use tokio::sync::Mutex;
+use tokio::sync::{RwLock, broadcast::{channel, Receiver, Sender}};
 
-pub type ThreadSafeApplication = Arc<Mutex<Application>>;
+pub type ThreadSafeApplication = Arc<RwLock<Application>>;
 
 pub struct Application {
     pub field: ThreadSafeField,
@@ -47,10 +46,10 @@ impl Application {
             inspector_sender: None,
         };
 
-        let application = Arc::new(Mutex::new(application));
+        let application = Arc::new(RwLock::new(application));
 
         application
-            .lock()
+            .write()
             .await
             .restart_deno_worker(application.clone());
 
@@ -98,21 +97,21 @@ async fn run_deno(
 async fn run_event_loop_forever(application: ThreadSafeApplication) {
     loop {
         let (log_sender, database, deno_worker_safe) = {
-            let mut locked_application = application.lock().await;
+            let mut locked_application = application.write().await;
             let deno_worker_safe = DenoWorker::new(
                 locked_application.field.clone(),
                 locked_application.deno_pub_sub.clone(),
                 locked_application.log_sender.clone(),
             );
             locked_application.inspector_sender =
-                    Some(deno_worker_safe.lock().await.get_session_sender());
+                    Some(deno_worker_safe.read().await.get_session_sender());
             (
                 locked_application.log_sender.clone(),
                 locked_application.database.clone(),
                 deno_worker_safe,
             )
         };
-        let mut deno_worker = deno_worker_safe.lock().await;
+        let mut deno_worker = deno_worker_safe.write().await;
         let mut workers = Worker::get_all_to_load(database.clone()).await.ok();
         if let Some(workers) = workers.take() {
             for worker in workers {
