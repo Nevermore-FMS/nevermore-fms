@@ -22,10 +22,10 @@
 
     async function scanRunner(rid, scanCallback) {
         while (true) {
-            let isFactory = Deno.core.opAsync("op_next_scan", rid);
+            await Deno.core.opAsync("op_next_scan", rid);
             let args = {
                 id: rid,
-                reply: await scanCallback(isFactory)
+                reply: await scanCallback()
             }
             await Deno.core.opAsync("op_reply_initial_configuration", args);
         }
@@ -33,10 +33,10 @@
 
     async function initialConfigurationRunner(rid, initialConfigurationCallback) {
         while (true) {
-            let password = Deno.core.opAsync("op_next_initial_configuration", rid);
+            await Deno.core.opAsync("op_next_initial_configuration", rid);
             let args = {
                 id: rid,
-                reply: await initialConfigurationCallback(password)
+                reply: await initialConfigurationCallback()
             }
             await Deno.core.opAsync("op_reply_initial_configuration", args);
         }
@@ -44,10 +44,10 @@
 
     async function matchConfigurationRunner(rid, matchConfigurationCallback) {
         while (true) {
-            let reply = Deno.core.opAsync("op_next_match_configuration", rid);            
+            let map = await Deno.core.opAsync("op_next_match_configuration", rid);            
             let args = {
                 id: rid,
-                reply: await matchConfigurationCallback(reply.password, reply.map)
+                reply: await matchConfigurationCallback(map)
             }
             await Deno.core.opAsync("op_reply_match_configuration", args);
         }

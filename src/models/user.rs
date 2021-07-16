@@ -8,8 +8,16 @@ const CREATE_USER_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS users
     username      TEXT PRIMARY KEY NOT NULL,
     full_name     TEXT             NOT NULL,
     password      TEXT             NOT NULL,
-    pin           TEXT             NOT NULL
+    pin           TEXT             NOT NULL,
+    user_type     TEXT             NOT NULL
 );";
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq, Debug, Deserialize, Serialize)]
+pub enum UserType {
+    Admin,
+    Referee,
+    Viewer
+}
 
 #[derive(Clone, Debug)]
 pub struct User {
@@ -17,6 +25,7 @@ pub struct User {
     pub username: String,
     pub password: String,
     pub pin: String,
+    pub user_type: UserType
 }
 
 #[Object]
@@ -31,6 +40,10 @@ impl User {
 
     pub async fn username(&self) -> String {
         self.username.clone()
+    }
+
+    pub async fn user_type(&self) -> UserType {
+        self.user_type
     }
 }
 
@@ -56,6 +69,7 @@ pub struct CreateUserParams {
     pub username: String,
     pub password: String,
     pub pin: String,
+    pub user_type: UserType
 }
 
 impl User {
@@ -79,9 +93,9 @@ impl User {
         rng.try_fill_bytes(&mut salt)?;
         let pin = argon2::hash_encoded(params.pin.as_bytes(), &salt, &config)?;
         database.conn.execute(
-            "INSERT INTO users (full_name, username, password, pin)
-         VALUES (?1, ?2, ?3, ?4)",
-            rusqlite::params![params.full_name, params.username, password, pin],
+            "INSERT INTO users (full_name, username, password, pin, user_type)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+            rusqlite::params![params.full_name, params.username, password, pin, params.user_type.to_value().to_string()],
         )?;
         Ok(())
     }
@@ -98,7 +112,7 @@ impl User {
     pub async fn get(database: ThreadSafeDatabase, username: String) -> anyhow::Result<User> {
         let database = database.lock().await;
         let user = database.conn.query_row(
-            "SELECT username, full_name, password, pin FROM users WHERE username = ?1",
+            "SELECT username, full_name, password, pin, user_type FROM users WHERE username = ?1",
             rusqlite::params![username],
             |row| {
                 Ok(User {
@@ -106,6 +120,7 @@ impl User {
                     full_name: row.get(1)?,
                     password: row.get(2)?,
                     pin: row.get(3)?,
+                    user_type: UserType::parse(Some(Value::String(row.get(4)?))).unwrap()
                 })
             },
         )?;
@@ -127,7 +142,7 @@ impl User {
 
         let order_by = if is_inverted { "DESC" } else { "ASC" };
 
-        let mut query_string = String::from("SELECT username, full_name, password, pin FROM users");
+        let mut query_string = String::from("SELECT username, full_name, password, pin, user_type FROM users");
         let params = rusqlite::params![after.clone(), before.clone(), limit + 1];
         let mut _is_first_where = true;
         if after.is_some() || before.is_some() {
@@ -163,6 +178,7 @@ impl User {
                 full_name: row.get(1)?,
                 password: row.get(2)?,
                 pin: row.get(3)?,
+                user_type: UserType::parse(Some(Value::String(row.get(4)?))).unwrap()
             })
         })?;
 
@@ -195,6 +211,7 @@ mod tests {
                 username: "test".to_string(),
                 password: "test".to_string(),
                 pin: "1234".to_string(),
+                user_type: super::UserType::Admin
             },
         )
         .await?;
@@ -205,6 +222,7 @@ mod tests {
                 username: "test1".to_string(),
                 password: "test".to_string(),
                 pin: "1234".to_string(),
+                user_type: super::UserType::Admin
             },
         )
         .await?;
@@ -215,6 +233,7 @@ mod tests {
                 username: "test2".to_string(),
                 password: "test".to_string(),
                 pin: "1234".to_string(),
+                user_type: super::UserType::Admin
             },
         )
         .await?;
@@ -225,6 +244,7 @@ mod tests {
                 username: "test3".to_string(),
                 password: "test".to_string(),
                 pin: "1234".to_string(),
+                user_type: super::UserType::Admin
             },
         )
         .await?;
@@ -235,6 +255,7 @@ mod tests {
                 username: "test4".to_string(),
                 password: "test".to_string(),
                 pin: "1234".to_string(),
+                user_type: super::UserType::Admin
             },
         )
         .await?;

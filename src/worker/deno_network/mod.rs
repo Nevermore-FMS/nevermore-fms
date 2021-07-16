@@ -1,6 +1,6 @@
 use crate::{field::network::{AllianceStationToConfiguration, NetworkConfiguratorInfo, Reply, ThreadSafeNetworkConfigurator, ThreadSafeNetworkConfiguratorMap}, models::ThreadSafeDatabase};
 use deno_core::{Extension, OpState, Resource, ResourceId, include_js_files, op_async};
-use serde::{Serialize, Deserialize};
+use serde::Deserialize;
 use std::{cell::RefCell, rc::Rc};
 use std::vec;
 
@@ -70,7 +70,7 @@ pub async fn op_next_scan(
     state: Rc<RefCell<OpState>>,
     id: ResourceId,
     _: (),
-) -> anyhow::Result<bool> {
+) -> anyhow::Result<()> {
     let borrowed_state = state.try_borrow()?;
 
     let configurator = borrowed_state.resource_table.get::<NetworkConfiguratoResource>(id).ok_or(anyhow::anyhow!("resource doesn't exist"))?;
@@ -96,7 +96,7 @@ pub async fn op_next_initial_configuration(
     state: Rc<RefCell<OpState>>,
     id: ResourceId,
     _: (),
-) -> anyhow::Result<String> {
+) -> anyhow::Result<()> {
     let borrowed_state = state.try_borrow()?;
 
     let configurator = borrowed_state.resource_table.get::<NetworkConfiguratoResource>(id).ok_or(anyhow::anyhow!("resource doesn't exist"))?;
@@ -118,28 +118,18 @@ pub async fn op_reply_initial_configuration(
     Ok(())
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MatchConfigurationReply {
-    password: String,
-    map: AllianceStationToConfiguration
-}
-
 pub async fn op_next_match_configuration(
     state: Rc<RefCell<OpState>>,
     id: ResourceId,
     _: (),
-) -> anyhow::Result<MatchConfigurationReply> {
+) -> anyhow::Result<AllianceStationToConfiguration> {
     let borrowed_state = state.try_borrow()?;
 
     let configurator = borrowed_state.resource_table.get::<NetworkConfiguratoResource>(id).ok_or(anyhow::anyhow!("resource doesn't exist"))?;
     let mut rx = configurator.configurator.read().await.subscribe_match_configuration();
-    let (password, map) = rx.recv().await?;
+    let map = rx.recv().await?;
 
-    Ok(MatchConfigurationReply{
-        password,
-        map
-    })
+    Ok(map)
 }
 
 pub async fn op_reply_match_configuration(

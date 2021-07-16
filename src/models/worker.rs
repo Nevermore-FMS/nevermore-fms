@@ -12,8 +12,16 @@ const CREATE_WORKER_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS workers
     enabled       BOOLEAN             NOT NULL,
     author        TEXT                NOT NULL,
     email         TEXT                NOT NULL,
-    url           TEXT                NOT NULL
+    url           TEXT                NOT NULL,
+    worker_type   TEXT                NOT NULL
 );";
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq, Debug, Deserialize, Serialize)]
+pub enum WorkerType {
+    Game,
+    NetworkConfigurator,
+    Generic
+}
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct Worker {
@@ -26,6 +34,7 @@ pub struct Worker {
     pub author: String,
     pub email: String,
     pub url: String,
+    pub worker_type: WorkerType
 }
 
 #[Object]
@@ -65,6 +74,10 @@ impl Worker {
     pub async fn url(&self) -> String {
         self.url.clone()
     }
+
+    pub async fn worker_type(&self) -> WorkerType {
+        self.worker_type
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize, InputObject)]
@@ -78,6 +91,7 @@ pub struct CreateWorkerParams {
     pub author: String,
     pub email: String,
     pub url: String,
+    pub worker_type: WorkerType
 }
 
 impl Worker {
@@ -92,9 +106,9 @@ impl Worker {
     ) -> anyhow::Result<()> {
         let database = database.lock().await;
         database.conn.execute(
-            "INSERT OR REPLACE INTO workers (name, readme, code, frontend_code, has_frontend, enabled, author, email, url)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-            rusqlite::params![params.name, params.readme, params.code, params.frontend_code, params.has_frontend, params.enabled, params.author, params.email, params.url],
+            "INSERT OR REPLACE INTO workers (name, readme, code, frontend_code, has_frontend, enabled, author, email, url, worker_type)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            rusqlite::params![params.name, params.readme, params.code, params.frontend_code, params.has_frontend, params.enabled, params.author, params.email, params.url, params.worker_type.to_value().to_string()],
         )?;
         Ok(())
     }
@@ -112,7 +126,7 @@ impl Worker {
         let database = database.lock().await;
         let mut stmt = database
             .conn
-            .prepare("SELECT name, readme, code, frontend_code, has_frontend, author, email, url FROM workers WHERE enabled = 1")?;
+            .prepare("SELECT name, readme, code, frontend_code, has_frontend, author, email, url, worker_type FROM workers WHERE enabled = 1")?;
         let worker_scripts = stmt.query_map([], |row| {
             Ok(Worker {
                 name: row.get(0)?,
@@ -124,6 +138,7 @@ impl Worker {
                 author: row.get(5)?,
                 email: row.get(6)?,
                 url: row.get(7)?,
+                worker_type: WorkerType::parse(Some(Value::String(row.get(8)?))).unwrap()
             })
         })?;
 
@@ -135,7 +150,7 @@ impl Worker {
     pub async fn get(database: ThreadSafeDatabase, name: String) -> anyhow::Result<Worker> {
         let database = database.lock().await;
         let worker = database.conn.query_row(
-            "SELECT name, readme, code, frontend_code, has_frontend, enabled, author, email, url FROM workers WHERE name = ?1",
+            "SELECT name, readme, code, frontend_code, has_frontend, enabled, author, email, url, worker_type FROM workers WHERE name = ?1",
             rusqlite::params![name],
                 |row| {
                     Ok(Worker {
@@ -147,7 +162,8 @@ impl Worker {
                         enabled: row.get(5)?,
                         author: row.get(6)?,
                         email: row.get(7)?,
-                        url: row.get(8)?
+                        url: row.get(8)?,
+                        worker_type: WorkerType::parse(Some(Value::String(row.get(9)?))).unwrap()
                     })
                 }
         )?;
@@ -158,7 +174,7 @@ impl Worker {
     pub async fn get_all(database: ThreadSafeDatabase) -> anyhow::Result<Vec<Worker>> {
         let database = database.lock().await;
         let mut stmt = database.conn.prepare(
-            "SELECT name, readme, code, frontend_code, has_frontend, enabled, author, email, url FROM workers",
+            "SELECT name, readme, code, frontend_code, has_frontend, enabled, author, email, url, worker_type FROM workers",
         )?;
         let worker_scripts = stmt.query_map([], |row| {
             Ok(Worker {
@@ -171,6 +187,7 @@ impl Worker {
                 author: row.get(6)?,
                 email: row.get(7)?,
                 url: row.get(8)?,
+                worker_type: WorkerType::parse(Some(Value::String(row.get(9)?))).unwrap()
             })
         })?;
 
@@ -194,7 +211,7 @@ impl Worker {
         let order_by = if is_inverted { "DESC" } else { "ASC" };
 
         let mut query_string = String::from(
-            "SELECT name, readme, code, frontend_code, has_frontend, enabled, author, email, url FROM workers",
+            "SELECT name, readme, code, frontend_code, has_frontend, enabled, author, email, url, worker_type FROM workers",
         );
         let params = rusqlite::params![after.clone(), before.clone(), limit + 1];
         let mut _is_first_where = true;
@@ -236,6 +253,7 @@ impl Worker {
                 author: row.get(6)?,
                 email: row.get(7)?,
                 url: row.get(8)?,
+                worker_type: WorkerType::parse(Some(Value::String(row.get(9)?))).unwrap()
             })
         })?;
 
@@ -273,6 +291,7 @@ mod tests {
                 author: "test".to_string(),
                 email: "test".to_string(),
                 url: "test".to_string(),
+                worker_type: super::WorkerType::Game
             },
         )
         .await?;
@@ -288,6 +307,7 @@ mod tests {
                 author: "test".to_string(),
                 email: "test".to_string(),
                 url: "test".to_string(),
+                worker_type: super::WorkerType::Game
             },
         )
         .await?;
@@ -303,6 +323,7 @@ mod tests {
                 author: "test".to_string(),
                 email: "test".to_string(),
                 url: "test".to_string(),
+                worker_type: super::WorkerType::Game
             },
         )
         .await?;
@@ -318,6 +339,7 @@ mod tests {
                 author: "test".to_string(),
                 email: "test".to_string(),
                 url: "test".to_string(),
+                worker_type: super::WorkerType::Game
             },
         )
         .await?;

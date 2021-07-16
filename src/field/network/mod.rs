@@ -76,9 +76,9 @@ pub struct AllianceStationToConfiguration {
 
 pub struct NetworkConfigurator {
     pub info: NetworkConfiguratorInfo,
-    scan_pair: RequestReplyPair<bool, Reply>,
-    inital_configuration_pair: RequestReplyPair<String, Reply>,
-    match_configuration_pair: RequestReplyPair<(String, AllianceStationToConfiguration), Reply>
+    scan_pair: RequestReplyPair<(), Reply>,
+    inital_configuration_pair: RequestReplyPair<(), Reply>,
+    match_configuration_pair: RequestReplyPair<AllianceStationToConfiguration, Reply>
 }
 
 impl NetworkConfigurator {
@@ -92,11 +92,11 @@ impl NetworkConfigurator {
         }))
     }
 
-    pub async fn run_scan(&self, is_factory: bool) -> anyhow::Result<Reply> {
-        Ok(self.scan_pair.request(is_factory).await?)
+    pub async fn run_scan(&self) -> anyhow::Result<Reply> {
+        Ok(self.scan_pair.request(()).await?)
     }
 
-    pub fn subscribe_scan(&self) -> Receiver<bool> {
+    pub fn subscribe_scan(&self) -> Receiver<()> {
         self.scan_pair.subscribe()
     }
 
@@ -104,11 +104,11 @@ impl NetworkConfigurator {
         self.scan_pair.reply(reply)
     }
 
-    pub async fn run_initial_configuration(&self, password: String) -> anyhow::Result<Reply> {
-        Ok(self.inital_configuration_pair.request(password).await?)
+    pub async fn run_initial_configuration(&self) -> anyhow::Result<Reply> {
+        Ok(self.inital_configuration_pair.request(()).await?)
     }
 
-    pub fn subscribe_initial_configuration(&self) -> Receiver<String> {
+    pub fn subscribe_initial_configuration(&self) -> Receiver<()> {
         self.inital_configuration_pair.subscribe()
     }
 
@@ -116,11 +116,11 @@ impl NetworkConfigurator {
         self.inital_configuration_pair.reply(reply)
     }
 
-    pub async fn run_match_configuration(&self, password: String, alliance_station_to_configuration: AllianceStationToConfiguration) -> anyhow::Result<Reply> {
-        Ok(self.match_configuration_pair.request((password, alliance_station_to_configuration)).await?)
+    pub async fn run_match_configuration(&self, alliance_station_to_configuration: AllianceStationToConfiguration) -> anyhow::Result<Reply> {
+        Ok(self.match_configuration_pair.request(alliance_station_to_configuration).await?)
     }
 
-    pub fn subscribe_match_configuration(&self) -> Receiver<(String, AllianceStationToConfiguration)> {
+    pub fn subscribe_match_configuration(&self) -> Receiver<AllianceStationToConfiguration> {
         self.match_configuration_pair.subscribe()
     }
 
