@@ -51,7 +51,7 @@ impl Application {
         application
             .write()
             .await
-            .restart_deno_worker(application.clone());
+            .restart_deno_runtime(application.clone());
 
         Ok(application)
     }
@@ -60,7 +60,7 @@ impl Application {
         self.log_sender.subscribe()
     }
 
-    pub fn restart_deno_worker(
+    pub fn restart_deno_runtime(
         &mut self,
         application: ThreadSafeApplication,
     ) {

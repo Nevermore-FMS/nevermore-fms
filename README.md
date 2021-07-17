@@ -33,12 +33,12 @@ chmod +x ./target/release/nevermore-fms
 target/release/nevermore-fms.exe
 ```
 
-## Developing Workers
-Want to create your own Nevermore Workers? Well the good news is it's as simple as a single command to get started:
+## Developing Plugins
+Want to create your own Nevermore Plugins? Well the good news is it's as simple as a single command to get started:
 ```bash
 npx create-nevermore-app
 ```
-Yep, that's right, with one command you can create a full worker project scaffold, including all the utilities you could want for easy development.
+Yep, that's right, with one command you can create a full plugin project scaffold, including all the utilities you could want for easy development.
 
 Once you have configured the project it can easily be run on a local development instance of Nevermore with:
 ```bash
@@ -46,7 +46,7 @@ Once you have configured the project it can easily be run on a local development
 npm run develop
 ```
 
-Your worker should then be deployed to the local Nevermore instance and begin running immediately. More information on plugins can be found in our documentation (TODO).
+Your plugin should then be deployed to the local Nevermore instance and begin running immediately. More information on plugins can be found in our documentation (TODO).
 
 ## Contributing
 Want to help in developing the Nevermore FMS? Feel free to take on one of our outstanding issues, add your own features, or contact me for recommendations and help on things to work on. :smiley:
