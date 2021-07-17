@@ -3,7 +3,7 @@ pub mod field;
 pub mod http;
 pub mod models;
 pub mod pub_sub;
-pub mod worker;
+pub mod plugin;
 
 use log::info;
 

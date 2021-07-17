@@ -5,7 +5,7 @@ pub mod deno_network;
 
 use crate::field::ThreadSafeField;
 use crate::pub_sub::ThreadSafePubSub;
-use crate::worker::deno_nevermore::LogMessage;
+use crate::plugin::deno_nevermore::LogMessage;
 use deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_core::{Extension, Snapshot};
 use deno_core::{InspectorSessionProxy, JsRuntime, RuntimeOptions};
@@ -18,19 +18,19 @@ use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::RwLock;
 
-pub type ThreadSafeDenoWorker = Arc<RwLock<DenoWorker>>;
+pub type ThreadSafeDenoPluginRuntime = Arc<RwLock<DenoPluginRuntime>>;
 
-pub struct DenoWorker {
+pub struct DenoPluginRuntime {
     runtime: JsRuntime,
     inspector_sender: UnboundedSender<InspectorSessionProxy>,
 }
 
-impl DenoWorker {
+impl DenoPluginRuntime {
     pub fn new(
         field: ThreadSafeField,
         pub_sub: ThreadSafePubSub,
         log_channel: Sender<LogMessage>,
-    ) -> ThreadSafeDenoWorker {
+    ) -> ThreadSafeDenoPluginRuntime {
         let perm_ext = Extension::builder()
             .state(move |state| {
                 state.put::<NoFetchPermissions>(NoFetchPermissions {});
@@ -87,10 +87,6 @@ impl DenoWorker {
 
     pub async fn run_event_loop(&mut self) -> anyhow::Result<()> {
         self.runtime.run_event_loop(false).await
-    }
-
-    pub async fn run_event_loop_thread_safe(worker: ThreadSafeDenoWorker) -> anyhow::Result<()> {
-        worker.write().await.run_event_loop().await
     }
 
     pub fn get_session_sender(&self) -> UnboundedSender<InspectorSessionProxy> {

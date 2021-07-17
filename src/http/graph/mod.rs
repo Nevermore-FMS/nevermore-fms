@@ -2,8 +2,8 @@ use async_graphql::connection::*;
 use async_graphql::*;
 
 #[cfg(feature = "developer")]
-use crate::models::worker::CreateWorkerParams;
-use crate::{application::ThreadSafeApplication, models::{user::User, worker::Worker}};
+use crate::models::plugin::CreatePluginParams;
+use crate::{application::ThreadSafeApplication, models::{user::User, plugin::Plugin}};
 
 pub type NevermoreSchema = Schema<Query, Mutation, Subscription>;
 
@@ -20,8 +20,8 @@ impl Query {
         let db = app.read().await.database.clone();
         let (type_name, id) = decode_id(id)?;
         match type_name.as_str() {
-            "Worker" => {
-                Ok(Node::Worker(Worker::get(db, id).await?))
+            "Plugin" => {
+                Ok(Node::Plugin(Plugin::get(db, id).await?))
             }
             "User" => {
                 Ok(Node::User(User::get(db, id).await?))
@@ -74,14 +74,14 @@ impl Query {
         .await
     }
 
-    async fn workers<'ctx>(
+    async fn plugins<'ctx>(
         &self,
         ctx: &Context<'ctx>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<String, Worker, EmptyFields, EmptyFields>> {
+    ) -> Result<Connection<String, Plugin, EmptyFields, EmptyFields>> {
         query(
             after,
             before,
@@ -100,9 +100,9 @@ impl Query {
                     number_of_docs = last;
                 }
                 let (has_prev_page, has_next_page, workers) =
-                    Worker::get_all_paginated(db, is_inverted, number_of_docs, after, before)
+                    Plugin::get_all_paginated(db, is_inverted, number_of_docs, after, before)
                         .await?;
-                let mut connection: Connection<String, Worker> =
+                let mut connection: Connection<String, Plugin> =
                     Connection::new(has_prev_page, has_next_page);
                 connection.append(
                     workers
@@ -117,10 +117,10 @@ impl Query {
     }
 
     #[cfg(feature = "developer")]
-    async fn dev_workers<'ctx>(&self, ctx: &Context<'ctx>) -> Result<Vec<Worker>> {
+    async fn dev_plugins<'ctx>(&self, ctx: &Context<'ctx>) -> Result<Vec<Plugin>> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.read().await;
-        Ok(Worker::get_all(app_locked.database.clone()).await?)
+        Ok(Plugin::get_all(app_locked.database.clone()).await?)
     }
 }
 
@@ -131,7 +131,7 @@ impl Mutation {
     // Development Mutations without Auth :)
 
     #[cfg(feature = "developer")]
-    async fn dev_restart_worker<'ctx>(&self, ctx: &Context<'ctx>) -> Result<bool> {
+    async fn dev_restart_plugin<'ctx>(&self, ctx: &Context<'ctx>) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let mut app_locked = app.write().await;
         app_locked.restart_deno_worker(app.clone());
@@ -139,22 +139,22 @@ impl Mutation {
     }
 
     #[cfg(feature = "developer")]
-    async fn dev_create_worker<'ctx>(
+    async fn dev_create_plugin<'ctx>(
         &self,
         ctx: &Context<'ctx>,
-        params: CreateWorkerParams,
+        params: CreatePluginParams,
     ) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.read().await;
-        Worker::create(app_locked.database.clone(), params).await?;
+        Plugin::create(app_locked.database.clone(), params).await?;
         Ok(true)
     }
 
     #[cfg(feature = "developer")]
-    async fn dev_delete_worker<'ctx>(&self, ctx: &Context<'ctx>, name: String) -> Result<bool> {
+    async fn dev_delete_plugin<'ctx>(&self, ctx: &Context<'ctx>, name: String) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.read().await;
-        Worker::delete(app_locked.database.clone(), name).await?;
+        Plugin::delete(app_locked.database.clone(), name).await?;
         Ok(true)
     }
 }
@@ -167,7 +167,7 @@ impl Subscription {
     async fn dev_log<'ctx>(
         &self,
         ctx: &Context<'ctx>,
-    ) -> Result<impl tokio_stream::Stream<Item = Result<crate::worker::deno_nevermore::LogMessage>>>
+    ) -> Result<impl tokio_stream::Stream<Item = Result<crate::plugin::deno_nevermore::LogMessage>>>
     {
         use tokio_stream::StreamExt;
 
@@ -185,7 +185,7 @@ impl Subscription {
     field(name = "id", type = "ID"),
 )]
 enum Node {
-    Worker(Worker),
+    Plugin(Plugin),
     User(User),
 }
 

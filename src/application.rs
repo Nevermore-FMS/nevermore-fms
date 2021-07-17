@@ -5,10 +5,10 @@ use std::{sync::Arc, thread::JoinHandle};
 use crate::{
     field::{Field, ThreadSafeField},
     pub_sub::{PubSub, ThreadSafePubSub},
-    worker::{deno_nevermore::LogMessage, DenoWorker},
+    plugin::{deno_nevermore::LogMessage, DenoPluginRuntime},
 };
 
-use crate::models::worker::Worker;
+use crate::models::plugin::Plugin;
 use crate::models::{Database, ThreadSafeDatabase};
 use chrono::Local;
 use deno_core::InspectorSessionProxy;
@@ -96,26 +96,26 @@ async fn run_deno(
 
 async fn run_event_loop_forever(application: ThreadSafeApplication) {
     loop {
-        let (log_sender, database, deno_worker_safe) = {
+        let (log_sender, database, deno_runtime_safe) = {
             let mut locked_application = application.write().await;
-            let deno_worker_safe = DenoWorker::new(
+            let deno_runtime_safe = DenoPluginRuntime::new(
                 locked_application.field.clone(),
                 locked_application.deno_pub_sub.clone(),
                 locked_application.log_sender.clone(),
             );
             locked_application.inspector_sender =
-                    Some(deno_worker_safe.read().await.get_session_sender());
+                    Some(deno_runtime_safe.read().await.get_session_sender());
             (
                 locked_application.log_sender.clone(),
                 locked_application.database.clone(),
-                deno_worker_safe,
+                deno_runtime_safe,
             )
         };
-        let mut deno_worker = deno_worker_safe.write().await;
-        let mut workers = Worker::get_all_to_load(database.clone()).await.ok();
-        if let Some(workers) = workers.take() {
-            for worker in workers {
-                let result = deno_worker.run_code(worker.name.clone(), worker.code);
+        let mut deno_runtime = deno_runtime_safe.write().await;
+        let mut plugins = Plugin::get_all_to_load(database.clone()).await.ok();
+        if let Some(plugins) = plugins.take() {
+            for plugin in plugins {
+                let result = deno_runtime.run_code(plugin.name.clone(), plugin.code);
                 if result.is_err() {
                     send_log_error_message(
                         log_sender.clone(),
@@ -125,7 +125,7 @@ async fn run_event_loop_forever(application: ThreadSafeApplication) {
             }
         }
 
-        let result = deno_worker.run_event_loop().await;
+        let result = deno_runtime.run_event_loop().await;
         if result.is_err() {
             send_log_error_message(
                 log_sender.clone(),
@@ -135,7 +135,7 @@ async fn run_event_loop_forever(application: ThreadSafeApplication) {
 
         send_log_error_message(
             log_sender.clone(),
-            "Worker exited early, restarting in 15 seconds...".to_string(),
+            "Plugin runtime exited early, restarting in 15 seconds...".to_string(),
         );
         tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
         send_log_error_message(log_sender.clone(), "Restarting worker...\n\n".to_string());
@@ -143,7 +143,7 @@ async fn run_event_loop_forever(application: ThreadSafeApplication) {
 }
 
 fn send_log_error_message(log_sender: tokio::sync::broadcast::Sender<LogMessage>, message: String) {
-    debug!("[Worker] {}", message);
+    debug!("[Plugin Runtime] {}", message);
     log_sender
         .send(LogMessage {
             message: message,

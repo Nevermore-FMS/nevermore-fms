@@ -1,5 +1,5 @@
 pub mod user;
-pub mod worker;
+pub mod plugin;
 pub mod config;
 
 use std::{collections::HashMap, sync::Arc};
@@ -81,7 +81,7 @@ impl Database {
 
     pub fn create_tables(&self) -> anyhow::Result<()> {
         user::User::create_table(self)?;
-        worker::Worker::create_table(self)?;
+        plugin::Plugin::create_table(self)?;
         config::Config::create_table(self)?;
         Ok(())
     }
