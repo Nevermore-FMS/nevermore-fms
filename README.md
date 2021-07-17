@@ -26,6 +26,7 @@ cd nevermore-fms
 cargo build --release
 
 # Run the build (Linux/OSX)
+chmod +x ./target/release/nevermore-fms
 ./target/release/nevermore-fms
 
 # Run the build (Windows)
@@ -51,4 +52,4 @@ Your worker should then be deployed to the local Nevermore instance and begin ru
 Want to help in developing the Nevermore FMS? Feel free to take on one of our outstanding issues, add your own features, or contact me for recommendations and help on things to work on. :smiley:
 
 ## Licensing
-You most likely can already see that this project is under the GPLV3 license. Essentially, this means that you can modify this code in any way you want, though if you distribute the code you must provide the source code to them. For 99.99% of you this should literally not matter, you unknowingly interact with many libraries licensed under GPLV3 all the time. Though, if you have a questions feel free to contact me at [macdonnell.chase@gmail.com](mailto:macdonnell.chase@gmail.com), I'm not a lawyer but can give you alternative licenses if necessary and appropriate.
+This project is under the GPLV3 license. Essentially, this means that you can modify this code in any way you want, though if you distribute the code you must provide the source code to them. For 99.99% of you this should literally not matter, you unknowingly interact with many libraries licensed under GPLV3 all the time. Though, if you have a questions feel free to contact me at [macdonnell.chase@gmail.com](mailto:macdonnell.chase@gmail.com), I'm not a lawyer but can give you alternative licenses if necessary and appropriate.
