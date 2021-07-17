@@ -137,7 +137,7 @@ fn build_snapshot() {
     println!("cargo:rustc-env=PROFILE={}", env::var("PROFILE").unwrap());
     let out = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
         .join("src")
-        .join("worker")
+        .join("plugin")
         .join("v8_snapshots");
 
     // Main snapshot
