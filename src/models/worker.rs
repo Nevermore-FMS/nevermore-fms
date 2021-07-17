@@ -43,6 +43,10 @@ impl Worker {
         base64::encode(format!("Worker:{}", self.name).as_bytes()).into()
     }
 
+    pub async fn name(&self) -> String {
+        self.name.clone()
+    }
+
     pub async fn readme(&self) -> String {
         self.readme.clone()
     }

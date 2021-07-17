@@ -2707,9 +2707,9 @@ declare namespace Nevermore {
          * The callbacks for a configurator.
          */
         export interface ConfiguratorCallbacks {
-            scan: (isFactory: boolean) => Promise<Error>,
-            initialConfiguration: (password: string) => Promise<Error>,
-            matchConfiguration: (password: string, allianceStationConfiguration: AllianceStationToConfiguration) => Promise<Error>
+            scan: () => Promise<Error>,
+            initialConfiguration: () => Promise<Error>,
+            matchConfiguration: (allianceStationConfiguration: AllianceStationToConfiguration) => Promise<Error>
         }
 
         /**
