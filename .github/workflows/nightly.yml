@@ -32,6 +32,6 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
     - uses: actions/upload-artifact@v2
-        with:
-          name: {{matrix.artifact_name}}
-          path: target/release/${{ matrix.artifact_name }}
+      with:
+        name: ${{ matrix.asset_name }}
+        path: target/release/${{ matrix.artifact_name }}
