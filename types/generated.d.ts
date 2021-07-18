@@ -2630,7 +2630,7 @@ declare namespace Nevermore {
 }declare namespace Nevermore {
     /** The `Nevermore.Network` namespace includes functions and types to register a network configurator to the FMS.
      * 
-     * Example:
+     * Javascript Example:
      * ```js
      * Nevermore.Network.registerConfigurator({
      *      name: "ubiquiti-edgerouter-x-full",
@@ -2650,10 +2650,10 @@ declare namespace Nevermore {
      *          }
      *      },
      *      initialConfiguration: async function(password) {
-     *          return Nevermore.Network.error("Not implemented")
+     *          return Nevermore.Network.ERROR("Not implemented")
      *      },
      *      matchConfiguration: async function(allianceStationConfiguration) {
-     *          return Nevermore.Network.error("Not implemented")
+     *          return Nevermore.Network.ERROR("Not implemented")
      *      }
      *  });
      * ```
@@ -2662,7 +2662,7 @@ declare namespace Nevermore {
         /**
          * Defines a successful callback from a configurator function.
          */
-        export const SUCCESS: Error = null
+        export const SUCCESS: Error
 
         /**
          * Defines an Error/Success returned from a configurator function.
@@ -2680,7 +2680,8 @@ declare namespace Nevermore {
             author: string,
             url: string,
             email: string,
-            supportedHardware: string[]
+            supportedHardware: string[],
+            timeout: number
         }
 
         /**
@@ -2725,6 +2726,6 @@ declare namespace Nevermore {
          * 
          * @param message The message of the error.
          */
-        export function error(message: string): Error
+        export function ERROR(message: string): Error
     }
 }

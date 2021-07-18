@@ -2,11 +2,7 @@ use futures::channel::mpsc::UnboundedSender;
 use log::debug;
 use std::{sync::Arc, thread::JoinHandle};
 
-use crate::{
-    field::{Field, ThreadSafeField},
-    pub_sub::{PubSub, ThreadSafePubSub},
-    plugin::{deno_nevermore::LogMessage, DenoPluginRuntime},
-};
+use crate::{field::{Field, ThreadSafeField}, models::{config::{Config, ConfigKey}, plugin::PluginType}, plugin::{deno_nevermore::LogMessage, DenoPluginRuntime}, pub_sub::{PubSub, ThreadSafePubSub}};
 
 use crate::models::plugin::Plugin;
 use crate::models::{Database, ThreadSafeDatabase};
@@ -27,13 +23,10 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn new() -> anyhow::Result<ThreadSafeApplication> {
-        let field = Field::new("nevermore".to_string()).await?;
-
+    pub async fn new(db_uri: Option<String>) -> anyhow::Result<ThreadSafeApplication> {
         let deno_pub_sub = PubSub::new();
-
-        let database = Database::new(true, false, Some("test.db".to_string())).await?;
-
+        let database = Database::new(true, false, db_uri).await?;
+        let field = Field::new(Config::get(database.clone(), ConfigKey::EventName).await.unwrap_or("nevermore".to_string())).await?;
         let (log_sender, _) = tokio::sync::broadcast::channel::<LogMessage>(10);
 
         let application = Self {
@@ -98,6 +91,7 @@ async fn run_event_loop_forever(application: ThreadSafeApplication) {
     loop {
         let (log_sender, database, deno_runtime_safe) = {
             let mut locked_application = application.write().await;
+            locked_application.field.read().await.network_configurator_map().write().await.clear();
             let deno_runtime_safe = DenoPluginRuntime::new(
                 locked_application.field.clone(),
                 locked_application.deno_pub_sub.clone(),
@@ -113,8 +107,19 @@ async fn run_event_loop_forever(application: ThreadSafeApplication) {
         };
         let mut deno_runtime = deno_runtime_safe.write().await;
         let mut plugins = Plugin::get_all_to_load(database.clone()).await.ok();
+        let mut has_game = false;
         if let Some(plugins) = plugins.take() {
             for plugin in plugins {
+                if plugin.plugin_type == PluginType::Game && has_game {
+                    send_log_error_message(
+                        log_sender.clone(),
+                        format!("Not loading plugin '{}'. A game plugin has already been loaded!", plugin.name).to_string(),
+                    );
+                    continue
+                }
+                if plugin.plugin_type == PluginType::Game {
+                    has_game = true;
+                }
                 let result = deno_runtime.run_code(plugin.name.clone(), plugin.code);
                 if result.is_err() {
                     send_log_error_message(

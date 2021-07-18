@@ -50,6 +50,8 @@ async fn main() -> anyhow::Result<()> {
         pretty_env_logger::formatted_timed_builder().filter_level(log::LevelFilter::Warn).filter_level(log::LevelFilter::Info).try_init()?;
     }
 
+    let db_uri = std::env::var("DB_URI").ok();
+
     info!("{}", BIRD);
 
     info!("Starting {} v{} by {}...", NAME, VERSION, AUTHORS);
@@ -57,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(feature = "developer")]
     warn!("{}", DEV_MESSAGE);
 
-    let app = application::Application::new().await?;
+    let app = application::Application::new(db_uri).await?;
 
     http::start(app).await;
 

@@ -24,7 +24,7 @@ impl Database {
             let conn = if in_memory {
                 Connection::open_in_memory()?
             } else {
-                Connection::open(uri.ok_or(anyhow::anyhow!("no uri given"))?)?
+                Connection::open(uri.unwrap_or("main.db".to_string()))?
             };
 
             let database = Self { conn };

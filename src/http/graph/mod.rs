@@ -9,18 +9,19 @@ pub mod dev;
 pub mod config;
 pub mod guards;
 pub mod field;
+pub mod network;
 
 pub type NevermoreSchema = Schema<Query, Mutation, Subscription>;
 
 // Merged Queries
 
 #[derive(MergedObject, Default)]
-pub struct Query(node::NodeQuery, plugin::PluginQuery, user::UserQuery, dev::DevQuery, config::ConfigQuery, field::FieldQuery);
+pub struct Query(node::NodeQuery, plugin::PluginQuery, user::UserQuery, dev::DevQuery, config::ConfigQuery, field::FieldQuery, network::NetworkQuery);
 
 // Merged Mutations
 
 #[derive(MergedObject, Default)]
-pub struct Mutation(dev::DevMutation, config::ConfigMutation, field::FieldMutation);
+pub struct Mutation(dev::DevMutation, config::ConfigMutation, field::FieldMutation, network::NetworkMutation);
 
 // Merged Subscriptions
 

@@ -15,7 +15,7 @@
             }
             throw "callbacks is null."
         },
-        error: function(message) {
+        ERROR: function(message) {
             return message;
         }
     };

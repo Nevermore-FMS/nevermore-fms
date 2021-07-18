@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use async_graphql::*;
 use serde::{Serialize, Deserialize};
 
-use tokio::sync::{RwLock, broadcast::{Receiver, Sender}};
+use tokio::sync::{Mutex, RwLock, broadcast::{Receiver, Sender}};
 
 pub type ThreadSafeNetworkConfiguratorMap = Arc<RwLock<NetworkConfiguratorMap>>;
 
@@ -142,6 +142,7 @@ pub struct NetworkConfiguratorInfo {
 }
 
 pub struct RequestReplyPair<S, R> {
+    requester_mutex: Mutex<()>,
     request_sender: Sender<S>,
     reply_sender: Sender<R>,
     reply_timeout: u64 // In Seconds
@@ -152,13 +153,15 @@ impl<S, R> RequestReplyPair<S, R> where S: Clone, R: Clone {
         let (request_sender, _) = tokio::sync::broadcast::channel::<S>(1);
         let (reply_sender, _) = tokio::sync::broadcast::channel::<R>(1);
         Self{
-            request_sender,
+            requester_mutex: Mutex::new(()),
+            request_sender: request_sender,
             reply_sender,
             reply_timeout
         }
     }
 
     pub async fn request(&self, request: S) -> anyhow::Result<R> {
+        let _lock = self.requester_mutex.try_lock()?;
         self.request_sender.send(request).map_err(|err| anyhow::anyhow!(err.to_string()))?;
         let mut receiver = self.reply_sender.subscribe();
         tokio::select! {

@@ -61,14 +61,7 @@
   const fetch = window.__bootstrap.fetch;
   const file = window.__bootstrap.file;
   const nevermore = window.__bootstrap.nevermore;
-
-  function getErrorObject() {
-    try {
-      throw Error("");
-    } catch (err) {
-      return err;
-    }
-  }
+  const net = window.__bootstrap.net;
 
   const windowOrWorkerGlobalScope = {
     Blob: util.nonEnumerable(file.Blob),
@@ -78,6 +71,7 @@
     CloseEvent: util.nonEnumerable(CloseEvent),
     CountQueuingStrategy: util.nonEnumerable(streams.CountQueuingStrategy),
     CustomEvent: util.nonEnumerable(CustomEvent),
+    Deno: util.nonEnumerable(net),
     DOMException: util.nonEnumerable(DOMException),
     ErrorEvent: util.nonEnumerable(ErrorEvent),
     Event: util.nonEnumerable(Event),
