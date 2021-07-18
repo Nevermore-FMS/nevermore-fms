@@ -36,7 +36,7 @@ rand = "0.8.4"
 
 # Web Deps
 warp = "0.3.1"
-async-graphql = { version = "2.9.7", features = ["chrono"] }
+async-graphql = { version = "2.9.7", features = ["chrono", "apollo_tracing"] }
 async-graphql-warp = "2.9.7"
 percent-encoding = "1.0.1"
 jsonwebtoken = "7"

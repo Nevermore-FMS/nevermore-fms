@@ -1,4 +1,5 @@
 use async_graphql::*;
+use async_graphql::extensions::ApolloTracing;
 
 use crate::application::ThreadSafeApplication;
 
@@ -31,5 +32,6 @@ pub struct Subscription(dev::DevSubscription, field::FieldSubscription);
 pub fn create_schema(application: ThreadSafeApplication) -> NevermoreSchema {
     Schema::build(Query::default(), Mutation::default(), Subscription::default())
         .data(application)
+        .extension(ApolloTracing)
         .finish()
 }
