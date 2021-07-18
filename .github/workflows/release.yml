@@ -1,0 +1,42 @@
+name: On Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Publish for ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: nevermore-fms
+            asset_name: nevermore-fms-linux-amd64
+          - os: windows-latest
+            artifact_name: nevermore-fms.exe
+            asset_name: nevermore-fms-windows-amd64
+          - os: macos-latest
+            artifact_name: nevermore-fms
+            asset_name: nevermore-fms-osx-amd64
+            
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Build
+      run: cargo build --verbose --release
+      
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: target/release/${{ matrix.artifact_name }}
+        asset_name: ${{ matrix.asset_name }}
+        tag: ${{ github.ref }}
+    
