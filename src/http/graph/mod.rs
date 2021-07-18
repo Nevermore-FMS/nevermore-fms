@@ -6,23 +6,26 @@ pub mod node;
 pub mod plugin;
 pub mod user;
 pub mod dev;
+pub mod config;
+pub mod guards;
+pub mod field;
 
 pub type NevermoreSchema = Schema<Query, Mutation, Subscription>;
 
 // Merged Queries
 
 #[derive(MergedObject, Default)]
-pub struct Query(node::NodeQuery, plugin::PluginQuery, user::UserQuery, dev::DevQuery);
+pub struct Query(node::NodeQuery, plugin::PluginQuery, user::UserQuery, dev::DevQuery, config::ConfigQuery, field::FieldQuery);
 
 // Merged Mutations
 
 #[derive(MergedObject, Default)]
-pub struct Mutation(dev::DevMutation);
+pub struct Mutation(dev::DevMutation, config::ConfigMutation, field::FieldMutation);
 
 // Merged Subscriptions
 
 #[derive(MergedSubscription, Default)]
-pub struct Subscription(dev::DevSubscription);
+pub struct Subscription(dev::DevSubscription, field::FieldSubscription);
 
 pub fn create_schema(application: ThreadSafeApplication) -> NevermoreSchema {
     Schema::build(Query::default(), Mutation::default(), Subscription::default())

@@ -6,7 +6,10 @@ pub mod pub_sub;
 pub mod plugin;
 
 
-use log::{info, warn};
+use log::info;
+
+#[cfg(feature = "developer")]
+use log::warn;
 
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -36,6 +39,7 @@ const BIRD: &'static str = "\n\x1b[48;5;15m                \x1b[38;5;138m▄\x1b
 \x1b[48;5;15m            \x1b[48;5;235m\x1b[38;5;15m▄\x1b[48;5;235m\x1b[38;5;15m▄\x1b[48;5;235m\x1b[38;5;236m▄\x1b[48;5;235m  \x1b[48;5;8m\x1b[38;5;235m▄\x1b[48;5;145m\x1b[38;5;235m▄\x1b[48;5;7m\x1b[38;5;234m▄\x1b[48;5;7m\x1b[38;5;235m▄\x1b[48;5;249m\x1b[38;5;235m▄\x1b[48;5;249m\x1b[38;5;235m▄\x1b[48;5;236m\x1b[38;5;235m▄\x1b[48;5;235m \x1b[48;5;239m\x1b[38;5;234m▄\x1b[48;5;248m\x1b[38;5;234m▄\x1b[48;5;249m\x1b[38;5;234m▄\x1b[48;5;250m\x1b[38;5;234m▄\x1b[48;5;249m\x1b[38;5;234m▄\x1b[48;5;248m\x1b[38;5;234m▄\x1b[48;5;88m  \x1b[48;5;1m\x1b[38;5;88m▄\x1b[48;5;88m\x1b[38;5;15m▄\x1b[48;5;88m\x1b[38;5;15m▄\x1b[48;5;15m            \x1b[0m
 \x1b[48;5;15m                \x1b[48;5;102m\x1b[38;5;15m▄\x1b[48;5;235m\x1b[38;5;15m▄\x1b[48;5;235m\x1b[38;5;15m▄\x1b[48;5;235m\x1b[38;5;255m▄\x1b[48;5;235m\x1b[38;5;247m▄\x1b[48;5;235m\x1b[38;5;241m▄\x1b[48;5;235m\x1b[38;5;238m▄\x1b[48;5;235m\x1b[38;5;236m▄\x1b[48;5;234m\x1b[38;5;235m▄\x1b[48;5;234m\x1b[38;5;238m▄\x1b[48;5;234m\x1b[38;5;59m▄\x1b[48;5;234m\x1b[38;5;246m▄\x1b[48;5;234m\x1b[38;5;255m▄\x1b[48;5;234m\x1b[38;5;15m▄\x1b[48;5;234m\x1b[38;5;15m▄\x1b[48;5;138m\x1b[38;5;15m▄\x1b[48;5;15m                \x1b[0m
 ";
+#[cfg(feature = "developer")]
 const DEV_MESSAGE: &'static str = "Development Mode is enabled. Plugins can be modified remotely without authentication, DO NOT USE THIS IN PRODUCTION.";
 
 #[tokio::main]

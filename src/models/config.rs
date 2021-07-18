@@ -9,6 +9,7 @@ const CREATE_CONFIG_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS config
 
 #[derive(Enum, Copy, Clone, Eq, PartialEq)]
 pub enum ConfigKey {
+    HasSetup,
     EventName, // The name of the current event.
     ActiveNetworkConfigurator, // The name of the active network configurator.
     ShareCrashAnalytics,

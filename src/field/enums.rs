@@ -1,8 +1,9 @@
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use async_graphql::*;
 
 /// Represents the Alliance of a DriverStation. Whereby there is a Red and Blue side. (Hardcoded
 /// due to it's use in the network protocol)
-#[derive(Copy, Clone, Serialize_repr, Deserialize_repr, PartialEq)]
+#[derive(Enum, Debug, Eq, PartialEq, Copy, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]
 pub enum Alliance {
     Red = 0,
@@ -28,7 +29,7 @@ impl Alliance {
 
 /// Represents the AllianceStation of a DriverStation. There are six different alliance stations around
 /// an FRC field, three on each side. (Hardcoded due to it's use in the network protocol)
-#[derive(Copy, Clone, Serialize_repr, Deserialize_repr, PartialEq)]
+#[derive(Enum, Debug, Eq, PartialEq, Copy, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]
 pub enum AllianceStation {
     Red1 = 0,
@@ -71,7 +72,7 @@ impl AllianceStation {
 /// `DriverstationStatus::Good` when in the correct position, `DriverstationStatus::Bad`
 /// when in the wrong position, and `DriverstationStatus::Waiting` when the team isn't in
 /// this match.
-#[derive(Copy, Clone, Serialize_repr, Deserialize_repr, PartialEq)]
+#[derive(Enum, Debug, Eq, PartialEq, Copy, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]
 pub enum DriverstationStatus {
     Good = 0,
@@ -100,7 +101,7 @@ impl DriverstationStatus {
 
 /// Represents the Level of the current match being played. I don't really know why this is
 /// sent to the Driverstations, but it's required so it must be included.
-#[derive(Copy, Clone, Serialize_repr, Deserialize_repr, PartialEq)]
+#[derive(Enum, Debug, Eq, PartialEq, Copy, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]
 pub enum MatchLevel {
     Good = 0,
@@ -129,7 +130,7 @@ impl MatchLevel {
 
 /// Represents the Mode of a DriverStation. These values correspond to the values you can
 /// get from WPILib and can set on the Driverstation when directly connected.
-#[derive(Copy, Clone, Serialize_repr, Deserialize_repr, PartialEq)]
+#[derive(Enum, Debug, Eq, PartialEq, Copy, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]
 pub enum Mode {
     TeleOp = 0,

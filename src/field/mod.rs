@@ -1,3 +1,4 @@
+use async_graphql::*;
 use crate::field::driverstation::{ConfirmedState, DriverStation, State, ThreadSafeDriverStation};
 use crate::field::enums::{AllianceStation, Mode};
 use log::info;
@@ -26,7 +27,7 @@ pub type ThreadSafeStateMap = Arc<RwLock<HashMap<u16, State>>>;
 
 pub type ThreadSafeFieldOverride = Arc<RwLock<FieldOverride>>;
 
-#[derive(Copy, Clone, Serialize, Deserialize)]
+#[derive(Copy, Clone, Serialize, Deserialize, SimpleObject)]
 #[serde(rename_all = "camelCase")]
 pub struct FieldOverride {
     pub emergency_stop: bool,

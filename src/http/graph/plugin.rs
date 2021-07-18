@@ -1,14 +1,18 @@
 use async_graphql::connection::*;
 use async_graphql::*;
+use async_graphql::guard::Guard;
 
 use crate::application::ThreadSafeApplication;
 use crate::models::plugin::Plugin;
+use crate::http::graph::guards::UserTypeGuard;
+use crate::models::user::UserType;
 
 #[derive(Default)]
 pub struct PluginQuery;
 
 #[Object]
 impl PluginQuery {
+    #[graphql(guard(UserTypeGuard(user_type = "UserType::Admin")))]
     async fn plugins<'ctx>(
         &self,
         ctx: &Context<'ctx>,

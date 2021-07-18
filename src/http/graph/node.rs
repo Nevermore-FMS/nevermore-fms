@@ -1,14 +1,18 @@
 use async_graphql::*;
+use async_graphql::guard::Guard;
 
 use crate::application::ThreadSafeApplication;
 use crate::models::plugin::Plugin;
 use crate::models::user::User;
+use crate::http::graph::guards::UserTypeGuard;
+use crate::models::user::UserType;
 
 #[derive(Default)]
 pub struct NodeQuery;
 
 #[Object]
 impl NodeQuery {
+    #[graphql(guard(UserTypeGuard(user_type = "UserType::Admin")))]
     async fn node<'ctx>(
         &self,
         ctx: &Context<'ctx>,

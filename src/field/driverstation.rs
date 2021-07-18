@@ -1,3 +1,4 @@
+use async_graphql::*;
 use chrono::{Datelike, Local, Timelike};
 
 use serde::{Deserialize, Serialize};
@@ -18,7 +19,7 @@ use tokio::sync::RwLock;
 
 pub type ThreadSafeDriverStation = Arc<RwLock<DriverStation>>;
 
-#[derive(Copy, Clone, Serialize)]
+#[derive(Copy, Clone, Serialize, SimpleObject)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfirmedState {
     pub is_emergency_stopped: bool,
@@ -33,7 +34,7 @@ pub struct ConfirmedState {
     pub battery_voltage: f32,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, SimpleObject)]
 #[serde(rename_all = "camelCase")]
 pub struct State {
     pub emergency_stop: bool,
