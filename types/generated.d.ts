@@ -2533,7 +2533,7 @@ declare namespace Nevermore {
      */
     namespace Database {
         /**
-         * Retrieves the SQLDatabase assigned for this Plugin. The database is isolated based upon the name defined.
+         * Retrieves the SQLDatabase assigned for this Plugin. The database is isolated based upon the name its defined with.
          * 
          * This function caches the result until `SQLDatabase.close` is called, so once a database is created it always will return the same database.
          * 

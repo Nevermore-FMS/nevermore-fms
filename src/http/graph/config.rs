@@ -1,9 +1,9 @@
-use async_graphql::*;
 use async_graphql::guard::Guard;
+use async_graphql::*;
 
 use crate::application::ThreadSafeApplication;
-use crate::models::config::{Config, ConfigKey};
 use crate::http::graph::guards::UserTypeGuard;
+use crate::models::config::{Config, ConfigKey};
 use crate::models::user::UserType;
 
 #[derive(Default)]
@@ -15,7 +15,7 @@ impl ConfigQuery {
     async fn config_entry<'ctx>(
         &self,
         ctx: &Context<'ctx>,
-        key: ConfigKey
+        key: ConfigKey,
     ) -> Result<Option<String>> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.read().await;
@@ -33,7 +33,7 @@ impl ConfigMutation {
         &self,
         ctx: &Context<'ctx>,
         key: ConfigKey,
-        value: String
+        value: String,
     ) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.read().await;

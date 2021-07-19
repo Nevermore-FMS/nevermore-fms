@@ -1,11 +1,11 @@
-pub mod deno_nevermore;
-pub mod deno_pubsub;
 pub mod deno_database;
 pub mod deno_network;
+pub mod deno_nevermore;
+pub mod deno_pubsub;
 
 use crate::field::ThreadSafeField;
-use crate::pub_sub::ThreadSafePubSub;
 use crate::plugin::deno_nevermore::LogMessage;
+use crate::pub_sub::ThreadSafePubSub;
 use deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_core::{Extension, Snapshot};
 use deno_core::{InspectorSessionProxy, JsRuntime, RuntimeOptions};

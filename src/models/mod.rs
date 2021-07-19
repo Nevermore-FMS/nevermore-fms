@@ -1,6 +1,6 @@
-pub mod user;
-pub mod plugin;
 pub mod config;
+pub mod plugin;
+pub mod user;
 
 use std::{collections::HashMap, sync::Arc};
 

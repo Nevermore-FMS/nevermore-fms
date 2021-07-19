@@ -8,9 +8,9 @@ use async_graphql::*;
 use deno_core::{include_js_files, op_async, op_sync, Extension, OpState, Resource, ResourceId};
 use log::debug;
 use serde::Deserialize;
-use tokio::sync::RwLock;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use tokio::sync::RwLock;
 
 use std::rc::Rc;
 use std::vec;

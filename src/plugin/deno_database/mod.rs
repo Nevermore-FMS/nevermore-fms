@@ -1,10 +1,10 @@
-use crate::{models::{Database, ThreadSafeDatabase}};
+use crate::models::{Database, ThreadSafeDatabase};
 use deno_core::{include_js_files, op_async, Extension, OpState, Resource, ResourceId};
-use serde_json::Value;
 use serde::Deserialize;
-use std::{cell::RefCell, collections::HashMap};
+use serde_json::Value;
 use std::rc::Rc;
 use std::vec;
+use std::{cell::RefCell, collections::HashMap};
 
 pub fn init() -> Extension {
     Extension::builder()
@@ -22,7 +22,7 @@ pub fn init() -> Extension {
 }
 
 struct DatabaseResource {
-    database: ThreadSafeDatabase
+    database: ThreadSafeDatabase,
 }
 
 impl Resource for DatabaseResource {}
@@ -36,9 +36,9 @@ pub async fn op_create_database(
 
     let database = Database::new(false, false, Some(format!("db/{}.db", name))).await?;
 
-    let rid = borrowed_state.resource_table.add(DatabaseResource{
-        database
-    });
+    let rid = borrowed_state
+        .resource_table
+        .add(DatabaseResource { database });
 
     Ok(rid)
 }
@@ -48,7 +48,7 @@ pub async fn op_create_database(
 pub struct QueryArgs {
     rid: ResourceId,
     stmt: String,
-    params: Vec<Value>
+    params: Vec<Value>,
 }
 
 pub async fn op_database_run(
@@ -57,7 +57,10 @@ pub async fn op_database_run(
     _: (),
 ) -> anyhow::Result<()> {
     let borrowed_state = state.try_borrow()?;
-    let database_resource = borrowed_state.resource_table.get::<DatabaseResource>(args.rid).ok_or(anyhow::anyhow!("database not found"))?;
+    let database_resource = borrowed_state
+        .resource_table
+        .get::<DatabaseResource>(args.rid)
+        .ok_or(anyhow::anyhow!("database not found"))?;
 
     let db = database_resource.database.clone();
 
@@ -72,7 +75,10 @@ pub async fn op_database_get(
     _: (),
 ) -> anyhow::Result<HashMap<String, Value>> {
     let borrowed_state = state.try_borrow()?;
-    let database_resource = borrowed_state.resource_table.get::<DatabaseResource>(args.rid).ok_or(anyhow::anyhow!("database not found"))?;
+    let database_resource = borrowed_state
+        .resource_table
+        .get::<DatabaseResource>(args.rid)
+        .ok_or(anyhow::anyhow!("database not found"))?;
 
     let db = database_resource.database.clone();
 
@@ -87,7 +93,10 @@ pub async fn op_database_all(
     _: (),
 ) -> anyhow::Result<Vec<HashMap<String, Value>>> {
     let borrowed_state = state.try_borrow()?;
-    let database_resource = borrowed_state.resource_table.get::<DatabaseResource>(args.rid).ok_or(anyhow::anyhow!("database not found"))?;
+    let database_resource = borrowed_state
+        .resource_table
+        .get::<DatabaseResource>(args.rid)
+        .ok_or(anyhow::anyhow!("database not found"))?;
 
     let db = database_resource.database.clone();
 

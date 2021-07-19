@@ -1,10 +1,10 @@
 use async_graphql::connection::*;
-use async_graphql::*;
 use async_graphql::guard::Guard;
+use async_graphql::*;
 
 use crate::application::ThreadSafeApplication;
-use crate::models::plugin::Plugin;
 use crate::http::graph::guards::UserTypeGuard;
+use crate::models::plugin::Plugin;
 use crate::models::user::UserType;
 
 #[derive(Default)]
@@ -55,4 +55,3 @@ impl PluginQuery {
         .await
     }
 }
-

@@ -1,6 +1,6 @@
-use async_graphql::*;
 use crate::field::driverstation::{ConfirmedState, DriverStation, State, ThreadSafeDriverStation};
 use crate::field::enums::{AllianceStation, Mode};
+use async_graphql::*;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::{TcpListener, UdpSocket};
 use tokio::sync::broadcast::{Receiver, Sender};
-use tokio::sync::{RwLock};
+use tokio::sync::RwLock;
 use tokio::time::Duration;
 
 use self::network::{NetworkConfiguratorMap, ThreadSafeNetworkConfiguratorMap};
@@ -43,7 +43,7 @@ pub struct Field {
     ticker_sender: Sender<()>,
     event_name: String,
     field_override: ThreadSafeFieldOverride,
-    network_configurator_map: ThreadSafeNetworkConfiguratorMap
+    network_configurator_map: ThreadSafeNetworkConfiguratorMap,
 }
 
 impl Field {
@@ -191,7 +191,7 @@ impl Field {
                 emergency_stop: false,
                 disabled: false,
             })),
-            network_configurator_map: NetworkConfiguratorMap::new()
+            network_configurator_map: NetworkConfiguratorMap::new(),
         }));
 
         Self::listen_for_udp_messages(field.clone(), udp_socket.clone(), rx2).await?;

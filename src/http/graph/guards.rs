@@ -11,9 +11,9 @@ pub struct UserTypeGuard {
 impl Guard for UserTypeGuard {
     async fn check(&self, ctx: &Context<'_>) -> Result<()> {
         //if ctx.data_opt::<UserType>() == Some(&self.user_type) {
-            Ok(())
+        Ok(())
         //} else {
-            //Err("Forbidden".into())
+        //Err("Forbidden".into())
         //}
     }
 }

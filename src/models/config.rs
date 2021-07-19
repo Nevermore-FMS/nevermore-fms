@@ -10,10 +10,10 @@ const CREATE_CONFIG_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS config
 #[derive(Enum, Copy, Clone, Eq, PartialEq)]
 pub enum ConfigKey {
     HasSetup,
-    EventName, // The name of the current event.
+    EventName,                 // The name of the current event.
     ActiveNetworkConfigurator, // The name of the active network configurator.
     ShareCrashAnalytics,
-    PrivateKey
+    PrivateKey,
 }
 
 #[derive(Clone, Debug)]
@@ -28,7 +28,7 @@ impl Config {
     pub async fn set(
         database: ThreadSafeDatabase,
         key: ConfigKey,
-        value: String
+        value: String,
     ) -> anyhow::Result<()> {
         let database = database.lock().await;
 
@@ -47,14 +47,17 @@ impl Config {
 
         let key = key.to_value().to_string();
 
-        let user = database.conn.query_row(
-            "SELECT value FROM config WHERE key = ?1",
-            rusqlite::params![key],
-            |row| {
-                let value: String = row.get(0)?;
-                Ok(value)
-            },
-        ).ok();
+        let user = database
+            .conn
+            .query_row(
+                "SELECT value FROM config WHERE key = ?1",
+                rusqlite::params![key],
+                |row| {
+                    let value: String = row.get(0)?;
+                    Ok(value)
+                },
+            )
+            .ok();
 
         user
     }
@@ -66,7 +69,9 @@ mod tests {
         let db = super::super::Database::new(true, true, None).await?;
 
         super::Config::set(db.clone(), super::ConfigKey::EventName, "test".to_string()).await?;
-        let value = super::Config::get(db.clone(), super::ConfigKey::EventName).await.unwrap();
+        let value = super::Config::get(db.clone(), super::ConfigKey::EventName)
+            .await
+            .unwrap();
         assert_eq!(value, "test".to_string());
         Ok(())
     }

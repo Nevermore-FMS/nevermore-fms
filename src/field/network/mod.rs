@@ -1,20 +1,25 @@
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use async_graphql::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
-use tokio::sync::{Mutex, RwLock, broadcast::{Receiver, Sender}};
+use tokio::sync::{
+    broadcast::{Receiver, Sender},
+    Mutex, RwLock,
+};
 
 pub type ThreadSafeNetworkConfiguratorMap = Arc<RwLock<NetworkConfiguratorMap>>;
 
 pub type ThreadSafeNetworkConfigurator = Arc<RwLock<NetworkConfigurator>>;
 
 pub struct NetworkConfiguratorMap {
-    map: HashMap<String, ThreadSafeNetworkConfigurator>
+    map: HashMap<String, ThreadSafeNetworkConfigurator>,
 }
 
 impl NetworkConfiguratorMap {
     pub fn new() -> ThreadSafeNetworkConfiguratorMap {
-        Arc::new(RwLock::new(Self{ map: HashMap::new() }))
+        Arc::new(RwLock::new(Self {
+            map: HashMap::new(),
+        }))
     }
 
     pub fn register(&mut self, info: NetworkConfiguratorInfo) -> ThreadSafeNetworkConfigurator {
@@ -36,7 +41,14 @@ impl NetworkConfiguratorMap {
     }
 
     pub async fn get_info(&self, name: String) -> anyhow::Result<NetworkConfiguratorInfo> {
-        Ok(self.map.get(&name).ok_or(anyhow::anyhow!("key doesn't exit"))?.read().await.info.clone())
+        Ok(self
+            .map
+            .get(&name)
+            .ok_or(anyhow::anyhow!("key doesn't exit"))?
+            .read()
+            .await
+            .info
+            .clone())
     }
 
     pub async fn get_all_info(&self) -> Vec<NetworkConfiguratorInfo> {
@@ -55,13 +67,13 @@ impl NetworkConfiguratorMap {
 #[derive(Debug, Clone)]
 pub enum Reply {
     SUCCESS,
-    ERROR(String)
+    ERROR(String),
 }
 
 #[derive(Debug, Clone, InputObject, Deserialize, Serialize)]
 pub struct AllianceStationConfiguration {
     pub ssid: String,
-    pub password: String
+    pub password: String,
 }
 
 #[derive(Debug, Clone, InputObject, Deserialize, Serialize)]
@@ -78,17 +90,17 @@ pub struct NetworkConfigurator {
     pub info: NetworkConfiguratorInfo,
     scan_pair: RequestReplyPair<(), Reply>,
     inital_configuration_pair: RequestReplyPair<(), Reply>,
-    match_configuration_pair: RequestReplyPair<AllianceStationToConfiguration, Reply>
+    match_configuration_pair: RequestReplyPair<AllianceStationToConfiguration, Reply>,
 }
 
 impl NetworkConfigurator {
     pub fn new(info: NetworkConfiguratorInfo) -> ThreadSafeNetworkConfigurator {
         let timeout = info.timeout;
-        Arc::new(RwLock::new(Self{
+        Arc::new(RwLock::new(Self {
             info,
             scan_pair: RequestReplyPair::new(timeout),
             inital_configuration_pair: RequestReplyPair::new(timeout),
-            match_configuration_pair: RequestReplyPair::new(timeout)
+            match_configuration_pair: RequestReplyPair::new(timeout),
         }))
     }
 
@@ -116,8 +128,14 @@ impl NetworkConfigurator {
         self.inital_configuration_pair.reply(reply)
     }
 
-    pub async fn run_match_configuration(&self, alliance_station_to_configuration: AllianceStationToConfiguration) -> anyhow::Result<Reply> {
-        Ok(self.match_configuration_pair.request(alliance_station_to_configuration).await?)
+    pub async fn run_match_configuration(
+        &self,
+        alliance_station_to_configuration: AllianceStationToConfiguration,
+    ) -> anyhow::Result<Reply> {
+        Ok(self
+            .match_configuration_pair
+            .request(alliance_station_to_configuration)
+            .await?)
     }
 
     pub fn subscribe_match_configuration(&self) -> Receiver<AllianceStationToConfiguration> {
@@ -138,31 +156,37 @@ pub struct NetworkConfiguratorInfo {
     pub url: String,
     pub email: String,
     pub supported_hardware: Vec<String>,
-    pub timeout: u64
+    pub timeout: u64,
 }
 
 pub struct RequestReplyPair<S, R> {
     requester_mutex: Mutex<()>,
     request_sender: Sender<S>,
     reply_sender: Sender<R>,
-    reply_timeout: u64 // In Seconds
+    reply_timeout: u64, // In Seconds
 }
 
-impl<S, R> RequestReplyPair<S, R> where S: Clone, R: Clone {
+impl<S, R> RequestReplyPair<S, R>
+where
+    S: Clone,
+    R: Clone,
+{
     pub fn new(reply_timeout: u64) -> Self {
         let (request_sender, _) = tokio::sync::broadcast::channel::<S>(1);
         let (reply_sender, _) = tokio::sync::broadcast::channel::<R>(1);
-        Self{
+        Self {
             requester_mutex: Mutex::new(()),
             request_sender: request_sender,
             reply_sender,
-            reply_timeout
+            reply_timeout,
         }
     }
 
     pub async fn request(&self, request: S) -> anyhow::Result<R> {
         let _lock = self.requester_mutex.try_lock()?;
-        self.request_sender.send(request).map_err(|err| anyhow::anyhow!(err.to_string()))?;
+        self.request_sender
+            .send(request)
+            .map_err(|err| anyhow::anyhow!(err.to_string()))?;
         let mut receiver = self.reply_sender.subscribe();
         tokio::select! {
             _ = tokio::time::sleep(tokio::time::Duration::from_secs(self.reply_timeout)) => {

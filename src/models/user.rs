@@ -23,7 +23,7 @@ pub struct UserClaims {
 pub enum UserType {
     Admin,
     Referee,
-    Viewer
+    Viewer,
 }
 
 #[derive(Clone, Debug)]
@@ -32,7 +32,7 @@ pub struct User {
     pub username: String,
     pub password: String,
     pub pin: String,
-    pub user_type: UserType
+    pub user_type: UserType,
 }
 
 #[Object]
@@ -69,17 +69,31 @@ impl User {
         )?)
     }
 
-    pub fn create_jwt(&self, secret: String, expiry_time: usize, pin_expiry_time: usize) -> anyhow::Result<String> {
-        let claims = UserClaims{
+    pub fn create_jwt(
+        &self,
+        secret: String,
+        expiry_time: usize,
+        pin_expiry_time: usize,
+    ) -> anyhow::Result<String> {
+        let claims = UserClaims {
             sub: self.username.clone(),
             exp: expiry_time,
             pin_exp: pin_expiry_time,
         };
-        Ok(jsonwebtoken::encode(&jsonwebtoken::Header::default(), &claims, &jsonwebtoken::EncodingKey::from_secret(secret.as_ref()))?)
+        Ok(jsonwebtoken::encode(
+            &jsonwebtoken::Header::default(),
+            &claims,
+            &jsonwebtoken::EncodingKey::from_secret(secret.as_ref()),
+        )?)
     }
 
     pub fn decode_jwt(&self, secret: String, jwt: String) -> anyhow::Result<UserClaims> {
-        Ok(jsonwebtoken::decode(&jwt, &jsonwebtoken::DecodingKey::from_secret(secret.as_ref()), &jsonwebtoken::Validation::default())?.claims)
+        Ok(jsonwebtoken::decode(
+            &jwt,
+            &jsonwebtoken::DecodingKey::from_secret(secret.as_ref()),
+            &jsonwebtoken::Validation::default(),
+        )?
+        .claims)
     }
 }
 
@@ -89,7 +103,7 @@ pub struct CreateUserParams {
     pub username: String,
     pub password: String,
     pub pin: String,
-    pub user_type: UserType
+    pub user_type: UserType,
 }
 
 impl User {
@@ -115,7 +129,13 @@ impl User {
         database.conn.execute(
             "INSERT INTO users (full_name, username, password, pin, user_type)
          VALUES (?1, ?2, ?3, ?4, ?5)",
-            rusqlite::params![params.full_name, params.username, password, pin, params.user_type.to_value().to_string()],
+            rusqlite::params![
+                params.full_name,
+                params.username,
+                password,
+                pin,
+                params.user_type.to_value().to_string()
+            ],
         )?;
         Ok(())
     }
@@ -140,7 +160,7 @@ impl User {
                     full_name: row.get(1)?,
                     password: row.get(2)?,
                     pin: row.get(3)?,
-                    user_type: UserType::parse(Some(Value::String(row.get(4)?))).unwrap()
+                    user_type: UserType::parse(Some(Value::String(row.get(4)?))).unwrap(),
                 })
             },
         )?;
@@ -162,7 +182,8 @@ impl User {
 
         let order_by = if is_inverted { "DESC" } else { "ASC" };
 
-        let mut query_string = String::from("SELECT username, full_name, password, pin, user_type FROM users");
+        let mut query_string =
+            String::from("SELECT username, full_name, password, pin, user_type FROM users");
         let params = rusqlite::params![after.clone(), before.clone(), limit + 1];
         let mut _is_first_where = true;
         if after.is_some() || before.is_some() {
@@ -198,7 +219,7 @@ impl User {
                 full_name: row.get(1)?,
                 password: row.get(2)?,
                 pin: row.get(3)?,
-                user_type: UserType::parse(Some(Value::String(row.get(4)?))).unwrap()
+                user_type: UserType::parse(Some(Value::String(row.get(4)?))).unwrap(),
             })
         })?;
 
@@ -231,7 +252,7 @@ mod tests {
                 username: "test".to_string(),
                 password: "test".to_string(),
                 pin: "1234".to_string(),
-                user_type: super::UserType::Admin
+                user_type: super::UserType::Admin,
             },
         )
         .await?;
@@ -242,7 +263,7 @@ mod tests {
                 username: "test1".to_string(),
                 password: "test".to_string(),
                 pin: "1234".to_string(),
-                user_type: super::UserType::Admin
+                user_type: super::UserType::Admin,
             },
         )
         .await?;
@@ -253,7 +274,7 @@ mod tests {
                 username: "test2".to_string(),
                 password: "test".to_string(),
                 pin: "1234".to_string(),
-                user_type: super::UserType::Admin
+                user_type: super::UserType::Admin,
             },
         )
         .await?;
@@ -264,7 +285,7 @@ mod tests {
                 username: "test3".to_string(),
                 password: "test".to_string(),
                 pin: "1234".to_string(),
-                user_type: super::UserType::Admin
+                user_type: super::UserType::Admin,
             },
         )
         .await?;
@@ -275,7 +296,7 @@ mod tests {
                 username: "test4".to_string(),
                 password: "test".to_string(),
                 pin: "1234".to_string(),
-                user_type: super::UserType::Admin
+                user_type: super::UserType::Admin,
             },
         )
         .await?;

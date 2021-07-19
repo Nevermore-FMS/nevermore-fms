@@ -5,6 +5,8 @@
         SUCCESS: null,
         registerConfigurator: async function(info, callbacks) {
             if (callbacks != null) {
+
+                // TODO: Needs testing
                 if (callbacks.scan != null && callbacks.initialConfiguration != null && callbacks.matchConfiguration != null) {
                     let rid = await Deno.core.opAsync("op_register_configurator", { info });
                     scanRunner(rid, callbacks.scan);

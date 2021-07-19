@@ -1,10 +1,10 @@
 use async_graphql::connection::*;
-use async_graphql::*;
 use async_graphql::guard::Guard;
+use async_graphql::*;
 
 use crate::application::ThreadSafeApplication;
-use crate::models::user::User;
 use crate::http::graph::guards::UserTypeGuard;
+use crate::models::user::User;
 use crate::models::user::UserType;
 
 #[derive(Default)]
@@ -39,8 +39,7 @@ impl UserQuery {
                     number_of_docs = last;
                 }
                 let (has_prev_page, has_next_page, users) =
-                    User::get_all_paginated(db, is_inverted, number_of_docs, after, before)
-                        .await?;
+                    User::get_all_paginated(db, is_inverted, number_of_docs, after, before).await?;
                 let mut connection: Connection<String, User> =
                     Connection::new(has_prev_page, has_next_page);
                 connection.append(

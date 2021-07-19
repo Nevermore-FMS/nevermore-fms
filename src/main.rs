@@ -2,11 +2,14 @@ pub mod application;
 pub mod field;
 pub mod http;
 pub mod models;
-pub mod pub_sub;
 pub mod plugin;
+pub mod pub_sub;
+pub mod ui;
 
+use std::net::SocketAddr;
 
 use log::info;
+use clap::{AppSettings, Clap};
 
 #[cfg(feature = "developer")]
 use log::warn;
@@ -42,15 +45,35 @@ const BIRD: &'static str = "\n\x1b[48;5;15m                \x1b[38;5;138m▄\x1b
 #[cfg(feature = "developer")]
 const DEV_MESSAGE: &'static str = "Development Mode is enabled. Plugins can be modified remotely without authentication, DO NOT USE THIS IN PRODUCTION.";
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+/// An alternative FIRST FMS designed around extensibility and compatability.
+#[derive(Clap)]
+#[clap(version = VERSION, author = AUTHORS)]
+#[clap(setting = AppSettings::ColoredHelp)]
+struct Opts {
+    /// Sets the uri used to access the SQL Database using sqlx.
+    #[clap(short, long, default_value = "main.db", env = "NEVERMORE_DB_URI")]
+    db_uri: String,
+
+    /// Sets the listening address of the http server.
+    #[clap(short, long, default_value = "0.0.0.0:8000", env = "NEVERMORE_LISTEN_ADDR")]
+    listen_addr: String,
+
+    // Defines whether a webview and tray should be created.
+    #[clap(long, env = "NEVERMORE_HEADLESS")]
+    headless: bool,
+}
+
+fn main() -> anyhow::Result<()> {
     if std::env::var("RUST_LOG").is_ok() {
         pretty_env_logger::try_init()?;
     } else {
-        pretty_env_logger::formatted_timed_builder().filter_level(log::LevelFilter::Warn).filter_level(log::LevelFilter::Info).try_init()?;
+        pretty_env_logger::formatted_timed_builder()
+            .filter_level(log::LevelFilter::Warn)
+            .filter_level(log::LevelFilter::Info)
+            .try_init()?;
     }
 
-    let db_uri = std::env::var("DB_URI").ok();
+    let opts = Opts::parse();
 
     info!("{}", BIRD);
 
@@ -59,9 +82,28 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(feature = "developer")]
     warn!("{}", DEV_MESSAGE);
 
-    let app = application::Application::new(db_uri).await?;
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
-    http::start(app).await;
+    let http_addr: SocketAddr = opts.listen_addr.parse()?;
+
+    if opts.headless {
+        rt.block_on(async_main(opts, http_addr));
+    } else {
+        rt.spawn(async_main(opts, http_addr.clone()));
+
+        ui::create_tray(http_addr)?;
+    };
 
     Ok(())
+}
+
+async fn async_main(opts: Opts, http_addr: SocketAddr) {
+    let app = application::Application::new(Some(opts.db_uri)).await;
+    let app = if app.is_ok() {
+        app.unwrap()
+    } else {
+        panic!("Error while creating application, couldn't start Nevermore: {:?}", app.err());
+    };
+
+    http::start(app, http_addr).await;
 }

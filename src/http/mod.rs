@@ -1,13 +1,14 @@
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql_warp::{graphql_subscription, Response};
-use std::convert::Infallible;
+use std::{convert::Infallible, net::SocketAddr};
 use warp::{http::Response as HttpResponse, Filter};
 
 use crate::application::ThreadSafeApplication;
 
 pub mod graph;
+pub mod resources;
 
-pub async fn start(application: ThreadSafeApplication) {
+pub async fn start(application: ThreadSafeApplication, http_addr: SocketAddr) {
     let schema = graph::create_schema(application.clone());
     let graphql_post = async_graphql_warp::graphql(schema.clone()).and_then(
         |(schema, request): (graph::NevermoreSchema, async_graphql::Request)| async move {
@@ -15,6 +16,7 @@ pub async fn start(application: ThreadSafeApplication) {
         },
     );
 
+    #[cfg(feature = "developer")]
     let graphql_playground = warp::path::end().and(warp::get()).map(|| {
         HttpResponse::builder()
             .header("content-type", "text/html")
@@ -23,13 +25,21 @@ pub async fn start(application: ThreadSafeApplication) {
             ))
     });
 
-    let graphql_routes = graphql_subscription(schema)
-        .or(graphql_playground)
-        .or(graphql_post);
+    let graphql_routes = graphql_subscription(schema);
+
+    #[cfg(feature = "developer")]
+    let graphql_routes = graphql_routes.or(graphql_playground);
+
+    let graphql_routes = graphql_routes.or(graphql_post);
 
     let routes = warp::path!("graphql").and(graphql_routes);
 
-    let routes = routes.or(warp::path("devtools").and(warp::fs::dir("gen/devtools/front_end")));
+    let index_html = warp::path!("devtools").and_then(resources::serve_index_devtools);
+    let dist = warp::path("devtools")
+        .and(warp::path::tail())
+        .and_then(resources::serve_devtools);
+
+    let routes = routes.or(index_html.or(dist));
 
     #[cfg(feature = "developer")]
     let application_filter = warp::any().map(move || application.clone());
@@ -42,7 +52,7 @@ pub async fn start(application: ThreadSafeApplication) {
             ws.on_upgrade(|websocket| inspector_connected(websocket, application))
         }));
 
-    warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
+    warp::serve(routes).run(http_addr).await;
 }
 
 #[cfg(feature = "developer")]

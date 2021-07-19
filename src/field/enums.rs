@@ -1,5 +1,5 @@
-use serde_repr::{Deserialize_repr, Serialize_repr};
 use async_graphql::*;
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 /// Represents the Alliance of a DriverStation. Whereby there is a Red and Blue side. (Hardcoded
 /// due to it's use in the network protocol)

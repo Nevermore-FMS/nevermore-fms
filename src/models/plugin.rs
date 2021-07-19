@@ -20,7 +20,7 @@ const CREATE_WORKER_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS plugins
 pub enum PluginType {
     Game,
     NetworkConfigurator,
-    Generic
+    Generic,
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -34,7 +34,7 @@ pub struct Plugin {
     pub author: String,
     pub email: String,
     pub url: String,
-    pub plugin_type: PluginType
+    pub plugin_type: PluginType,
 }
 
 #[Object]
@@ -95,7 +95,7 @@ pub struct CreatePluginParams {
     pub author: String,
     pub email: String,
     pub url: String,
-    pub plugin_type: PluginType
+    pub plugin_type: PluginType,
 }
 
 impl Plugin {
@@ -142,7 +142,7 @@ impl Plugin {
                 author: row.get(5)?,
                 email: row.get(6)?,
                 url: row.get(7)?,
-                plugin_type: PluginType::parse(Some(Value::String(row.get(8)?))).unwrap()
+                plugin_type: PluginType::parse(Some(Value::String(row.get(8)?))).unwrap(),
             })
         })?;
 
@@ -191,7 +191,7 @@ impl Plugin {
                 author: row.get(6)?,
                 email: row.get(7)?,
                 url: row.get(8)?,
-                plugin_type: PluginType::parse(Some(Value::String(row.get(9)?))).unwrap()
+                plugin_type: PluginType::parse(Some(Value::String(row.get(9)?))).unwrap(),
             })
         })?;
 
@@ -257,7 +257,7 @@ impl Plugin {
                 author: row.get(6)?,
                 email: row.get(7)?,
                 url: row.get(8)?,
-                plugin_type: PluginType::parse(Some(Value::String(row.get(9)?))).unwrap()
+                plugin_type: PluginType::parse(Some(Value::String(row.get(9)?))).unwrap(),
             })
         })?;
 
@@ -295,7 +295,7 @@ mod tests {
                 author: "test".to_string(),
                 email: "test".to_string(),
                 url: "test".to_string(),
-                plugin_type: super::PluginType::Game
+                plugin_type: super::PluginType::Game,
             },
         )
         .await?;
@@ -311,7 +311,7 @@ mod tests {
                 author: "test".to_string(),
                 email: "test".to_string(),
                 url: "test".to_string(),
-                plugin_type: super::PluginType::Game
+                plugin_type: super::PluginType::Game,
             },
         )
         .await?;
@@ -327,7 +327,7 @@ mod tests {
                 author: "test".to_string(),
                 email: "test".to_string(),
                 url: "test".to_string(),
-                plugin_type: super::PluginType::Game
+                plugin_type: super::PluginType::Game,
             },
         )
         .await?;
@@ -343,7 +343,7 @@ mod tests {
                 author: "test".to_string(),
                 email: "test".to_string(),
                 url: "test".to_string(),
-                plugin_type: super::PluginType::Game
+                plugin_type: super::PluginType::Game,
             },
         )
         .await?;

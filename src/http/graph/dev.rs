@@ -1,7 +1,9 @@
 use async_graphql::*;
 
 #[cfg(feature = "developer")]
-use crate::{models::plugin::CreatePluginParams, application::ThreadSafeApplication, models::plugin::Plugin};
+use crate::{
+    application::ThreadSafeApplication, models::plugin::CreatePluginParams, models::plugin::Plugin,
+};
 
 #[derive(Default)]
 pub struct DevQuery;

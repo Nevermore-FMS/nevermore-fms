@@ -1,5 +1,5 @@
-use async_graphql::*;
 use async_graphql::guard::Guard;
+use async_graphql::*;
 
 use crate::application::ThreadSafeApplication;
 use crate::field::driverstation::{ConfirmedState, State};
@@ -10,7 +10,7 @@ use crate::models::user::UserType;
 #[derive(SimpleObject)]
 pub struct TeamAllianceStation {
     team_number: u16,
-    alliance_station: AllianceStation
+    alliance_station: AllianceStation,
 }
 
 #[derive(InputObject)]
@@ -34,15 +34,17 @@ pub struct FieldQuery;
 #[Object]
 impl FieldQuery {
     #[graphql(guard(UserTypeGuard(user_type = "UserType::Viewer")))]
-    async fn robot_state<'ctx>(
-        &self,
-        ctx: &Context<'ctx>,
-        team_number: u16,
-    ) -> Result<State> {
+    async fn robot_state<'ctx>(&self, ctx: &Context<'ctx>, team_number: u16) -> Result<State> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.read().await;
         let locked_field = app_locked.field.read().await;
-        Ok(locked_field.get_driver_station(team_number).await?.read().await.get_state().await?)
+        Ok(locked_field
+            .get_driver_station(team_number)
+            .await?
+            .read()
+            .await
+            .get_state()
+            .await?)
     }
 
     #[graphql(guard(UserTypeGuard(user_type = "UserType::Viewer")))]
@@ -54,7 +56,12 @@ impl FieldQuery {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.read().await;
         let locked_field = app_locked.field.read().await;
-        Ok(locked_field.get_driver_station(team_number).await?.read().await.get_confirmed_state()?)
+        Ok(locked_field
+            .get_driver_station(team_number)
+            .await?
+            .read()
+            .await
+            .get_confirmed_state()?)
     }
 
     #[graphql(guard(UserTypeGuard(user_type = "UserType::Viewer")))]
@@ -65,20 +72,20 @@ impl FieldQuery {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.read().await;
         let locked_field = app_locked.field.read().await;
-        let team_alliance_stations = locked_field.get_team_alliance_station_map().await?.iter().map(|(team_number, alliance_station)| {
-            TeamAllianceStation{
+        let team_alliance_stations = locked_field
+            .get_team_alliance_station_map()
+            .await?
+            .iter()
+            .map(|(team_number, alliance_station)| TeamAllianceStation {
                 team_number: *team_number,
-                alliance_station: *alliance_station
-            }
-        }).collect();
+                alliance_station: *alliance_station,
+            })
+            .collect();
         Ok(team_alliance_stations)
     }
 
     #[graphql(guard(UserTypeGuard(user_type = "UserType::Viewer")))]
-    async fn connected_team_numbers<'ctx>(
-        &self,
-        ctx: &Context<'ctx>,
-    ) -> Result<Vec<u16>> {
+    async fn connected_team_numbers<'ctx>(&self, ctx: &Context<'ctx>) -> Result<Vec<u16>> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.read().await;
         let locked_field = app_locked.field.read().await;
@@ -123,12 +130,12 @@ impl FieldMutation {
         &self,
         ctx: &Context<'ctx>,
         team_number: u16,
-        state_input: StateInput
+        state_input: StateInput,
     ) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let app_locked = app.read().await;
         let locked_field = app_locked.field.read().await;
-        let state = State{
+        let state = State {
             emergency_stop: state_input.emergency_stop,
             enable: state_input.enable,
             mode: state_input.mode,
@@ -140,7 +147,13 @@ impl FieldMutation {
             match_number: state_input.match_number,
             event_name: state_input.event_name,
         };
-        locked_field.get_driver_station(team_number).await?.write().await.set_state(state).await;
+        locked_field
+            .get_driver_station(team_number)
+            .await?
+            .write()
+            .await
+            .set_state(state)
+            .await;
         Ok(true)
     }
 
@@ -179,8 +192,7 @@ impl FieldSubscription {
     async fn field_tick<'ctx>(
         &self,
         ctx: &Context<'ctx>,
-    ) -> Result<impl tokio_stream::Stream<Item = Result<bool>>>
-    {
+    ) -> Result<impl tokio_stream::Stream<Item = Result<bool>>> {
         use tokio_stream::StreamExt;
 
         let reciever = {
@@ -189,17 +201,13 @@ impl FieldSubscription {
             let field_locked = app_locked.field.read().await;
             field_locked.subscribe_to_tick_channel()?
         };
-        Ok(
-            tokio_stream::wrappers::BroadcastStream::new(reciever)
-                .map(|_| Ok(true)),
-        )
+        Ok(tokio_stream::wrappers::BroadcastStream::new(reciever).map(|_| Ok(true)))
     }
 
     async fn field_close<'ctx>(
         &self,
         ctx: &Context<'ctx>,
-    ) -> Result<impl tokio_stream::Stream<Item = Result<bool>>>
-    {
+    ) -> Result<impl tokio_stream::Stream<Item = Result<bool>>> {
         use tokio_stream::StreamExt;
 
         let reciever = {
@@ -208,9 +216,6 @@ impl FieldSubscription {
             let field_locked = app_locked.field.read().await;
             field_locked.subscribe_to_close_channel()?
         };
-        Ok(
-            tokio_stream::wrappers::BroadcastStream::new(reciever)
-                .map(|_| Ok(true)),
-        )
+        Ok(tokio_stream::wrappers::BroadcastStream::new(reciever).map(|_| Ok(true)))
     }
 }

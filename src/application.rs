@@ -2,13 +2,24 @@ use futures::channel::mpsc::UnboundedSender;
 use log::debug;
 use std::{sync::Arc, thread::JoinHandle};
 
-use crate::{field::{Field, ThreadSafeField}, models::{config::{Config, ConfigKey}, plugin::PluginType}, plugin::{deno_nevermore::LogMessage, DenoPluginRuntime}, pub_sub::{PubSub, ThreadSafePubSub}};
+use crate::{
+    field::{Field, ThreadSafeField},
+    models::{
+        config::{Config, ConfigKey},
+        plugin::PluginType,
+    },
+    plugin::{deno_nevermore::LogMessage, DenoPluginRuntime},
+    pub_sub::{PubSub, ThreadSafePubSub},
+};
 
 use crate::models::plugin::Plugin;
 use crate::models::{Database, ThreadSafeDatabase};
 use chrono::Local;
 use deno_core::InspectorSessionProxy;
-use tokio::sync::{RwLock, broadcast::{channel, Receiver, Sender}};
+use tokio::sync::{
+    broadcast::{channel, Receiver, Sender},
+    RwLock,
+};
 
 pub type ThreadSafeApplication = Arc<RwLock<Application>>;
 
@@ -26,7 +37,12 @@ impl Application {
     pub async fn new(db_uri: Option<String>) -> anyhow::Result<ThreadSafeApplication> {
         let deno_pub_sub = PubSub::new();
         let database = Database::new(true, false, db_uri).await?;
-        let field = Field::new(Config::get(database.clone(), ConfigKey::EventName).await.unwrap_or("nevermore".to_string())).await?;
+        let field = Field::new(
+            Config::get(database.clone(), ConfigKey::EventName)
+                .await
+                .unwrap_or("nevermore".to_string()),
+        )
+        .await?;
         let (log_sender, _) = tokio::sync::broadcast::channel::<LogMessage>(10);
 
         let application = Self {
@@ -53,10 +69,7 @@ impl Application {
         self.log_sender.subscribe()
     }
 
-    pub fn restart_deno_runtime(
-        &mut self,
-        application: ThreadSafeApplication,
-    ) {
+    pub fn restart_deno_runtime(&mut self, application: ThreadSafeApplication) {
         if let Some(sender) = self.closing_sender.take() {
             if let Some(join_handle) = self.deno_handle.take() {
                 sender.send(()).ok();
@@ -77,10 +90,7 @@ impl Application {
     }
 }
 
-async fn run_deno(
-    mut closing_receiver: Receiver<()>,
-    application: ThreadSafeApplication,
-) {
+async fn run_deno(mut closing_receiver: Receiver<()>, application: ThreadSafeApplication) {
     tokio::select! {
         _ = run_event_loop_forever(application) => {}
         _ = closing_receiver.recv() => {}
@@ -91,14 +101,21 @@ async fn run_event_loop_forever(application: ThreadSafeApplication) {
     loop {
         let (log_sender, database, deno_runtime_safe) = {
             let mut locked_application = application.write().await;
-            locked_application.field.read().await.network_configurator_map().write().await.clear();
+            locked_application
+                .field
+                .read()
+                .await
+                .network_configurator_map()
+                .write()
+                .await
+                .clear();
             let deno_runtime_safe = DenoPluginRuntime::new(
                 locked_application.field.clone(),
                 locked_application.deno_pub_sub.clone(),
                 locked_application.log_sender.clone(),
             );
             locked_application.inspector_sender =
-                    Some(deno_runtime_safe.read().await.get_session_sender());
+                Some(deno_runtime_safe.read().await.get_session_sender());
             (
                 locked_application.log_sender.clone(),
                 locked_application.database.clone(),
@@ -113,9 +130,13 @@ async fn run_event_loop_forever(application: ThreadSafeApplication) {
                 if plugin.plugin_type == PluginType::Game && has_game {
                     send_log_error_message(
                         log_sender.clone(),
-                        format!("Not loading plugin '{}'. A game plugin has already been loaded!", plugin.name).to_string(),
+                        format!(
+                            "Not loading plugin '{}'. A game plugin has already been loaded!",
+                            plugin.name
+                        )
+                        .to_string(),
                     );
-                    continue
+                    continue;
                 }
                 if plugin.plugin_type == PluginType::Game {
                     has_game = true;
