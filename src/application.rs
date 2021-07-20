@@ -113,7 +113,7 @@ async fn run_event_loop_forever(application: ThreadSafeApplication) {
                 locked_application.field.clone(),
                 locked_application.deno_pub_sub.clone(),
                 locked_application.log_sender.clone(),
-            );
+            ).expect("deno runtime couldn't be made");
             locked_application.inspector_sender =
                 Some(deno_runtime_safe.read().await.get_session_sender());
             (

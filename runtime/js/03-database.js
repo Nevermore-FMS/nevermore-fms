@@ -1,5 +1,6 @@
 ((window) => {
     const Nevermore = window.__bootstrap.nevermore.Nevermore;
+    const core = window.Deno.core;
     let dbMap = {};
 
     Nevermore.Database = {
@@ -7,7 +8,7 @@
             if (name in dbMap) {
                 return dbMap[name];
             }
-            let db = new Database(await Deno.core.opAsync("op_create_database", name));
+            let db = new Database(await core.opAsync("op_create_database", name));
             dbMap[name] = db;
             return db;
         }
@@ -19,21 +20,21 @@
         }
 
         async run(stmt, params) {
-            return await Deno.core.opAsync("op_database_run", {
+            return await core.opAsync("op_database_run", {
                 stmt,
                 params
             });
         }
 
         async get(stmt, params) {
-            return await Deno.core.opAsync("op_database_get", {
+            return await core.opAsync("op_database_get", {
                 stmt,
                 params
             });
         }
 
         async all(stmt, params) {
-            await Deno.core.opAsync("op_database_all", {
+            await core.opAsync("op_database_all", {
                 stmt,
                 params
             });

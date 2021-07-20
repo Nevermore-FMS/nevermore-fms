@@ -30,7 +30,7 @@ impl DenoPluginRuntime {
         field: ThreadSafeField,
         pub_sub: ThreadSafePubSub,
         log_channel: Sender<LogMessage>,
-    ) -> ThreadSafeDenoPluginRuntime {
+    ) -> anyhow::Result<ThreadSafeDenoPluginRuntime> {
         let perm_ext = Extension::builder()
             .state(move |state| {
                 state.put::<NoFetchPermissions>(NoFetchPermissions {});
@@ -67,15 +67,14 @@ impl DenoPluginRuntime {
         });
 
         runtime
-            .execute_script("deno:bootstrap.js", include_str!("bootstrap.js"))
-            .ok();
+            .execute_script("deno:bootstrap.js", include_str!("bootstrap.js"))?;
 
         let inspector_sender = runtime.inspector().get_session_sender();
 
-        Arc::new(RwLock::new(Self {
+        Ok(Arc::new(RwLock::new(Self {
             runtime,
             inspector_sender,
-        }))
+        })))
     }
 
     pub fn run_code(&mut self, id: String, code: String) -> anyhow::Result<()> {

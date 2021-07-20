@@ -1,5 +1,6 @@
 ((window) => {
   const dsMap = {};
+  const core = window.Deno.core;
 
   const Nevermore = {
     Field: {
@@ -28,10 +29,10 @@
       on: async function (name, callback) {
         switch (name) {
           case "tick": {
-            const ticker = await Deno.core.opAsync("op_tick_subscribe");
+            const ticker = await core.opAsync("op_tick_subscribe");
             while (true) {
               try {
-                await Deno.core.opAsync("op_tick_subscription_next", ticker);
+                await core.opAsync("op_tick_subscription_next", ticker);
               } catch (_) {
                 break;
               }
@@ -40,10 +41,10 @@
             break;
           }
           case "close": {
-            const closer = await Deno.core.opAsync("op_close_subscribe");
+            const closer = await core.opAsync("op_close_subscribe");
             while (true) {
               try {
-                await Deno.core.opAsync("op_close_subscription_next", closer);
+                await core.opAsync("op_close_subscription_next", closer);
               } catch (_) {
                 break;
               }
@@ -57,7 +58,7 @@
       },
 
       getDriverStations: async function (teamNumber) {
-        const teamNumbers = await Deno.core.opAsync(
+        const teamNumbers = await core.opAsync(
           "op_get_driver_station_team_numbers"
         );
         let driverStations = [];
@@ -79,7 +80,7 @@
             }
           } catch (_) { }
         }
-        const rid = await Deno.core.opAsync(
+        const rid = await core.opAsync(
           "op_get_driver_station",
           teamNumber
         );
@@ -89,30 +90,30 @@
       },
 
       addTeam: async function (teamNumber, allianceStation) {
-        await Deno.core.opAsync("op_add_team", {
+        await ore.opAsync("op_add_team", {
           teamNumber,
           allianceStation,
         });
       },
 
       removeTeam: async function (teamNumber) {
-        await Deno.core.opAsync("op_remove_team", teamNumber);
+        await core.opAsync("op_remove_team", teamNumber);
       },
 
       setOverrideEmergencyStoppedAll: async function (emergencyStopped) {
-        await Deno.core.opAsync("op_set_emergency_stop_all", emergencyStopped);
+        await core.opAsync("op_set_emergency_stop_all", emergencyStopped);
       },
 
       setOverrideEnabledAll: async function (enabled) {
-        await Deno.core.opAsync("op_set_enabled_all", enabled);
+        await core.opAsync("op_set_enabled_all", enabled);
       },
 
       getTeamAllianceStation: async function (teamNumber) {
-        return await Deno.core.opAsync("op_get_team", teamNumber);
+        return await core.opAsync("op_get_team", teamNumber);
       },
 
       getTeamToAllianceStationMap: async function () {
-        return await Deno.core.opAsync("op_get_team_map");
+        return await core.opAsync("op_get_team_map");
       },
     }
   };
@@ -123,40 +124,40 @@
     }
 
     async getConfirmedState() {
-      return await Deno.core.opAsync(
+      return await core.opAsync(
         "op_driverstation_get_confirmed_state",
         this.rid
       );
     }
 
     async getState() {
-      return await Deno.core.opAsync("op_driverstation_get_state", this.rid);
+      return await core.opAsync("op_driverstation_get_state", this.rid);
     }
 
     async setState(state) {
-      return await Deno.core.opAsync("op_driverstation_set_state", {
+      return await core.opAsync("op_driverstation_set_state", {
         rid: this.rid,
         state,
       });
     }
 
     async isInCorrectStation() {
-      return await Deno.core.opAsync(
+      return await core.opAsync(
         "op_driverstation_is_in_correct_station",
         this.rid
       );
     }
 
     async isInMatch() {
-      return await Deno.core.opAsync("op_driverstation_is_in_match", this.rid);
+      return await core.opAsync("op_driverstation_is_in_match", this.rid);
     }
 
     async getAddress() {
-      return await Deno.core.opAsync("op_driverstation_get_address", this.rid);
+      return await core.opAsync("op_driverstation_get_address", this.rid);
     }
 
     async isClosed() {
-      return await Deno.core.opAsync("op_driverstation_has_closed", this.rid);
+      return await core.opAsync("op_driverstation_has_closed", this.rid);
     }
   }
 
