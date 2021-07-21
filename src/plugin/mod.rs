@@ -66,8 +66,7 @@ impl DenoPluginRuntime {
             ..Default::default()
         });
 
-        runtime
-            .execute_script("deno:bootstrap.js", include_str!("bootstrap.js"))?;
+        runtime.execute_script("deno:bootstrap.js", include_str!("bootstrap.js"))?;
 
         let inspector_sender = runtime.inspector().get_session_sender();
 

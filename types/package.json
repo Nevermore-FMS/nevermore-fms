@@ -1,7 +1,14 @@
 {
-  "name": "@nevermore-fms/worker-types",
+  "name": "@nevermore-fms/plugin-types",
   "version": "0.0.1",
   "description": "",
   "typings": "./generated.d.ts",
-  "author": "Chase MacDonnell <macdonnell.chase@gmail.com>"
+  "author": "Chase MacDonnell <macdonnell.chase@gmail.com>",
+  "scripts": {
+    "build-docs": "typedoc"
+  },
+  "devDependencies": {
+    "typedoc": "^0.21.4",
+    "typescript": "^4.3.5"
+  }
 }

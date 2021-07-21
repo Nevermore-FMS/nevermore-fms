@@ -18,5 +18,9 @@
     },
     "files": [
         "generated.d.ts"
-    ]
+    ],
+    "typedocOptions": {
+        "entryPoints": ["generated.d.ts"],
+        "out": "docs"
+     }
 }

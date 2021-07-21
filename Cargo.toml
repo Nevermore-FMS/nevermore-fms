@@ -50,6 +50,7 @@ mime_guess = "2.0.3"
 # UI Deps
 wry = "0.11.0"
 tao = "0.4.0"
+image = "0.23.14"
 
 # Deno extensions
 deno_web = "0.42.0"

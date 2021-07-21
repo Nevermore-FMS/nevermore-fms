@@ -1,4 +1,4 @@
-# :robot: Nevermore FMS :robot:
+# Nevermore FMS
 **This project is still a WIP, not everything listed here has been implemented yet. If you want to help feel free to contact me via [email](mailto:macdonnell.chase@gmail.com) or via Discord at `McMackety#0001`**
 
 The Nevermore FMS is a fully-customizable and all-around agnostic FMS with the goals of being:
@@ -49,7 +49,7 @@ npm run develop
 Your plugin should then be deployed to the local Nevermore instance and begin running immediately. More information on plugins can be found in our documentation (TODO).
 
 ## Contributing
-Want to help in developing the Nevermore FMS? Feel free to take on one of our outstanding issues, add your own features, or contact me for recommendations and help on things to work on. :smiley:
+Want to help in developing the Nevermore FMS? Feel free to take on one of our outstanding issues, add your own features, or contact me for recommendations and help on things to work on.
 
 ## Licensing
 This project is under the GPLV3 license. Essentially, this means that you can modify this code in any way you want, though if you distribute the code you must provide the source code to them. For 99.99% of you this should literally not matter, you unknowingly interact with many libraries licensed under GPLV3 all the time. Though, if you have a questions feel free to contact me at [macdonnell.chase@gmail.com](mailto:macdonnell.chase@gmail.com), I'm not a lawyer but can give you alternative licenses if necessary and appropriate.

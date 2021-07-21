@@ -8,10 +8,10 @@ use std::env;
 use std::io::Cursor;
 
 const DOWNLOAD_DEVTOOLS_URL: &'static str =
-    "https://github.com/Nevermore-FMS/devtools-builder/releases/download/v1.0.0/release-bundle.zip";
+    "https://github.com/Nevermore-FMS/devtools-builder/releases/download/v1.1.0/release-bundle.zip";
 
 const DEVTOOLS_SHA256: &'static str =
-    "c0846daaaa824e648fe03c1beb5169fae224758faf07e4501c31e8624d5d81ce";
+    "ce42e5f273e98fc607fcb1fc3f2ac9fcada200835abd5c503eb8050c2260a7fc";
 
 fn main() -> anyhow::Result<()> {
     build_types()?;
@@ -40,11 +40,13 @@ fn build_types() -> std::io::Result<()> {
         out_dir.join("runtime").join("ts").join("database.d.ts"),
         out_dir.join("runtime").join("ts").join("pubsub.d.ts"),
         out_dir.join("runtime").join("ts").join("network.d.ts"),
+        out_dir.join("runtime").join("ts").join("deno.d.ts"),
     ];
 
     let mut final_string = String::new();
 
     for extension in extensions {
+        println!("cargo:rerun-if-changed={}", extension.display());
         let contents =
             std::fs::read_to_string(extension).expect("Something went wrong reading the file");
 
@@ -116,6 +118,7 @@ fn try_download(url: &str) -> anyhow::Result<Cursor<Vec<u8>>> {
 
     // Check the SHA-256 hash of the downloaded file is as expected
     let hash = Sha256::digest(&buffer);
+    println!("{:x}", hash);
     if &format!("{:x}", hash) != DEVTOOLS_SHA256 {
         return Err(anyhow::anyhow!(
             "Downloaded devtools file failed hash check."

@@ -8,8 +8,8 @@ pub mod ui;
 
 use std::net::SocketAddr;
 
+use clap::{AppSettings, ArgEnum, Clap};
 use log::info;
-use clap::{AppSettings, Clap};
 
 #[cfg(feature = "developer")]
 use log::warn;
@@ -45,7 +45,15 @@ const BIRD: &'static str = "\n\x1b[48;5;15m                \x1b[38;5;138m▄\x1b
 #[cfg(feature = "developer")]
 const DEV_MESSAGE: &'static str = "Development Mode is enabled. Plugins can be modified remotely without authentication, DO NOT USE THIS IN PRODUCTION.";
 
-/// An alternative FIRST FMS designed around extensibility and compatability.
+#[derive(ArgEnum, PartialEq, Debug, Clone)]
+pub enum UIWindow {
+    Admin,
+    Devtools,
+    GraphqlPlayground,
+    RefereePanel,
+}
+
+/// An alternative FIRST FMS designed around extensibility and compatibility.
 #[derive(Clap)]
 #[clap(version = VERSION, author = AUTHORS)]
 #[clap(setting = AppSettings::ColoredHelp)]
@@ -55,12 +63,21 @@ struct Opts {
     db_uri: String,
 
     /// Sets the listening address of the http server.
-    #[clap(short, long, default_value = "0.0.0.0:8000", env = "NEVERMORE_LISTEN_ADDR")]
+    #[clap(
+        short,
+        long,
+        default_value = "0.0.0.0:8000",
+        env = "NEVERMORE_LISTEN_ADDR"
+    )]
     listen_addr: String,
 
     // Defines whether a webview and tray should be created.
-    #[clap(long, env = "NEVERMORE_HEADLESS")]
-    headless: bool,
+    #[clap(short, long)]
+    system_tray: bool,
+
+    // Opens only a specific window on startup, and stops once that window is closed.
+    #[clap(arg_enum, short, long, env = "NEVERMORE_UI_WINDOW")]
+    window: Option<UIWindow>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -86,23 +103,32 @@ fn main() -> anyhow::Result<()> {
 
     let http_addr: SocketAddr = opts.listen_addr.parse()?;
 
-    if opts.headless {
-        rt.block_on(async_main(opts, http_addr));
-    } else {
+    if opts.system_tray {
+        let mut window = opts.window.clone();
         rt.spawn(async_main(opts, http_addr.clone()));
 
-        ui::create_tray(http_addr)?;
+        if let Some(window) = window.take() {
+            ui::create_window(window, http_addr)?;
+        } else {
+            ui::create_tray(http_addr)?;
+        };
+    } else {
+        rt.block_on(async_main(opts, http_addr));
     };
 
     Ok(())
 }
 
+// Starts all Tokio based services.
 async fn async_main(opts: Opts, http_addr: SocketAddr) {
     let app = application::Application::new(Some(opts.db_uri)).await;
     let app = if app.is_ok() {
         app.unwrap()
     } else {
-        panic!("Error while creating application, couldn't start Nevermore: {:?}", app.err());
+        panic!(
+            "Error while creating application, couldn't start Nevermore: {:?}",
+            app.err()
+        );
     };
 
     http::start(app, http_addr).await;

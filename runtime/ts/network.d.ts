@@ -90,7 +90,7 @@ declare namespace Nevermore {
          * @param info The information defining the configurator.
          * @param callbacks The callbacks of the configurator.
          */
-        export function registerConfigurator(info: ConfiguratorInfo, callbacks: ConfiguratorCallbacks)
+        export function registerConfigurator(info: ConfiguratorInfo, callbacks: ConfiguratorCallbacks): void
 
         /**
          * Creates a new error for a callback.

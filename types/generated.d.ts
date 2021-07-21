@@ -2309,95 +2309,6 @@ interface ErrorConstructor {
   captureStackTrace(error: Object, constructor?: Function): void;
   // TODO(nayeemrmn): Support `Error.prepareStackTrace()`. We currently use this
   // internally in a way that makes it unavailable for users.
-}
-
-interface MessageEventInit<T = any> extends EventInit {
-  data?: T;
-  origin?: string;
-  lastEventId?: string;
-}
-
-declare class MessageEvent<T = any> extends Event {
-  /**
-   * Returns the data of the message.
-   */
-  readonly data: T;
-  /**
-   * Returns the last event ID string, for server-sent events.
-   */
-  readonly lastEventId: string;
-  /**
-   * Returns transfered ports.
-   */
-  readonly ports: ReadonlyArray<MessagePort>;
-  constructor(type: string, eventInitDict?: MessageEventInit);
-}
-
-type Transferable = ArrayBuffer | MessagePort;
-
-interface PostMessageOptions {
-  transfer?: Transferable[];
-}
-
-/** The MessageChannel interface of the Channel Messaging API allows us to
- * create a new message channel and send data through it via its two MessagePort
- * properties. */
-declare class MessageChannel {
-  constructor();
-  readonly port1: MessagePort;
-  readonly port2: MessagePort;
-}
-
-interface MessagePortEventMap {
-  "message": MessageEvent;
-  "messageerror": MessageEvent;
-}
-
-/** The MessagePort interface of the Channel Messaging API represents one of the
- * two ports of a MessageChannel, allowing messages to be sent from one port and
- * listening out for them arriving at the other. */
-declare class MessagePort extends EventTarget {
-  onmessage: ((this: MessagePort, ev: MessageEvent) => any) | null;
-  onmessageerror: ((this: MessagePort, ev: MessageEvent) => any) | null;
-  /**
-   * Disconnects the port, so that it is no longer active.
-   */
-  close(): void;
-  /**
-   * Posts a message through the channel. Objects listed in transfer are
-   * transferred, not just cloned, meaning that they are no longer usable on the
-   * sending side.
-   *
-   * Throws a "DataCloneError" DOMException if transfer contains duplicate
-   * objects or port, or if message could not be cloned.
-   */
-  postMessage(message: any, transfer: Transferable[]): void;
-  postMessage(message: any, options?: PostMessageOptions): void;
-  /**
-   * Begins dispatching messages received on the port. This is implictly called
-   * when assiging a value to `this.onmessage`.
-   */
-  start(): void;
-  addEventListener<K extends keyof MessagePortEventMap>(
-    type: K,
-    listener: (this: MessagePort, ev: MessagePortEventMap[K]) => any,
-    options?: boolean | AddEventListenerOptions,
-  ): void;
-  addEventListener(
-    type: string,
-    listener: EventListenerOrEventListenerObject,
-    options?: boolean | AddEventListenerOptions,
-  ): void;
-  removeEventListener<K extends keyof MessagePortEventMap>(
-    type: K,
-    listener: (this: MessagePort, ev: MessagePortEventMap[K]) => any,
-    options?: boolean | EventListenerOptions,
-  ): void;
-  removeEventListener(
-    type: string,
-    listener: EventListenerOrEventListenerObject,
-    options?: boolean | EventListenerOptions,
-  ): void;
 }/**
  * The `Nevermore` namespace defines the API used to interact with the Nevermore FMS from Worker Scripts.
  * 
@@ -2719,7 +2630,7 @@ declare namespace Nevermore {
          * @param info The information defining the configurator.
          * @param callbacks The callbacks of the configurator.
          */
-        export function registerConfigurator(info: ConfiguratorInfo, callbacks: ConfiguratorCallbacks)
+        export function registerConfigurator(info: ConfiguratorInfo, callbacks: ConfiguratorCallbacks): void
 
         /**
          * Creates a new error for a callback.
@@ -2727,5 +2638,93 @@ declare namespace Nevermore {
          * @param message The message of the error.
          */
         export function ERROR(message: string): Error
+    }
+}// Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+
+/// <reference no-default-lib="true" />
+/// <reference lib="esnext" />
+/// <reference lib="deno.net" />
+  
+  declare namespace Deno {
+  
+    export interface Reader {
+      /** Reads up to `p.byteLength` bytes into `p`. It resolves to the number of
+       * bytes read (`0` < `n` <= `p.byteLength`) and rejects if any error
+       * encountered. Even if `read()` resolves to `n` < `p.byteLength`, it may
+       * use all of `p` as scratch space during the call. If some data is
+       * available but not `p.byteLength` bytes, `read()` conventionally resolves
+       * to what is available instead of waiting for more.
+       *
+       * When `read()` encounters end-of-file condition, it resolves to EOF
+       * (`null`).
+       *
+       * When `read()` encounters an error, it rejects with an error.
+       *
+       * Callers should always process the `n` > `0` bytes returned before
+       * considering the EOF (`null`). Doing so correctly handles I/O errors that
+       * happen after reading some bytes and also both of the allowed EOF
+       * behaviors.
+       *
+       * Implementations should not retain a reference to `p`.
+       *
+       * Use iter() from https://deno.land/std/io/util.ts to turn a Reader into an
+       * AsyncIterator.
+       */
+      read(p: Uint8Array): Promise<number | null>;
+    }
+  
+    export interface ReaderSync {
+      /** Reads up to `p.byteLength` bytes into `p`. It resolves to the number
+       * of bytes read (`0` < `n` <= `p.byteLength`) and rejects if any error
+       * encountered. Even if `readSync()` returns `n` < `p.byteLength`, it may use
+       * all of `p` as scratch space during the call. If some data is available
+       * but not `p.byteLength` bytes, `readSync()` conventionally returns what is
+       * available instead of waiting for more.
+       *
+       * When `readSync()` encounters end-of-file condition, it returns EOF
+       * (`null`).
+       *
+       * When `readSync()` encounters an error, it throws with an error.
+       *
+       * Callers should always process the `n` > `0` bytes returned before
+       * considering the EOF (`null`). Doing so correctly handles I/O errors that happen
+       * after reading some bytes and also both of the allowed EOF behaviors.
+       *
+       * Implementations should not retain a reference to `p`.
+       *
+       * Use iterSync() from https://deno.land/std/io/util.ts to turn a ReaderSync
+       * into an Iterator.
+       */
+      readSync(p: Uint8Array): number | null;
+    }
+  
+    export interface Writer {
+      /** Writes `p.byteLength` bytes from `p` to the underlying data stream. It
+       * resolves to the number of bytes written from `p` (`0` <= `n` <=
+       * `p.byteLength`) or reject with the error encountered that caused the
+       * write to stop early. `write()` must reject with a non-null error if
+       * would resolve to `n` < `p.byteLength`. `write()` must not modify the
+       * slice data, even temporarily.
+       *
+       * Implementations should not retain a reference to `p`.
+       */
+      write(p: Uint8Array): Promise<number>;
+    }
+  
+    export interface WriterSync {
+      /** Writes `p.byteLength` bytes from `p` to the underlying data
+       * stream. It returns the number of bytes written from `p` (`0` <= `n`
+       * <= `p.byteLength`) and any error encountered that caused the write to
+       * stop early. `writeSync()` must throw a non-null error if it returns `n` <
+       * `p.byteLength`. `writeSync()` must not modify the slice data, even
+       * temporarily.
+       *
+       * Implementations should not retain a reference to `p`.
+       */
+      writeSync(p: Uint8Array): number;
+    }
+  
+    export interface Closer {
+      close(): void;
     }
 }

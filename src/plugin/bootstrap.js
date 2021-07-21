@@ -72,7 +72,7 @@
     CountQueuingStrategy: util.nonEnumerable(streams.CountQueuingStrategy),
     CustomEvent: util.nonEnumerable(CustomEvent),
     Deno: util.nonEnumerable(net),
-    DOMException: util.nonEnumerable(DOMException),
+    // DOMException: util.nonEnumerable(DOMException),
     ErrorEvent: util.nonEnumerable(ErrorEvent),
     Event: util.nonEnumerable(Event),
     EventTarget: util.nonEnumerable(EventTarget),
