@@ -135,7 +135,7 @@ pub fn create_tray(http_addr: SocketAddr) -> anyhow::Result<()> {
                     "Nevermore FMS",
                     format!("http://{}:{}/", address, port).as_str(),
                 );
-            },
+            }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 window_id,
@@ -199,10 +199,7 @@ pub fn create_window(window_type: UIWindow, http_addr: SocketAddr) -> anyhow::Re
     let port = http_addr.port().to_string();
 
     let (title, url) = match window_type {
-        UIWindow::Admin => (
-            "Nevermore FMS",
-            format!("http://{}:{}/", address, port),
-        ),
+        UIWindow::Admin => ("Nevermore FMS", format!("http://{}:{}/", address, port)),
         UIWindow::Devtools => (
             "Nevermore FMS Devtools",
             format!(

@@ -1,23 +1,78 @@
-use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql_warp::{graphql_subscription, Response};
 use std::{convert::Infallible, net::SocketAddr};
-use warp::{http::Response as HttpResponse, Filter};
+use warp::Filter;
 
-use crate::application::ThreadSafeApplication;
+use crate::{application::ThreadSafeApplication, http::graph::NevermoreSchema};
 
 pub mod graph;
 pub mod resources;
 
+pub struct AuthorizationHeader(String);
+
+impl AuthorizationHeader {
+    pub fn as_bearer(&self) -> anyhow::Result<String> {
+        let split = &self.0.split(" ").collect::<Vec<&str>>();
+
+        if *split
+            .get(0)
+            .ok_or(anyhow::anyhow!("first part of auth header not found"))?
+            == "Bearer"
+        {
+            let mut maybe_token = split.get(1);
+            if let Some(token) = maybe_token.take() {
+                Ok(token.to_string())
+            } else {
+                Err(anyhow::anyhow!("second part of auth header not found"))
+            }
+        } else {
+            Err(anyhow::anyhow!("not a bearer token"))
+        }
+    }
+}
+
 pub async fn start(application: ThreadSafeApplication, http_addr: SocketAddr) {
+    let cloned_application = application.clone();
+    let application_filter = warp::any().map(move || cloned_application.clone());
+
     let schema = graph::create_schema(application.clone());
-    let graphql_post = async_graphql_warp::graphql(schema.clone()).and_then(
-        |(schema, request): (graph::NevermoreSchema, async_graphql::Request)| async move {
-            Ok::<_, Infallible>(Response::from(schema.execute(request).await))
-        },
-    );
+    let graphql_post = warp::header::optional::<String>("authorization")
+        .and(application_filter.clone())
+        .and(async_graphql_warp::graphql(schema.clone()))
+        .and_then(
+            |token,
+             application: ThreadSafeApplication,
+             (schema, mut request): (NevermoreSchema, async_graphql::Request)| async move {
+                if let Some(token) = token {
+                    let token = AuthorizationHeader(token).as_bearer();
+                    if token.is_ok() {
+                        let token = token.unwrap();
+                        let application = application.clone();
+                        let application = application.read().await;
+
+                        let maybe_session = application
+                            .session_storage
+                            .write()
+                            .await
+                            .verify_token(application.database.clone(), token)
+                            .await;
+
+                        if maybe_session.is_ok() {
+                            let session = maybe_session.unwrap();
+
+                            request = request.data(session);
+                        }
+                    }
+                }
+
+                Ok::<_, Infallible>(Response::from(schema.execute(request).await))
+            },
+        );
 
     #[cfg(feature = "developer")]
     let graphql_playground = warp::path::end().and(warp::get()).map(|| {
+        use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
+        use warp::http::Response as HttpResponse;
+
         HttpResponse::builder()
             .header("content-type", "text/html")
             .body(playground_source(
@@ -40,9 +95,6 @@ pub async fn start(application: ThreadSafeApplication, http_addr: SocketAddr) {
         .and_then(resources::serve_devtools);
 
     let routes = routes.or(index_html.or(dist));
-
-    #[cfg(feature = "developer")]
-    let application_filter = warp::any().map(move || application.clone());
 
     #[cfg(feature = "developer")]
     let routes = routes.or(warp::path!("inspector")

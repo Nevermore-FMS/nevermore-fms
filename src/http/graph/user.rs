@@ -1,9 +1,11 @@
 use async_graphql::connection::*;
 use async_graphql::guard::Guard;
 use async_graphql::*;
+use chrono::Duration;
 
 use crate::application::ThreadSafeApplication;
 use crate::http::graph::guards::UserTypeGuard;
+use crate::models::user::CreateUserParams;
 use crate::models::user::User;
 use crate::models::user::UserType;
 
@@ -52,5 +54,54 @@ impl UserQuery {
             },
         )
         .await
+    }
+}
+
+#[derive(Default)]
+pub struct UserMutation;
+
+#[Object]
+impl UserMutation {
+    async fn sign_in<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        username: String,
+        password: String
+    ) -> Result<String> {
+        let app = ctx.data::<ThreadSafeApplication>()?;
+        let db = app.read().await.database.clone();
+
+        let user = User::get(db.clone(), username.clone()).await?;
+        user.verify_password(password)?;
+
+        let session_storage = app.read().await.session_storage.clone();
+        let mut session_storage = session_storage.write().await;
+        Ok(session_storage.set(username, Duration::hours(2)))
+    }
+
+    #[graphql(guard(UserTypeGuard(user_type = "UserType::Viewer")))]
+    async fn sign_out<'ctx>(
+        &self,
+        ctx: &Context<'ctx>
+    ) -> Result<bool> {
+        let app = ctx.data::<ThreadSafeApplication>()?;
+        let user = ctx.data::<User>()?;
+
+        let session_storage = app.read().await.session_storage.clone();
+        let mut session_storage = session_storage.write().await;
+        session_storage.remove(user.username.clone());
+        Ok(true)
+    }
+
+    async fn create_user<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        params: CreateUserParams
+    ) -> Result<bool> {
+        let app = ctx.data::<ThreadSafeApplication>()?;
+        let db = app.read().await.database.clone();
+
+        User::create(db, params).await?;
+        Ok(true)
     }
 }

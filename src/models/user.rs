@@ -12,18 +12,25 @@ const CREATE_USER_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS users
     user_type     TEXT             NOT NULL
 );";
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UserClaims {
-    sub: String,
-    exp: usize,
-    pin_exp: usize,
-}
-
 #[derive(Enum, Clone, Copy, PartialEq, Eq, Debug, Deserialize, Serialize)]
 pub enum UserType {
     Admin,
     Referee,
     Viewer,
+}
+
+impl UserType {
+    pub fn is_above_or_equal(&self, compare: Self) -> bool {
+        match *self {
+            UserType::Admin => {
+                compare == UserType::Admin
+                    || compare == UserType::Referee
+                    || compare == UserType::Viewer
+            }
+            UserType::Referee => compare == UserType::Referee || compare == UserType::Viewer,
+            UserType::Viewer => compare == UserType::Viewer,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -67,33 +74,6 @@ impl User {
             self.pin.as_str(),
             unverified_pin.as_bytes(),
         )?)
-    }
-
-    pub fn create_jwt(
-        &self,
-        secret: String,
-        expiry_time: usize,
-        pin_expiry_time: usize,
-    ) -> anyhow::Result<String> {
-        let claims = UserClaims {
-            sub: self.username.clone(),
-            exp: expiry_time,
-            pin_exp: pin_expiry_time,
-        };
-        Ok(jsonwebtoken::encode(
-            &jsonwebtoken::Header::default(),
-            &claims,
-            &jsonwebtoken::EncodingKey::from_secret(secret.as_ref()),
-        )?)
-    }
-
-    pub fn decode_jwt(&self, secret: String, jwt: String) -> anyhow::Result<UserClaims> {
-        Ok(jsonwebtoken::decode(
-            &jwt,
-            &jsonwebtoken::DecodingKey::from_secret(secret.as_ref()),
-            &jsonwebtoken::Validation::default(),
-        )?
-        .claims)
     }
 }
 

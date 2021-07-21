@@ -4,6 +4,7 @@ pub mod http;
 pub mod models;
 pub mod plugin;
 pub mod pub_sub;
+pub mod session;
 pub mod ui;
 
 use std::net::SocketAddr;
@@ -103,18 +104,21 @@ fn main() -> anyhow::Result<()> {
 
     let http_addr: SocketAddr = opts.listen_addr.parse()?;
 
-    if opts.system_tray {
-        let mut window = opts.window.clone();
-        rt.spawn(async_main(opts, http_addr.clone()));
 
-        if let Some(window) = window.take() {
-            ui::create_window(window, http_addr)?;
-        } else {
-            ui::create_tray(http_addr)?;
-        };
+    let mut window = opts.window.clone();
+    if let Some(window) = window.take() {
+        rt.spawn(async_main(opts, http_addr.clone()));
+    
+        ui::create_window(window, http_addr)?;
     } else {
-        rt.block_on(async_main(opts, http_addr));
-    };
+        if opts.system_tray {
+            rt.spawn(async_main(opts, http_addr.clone()));
+    
+            ui::create_tray(http_addr)?;
+        } else {
+            rt.block_on(async_main(opts, http_addr));
+        };
+    }
 
     Ok(())
 }

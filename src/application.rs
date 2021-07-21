@@ -10,6 +10,7 @@ use crate::{
     },
     plugin::{deno_nevermore::LogMessage, DenoPluginRuntime},
     pub_sub::{PubSub, ThreadSafePubSub},
+    session::{SessionStorage, ThreadSafeSessionStorage},
 };
 
 use crate::models::plugin::Plugin;
@@ -31,6 +32,7 @@ pub struct Application {
     pub closing_sender: Option<Sender<()>>,
     pub log_sender: tokio::sync::broadcast::Sender<LogMessage>,
     pub inspector_sender: Option<UnboundedSender<InspectorSessionProxy>>,
+    pub session_storage: ThreadSafeSessionStorage,
 }
 
 impl Application {
@@ -53,6 +55,7 @@ impl Application {
             closing_sender: None,
             log_sender: log_sender.clone(),
             inspector_sender: None,
+            session_storage: SessionStorage::new(),
         };
 
         let application = Arc::new(RwLock::new(application));

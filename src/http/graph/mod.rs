@@ -35,6 +35,7 @@ pub struct Mutation(
     config::ConfigMutation,
     field::FieldMutation,
     network::NetworkMutation,
+    user::UserMutation,
 );
 
 // Merged Subscriptions
