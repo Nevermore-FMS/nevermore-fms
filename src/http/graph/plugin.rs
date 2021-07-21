@@ -4,7 +4,7 @@ use async_graphql::*;
 
 use crate::application::ThreadSafeApplication;
 use crate::http::graph::guards::UserTypeGuard;
-use crate::models::plugin::Plugin;
+use crate::models::plugin::{CreatePluginParams, Plugin};
 use crate::models::user::UserType;
 
 #[derive(Default)]
@@ -53,5 +53,37 @@ impl PluginQuery {
             },
         )
         .await
+    }
+}
+
+#[derive(Default)]
+pub struct PluginMutation;
+
+#[Object]
+impl PluginMutation {
+    #[graphql(guard(UserTypeGuard(user_type = "UserType::Admin")))]
+    async fn upsert_plugin<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        params: CreatePluginParams,
+    ) -> Result<bool> {
+        let app = ctx.data::<ThreadSafeApplication>()?;
+        let db = app.read().await.database.clone();
+
+        Plugin::create(db, params).await?;
+        Ok(true)
+    }
+
+    #[graphql(guard(UserTypeGuard(user_type = "UserType::Admin")))]
+    async fn delete_plugin<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        name: String,
+    ) -> Result<bool> {
+        let app = ctx.data::<ThreadSafeApplication>()?;
+        let db = app.read().await.database.clone();
+
+        Plugin::delete(db, name).await?;
+        Ok(true)
     }
 }

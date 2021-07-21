@@ -25,7 +25,7 @@ impl PubSub {
         })
     }
 
-    pub async fn subscribe<T>(&self, topic: String) -> Pin<Box<dyn Stream<Item = T>>>
+    pub async fn subscribe<T>(&self, topic: String) -> Pin<Box<dyn Stream<Item = T> + Send>>
     where
         T: Serialize + DeserializeOwned,
     {

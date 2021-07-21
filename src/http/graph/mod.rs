@@ -11,6 +11,7 @@ pub mod network;
 pub mod node;
 pub mod plugin;
 pub mod user;
+pub mod pub_sub;
 
 pub type NevermoreSchema = Schema<Query, Mutation, Subscription>;
 
@@ -36,6 +37,7 @@ pub struct Mutation(
     field::FieldMutation,
     network::NetworkMutation,
     user::UserMutation,
+    plugin::PluginMutation,
 );
 
 // Merged Subscriptions

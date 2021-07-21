@@ -5,6 +5,8 @@ use chrono::Duration;
 
 use crate::application::ThreadSafeApplication;
 use crate::http::graph::guards::UserTypeGuard;
+use crate::models::config::Config;
+use crate::models::config::ConfigKey;
 use crate::models::user::CreateUserParams;
 use crate::models::user::User;
 use crate::models::user::UserType;
@@ -66,7 +68,7 @@ impl UserMutation {
         &self,
         ctx: &Context<'ctx>,
         username: String,
-        password: String
+        password: String,
     ) -> Result<String> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let db = app.read().await.database.clone();
@@ -80,10 +82,7 @@ impl UserMutation {
     }
 
     #[graphql(guard(UserTypeGuard(user_type = "UserType::Viewer")))]
-    async fn sign_out<'ctx>(
-        &self,
-        ctx: &Context<'ctx>
-    ) -> Result<bool> {
+    async fn sign_out<'ctx>(&self, ctx: &Context<'ctx>) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let user = ctx.data::<User>()?;
 
@@ -93,15 +92,47 @@ impl UserMutation {
         Ok(true)
     }
 
-    async fn create_user<'ctx>(
+    #[graphql(guard(UserTypeGuard(user_type = "UserType::Admin")))]
+    async fn upsert_user<'ctx>(
         &self,
         ctx: &Context<'ctx>,
-        params: CreateUserParams
+        params: CreateUserParams,
     ) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
         let db = app.read().await.database.clone();
 
         User::create(db, params).await?;
         Ok(true)
+    }
+
+    #[graphql(guard(UserTypeGuard(user_type = "UserType::Admin")))]
+    async fn delete_user<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        username: String,
+    ) -> Result<bool> {
+        let app = ctx.data::<ThreadSafeApplication>()?;
+        let db = app.read().await.database.clone();
+
+        User::delete(db, username).await?;
+        Ok(true)
+    }
+
+
+    async fn setup_upsert_user<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        params: CreateUserParams,
+    ) -> Result<bool> {
+        let app = ctx.data::<ThreadSafeApplication>()?;
+        let db = app.read().await.database.clone();
+
+        let maybe_has_setup = Config::get(db.clone(), ConfigKey::HasSetup).await;
+        if maybe_has_setup.unwrap_or("false".to_string()) == "true".to_string() {
+            User::create(db, params).await?;
+            Ok(true)
+        } else {
+            Err("setup is complete.".into())
+        }
     }
 }

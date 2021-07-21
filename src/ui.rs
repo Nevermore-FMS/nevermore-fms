@@ -9,7 +9,7 @@ use std::{
 };
 use tao::{
     menu::{ContextMenu, MenuItemAttributes},
-    window::Icon,
+    window::{Fullscreen, Icon},
 };
 #[cfg(target_os = "macos")]
 use wry::application::platform::macos::{ActivationPolicy, EventLoopExtMacOS};
@@ -34,7 +34,7 @@ const PIXEL_SIZE: usize = std::mem::size_of::<u8>() * 4;
 
 const BIRD_PNG: &'static [u8] = include_bytes!("logos/eao_bird_circle.png");
 
-pub fn create_tray(http_addr: SocketAddr) -> anyhow::Result<()> {
+pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()> {
     let all_ip = IpAddr::V4(Ipv4Addr::UNSPECIFIED);
     let all_ip_v6 = IpAddr::V6(Ipv6Addr::UNSPECIFIED);
 
@@ -76,16 +76,25 @@ pub fn create_tray(http_addr: SocketAddr) -> anyhow::Result<()> {
     let open_menu_id = MenuId::new("open_menu");
     let open_ref_menu_id = MenuId::new("open_ref_menu");
     let open_devtools_menu_id = MenuId::new("open_devtools_menu");
+    let open_graphql_id = MenuId::new("open_graphql");
     let quit_menu_id = MenuId::new("quit_menu");
 
     let mut menu = ContextMenu::new();
     menu.add_item(MenuItemAttributes::new("Open").with_id(open_menu_id));
     menu.add_item(MenuItemAttributes::new("Open Referee Panel").with_id(open_ref_menu_id));
     menu.add_item(MenuItemAttributes::new("Open Devtools").with_id(open_devtools_menu_id));
+    #[cfg(feature = "developer")]
+    menu.add_item(MenuItemAttributes::new("Open GraphQL Playground").with_id(open_graphql_id));
     menu.add_item(MenuItemAttributes::new("Quit").with_id(quit_menu_id));
     let _system_tray = SystemTrayBuilder::new(icon, Some(menu))
         .build(&event_loop)
         .unwrap();
+
+    let fullscreen = if fullscreen {
+        Some(Fullscreen::Borderless(None))
+    } else {
+        None
+    };
 
     // launch WRY process
     event_loop.run(move |event, event_loop, control_flow| {
@@ -106,13 +115,15 @@ pub fn create_tray(http_addr: SocketAddr) -> anyhow::Result<()> {
                 .with_title(title)
                 .with_window_icon(Some(window_icon.clone()))
                 .with_taskbar_icon(Some(window_icon.clone()))
-                .with_resizable(true);
+                .with_resizable(true)
+                .with_fullscreen(fullscreen.clone());
 
             #[cfg(not(target_os = "windows"))]
             let window_builder = WindowBuilder::new()
                 .with_title(title)
                 .with_window_icon(Some(window_icon.clone()))
-                .with_resizable(true);
+                .with_resizable(true)
+                .with_fullscreen(fullscreen);
 
             let window = window_builder.build(event_loop).unwrap();
 
@@ -177,6 +188,17 @@ pub fn create_tray(http_addr: SocketAddr) -> anyhow::Result<()> {
                     .as_str(),
                 );
             }
+            // open a new graphql window
+            Event::MenuEvent { menu_id, .. } if menu_id == open_graphql_id => {
+                create_window_or_focus(
+                    "Nevermore FMS GraphQL Playground",
+                    format!(
+                        "http://{}:{}/graphql",
+                        address, port
+                    )
+                    .as_str(),
+                );
+            }
             // request to quit
             Event::MenuEvent { menu_id, .. } if menu_id == quit_menu_id => {
                 *control_flow = ControlFlow::Exit
@@ -186,7 +208,11 @@ pub fn create_tray(http_addr: SocketAddr) -> anyhow::Result<()> {
     })
 }
 
-pub fn create_window(window_type: UIWindow, http_addr: SocketAddr) -> anyhow::Result<()> {
+pub fn create_window(
+    window_type: UIWindow,
+    http_addr: SocketAddr,
+    fullscreen: bool,
+) -> anyhow::Result<()> {
     let all_ip = IpAddr::V4(Ipv4Addr::UNSPECIFIED);
     let all_ip_v6 = IpAddr::V6(Ipv6Addr::UNSPECIFIED);
 
@@ -220,18 +246,26 @@ pub fn create_window(window_type: UIWindow, http_addr: SocketAddr) -> anyhow::Re
 
     let window_icon = get_icon()?;
 
+    let fullscreen = if fullscreen {
+        Some(Fullscreen::Borderless(None))
+    } else {
+        None
+    };
+
     #[cfg(target_os = "windows")]
     let window_builder = WindowBuilder::new()
         .with_title(title)
         .with_window_icon(Some(window_icon.clone()))
         .with_taskbar_icon(Some(window_icon.clone()))
-        .with_resizable(true);
+        .with_resizable(true)
+        .with_fullscreen(fullscreen);
 
     #[cfg(not(target_os = "windows"))]
     let window_builder = WindowBuilder::new()
         .with_title(title)
         .with_window_icon(Some(window_icon.clone()))
-        .with_resizable(true);
+        .with_resizable(true)
+        .with_fullscreen(fullscreen);
 
     let window = window_builder.build(&event_loop).unwrap();
 

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use chrono::{DateTime, Duration, Utc};
-use rand::{Rng, distributions::Alphanumeric};
+use rand::{distributions::Alphanumeric, Rng};
 use tokio::sync::RwLock;
 
 use crate::models::{user::User, ThreadSafeDatabase};
@@ -71,8 +71,8 @@ impl SessionStorage {
 
 fn random_string(length: u8) -> String {
     rand::thread_rng()
-    .sample_iter(&Alphanumeric)
-    .take(length as usize)
-    .map(char::from)
-    .collect()
+        .sample_iter(&Alphanumeric)
+        .take(length as usize)
+        .map(char::from)
+        .collect()
 }

@@ -55,7 +55,7 @@ pub enum UIWindow {
 }
 
 /// An alternative FIRST FMS designed around extensibility and compatibility.
-#[derive(Clap)]
+#[derive(Clap, Clone)]
 #[clap(version = VERSION, author = AUTHORS)]
 #[clap(setting = AppSettings::ColoredHelp)]
 struct Opts {
@@ -74,11 +74,15 @@ struct Opts {
 
     // Defines whether a webview and tray should be created.
     #[clap(short, long)]
-    system_tray: bool,
+    tray: bool,
 
     // Opens only a specific window on startup, and stops once that window is closed.
     #[clap(arg_enum, short, long, env = "NEVERMORE_UI_WINDOW")]
     window: Option<UIWindow>,
+
+    // Opens the window in fullscreen.
+    #[clap(short, long)]
+    fullscreen: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -104,17 +108,16 @@ fn main() -> anyhow::Result<()> {
 
     let http_addr: SocketAddr = opts.listen_addr.parse()?;
 
-
     let mut window = opts.window.clone();
     if let Some(window) = window.take() {
-        rt.spawn(async_main(opts, http_addr.clone()));
-    
-        ui::create_window(window, http_addr)?;
+        rt.spawn(async_main(opts.clone(), http_addr.clone()));
+
+        ui::create_window(window, http_addr, opts.fullscreen)?;
     } else {
-        if opts.system_tray {
-            rt.spawn(async_main(opts, http_addr.clone()));
-    
-            ui::create_tray(http_addr)?;
+        if opts.tray {
+            rt.spawn(async_main(opts.clone(), http_addr.clone()));
+
+            ui::create_tray(http_addr, opts.fullscreen)?;
         } else {
             rt.block_on(async_main(opts, http_addr));
         };
