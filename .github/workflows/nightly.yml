@@ -27,6 +27,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install Deps
+      run: sudo apt install libwebkit2gtk-4.0-dev libappindicator3-dev clang
     - name: Build
       run: cargo build
     - name: Run tests
