@@ -30,6 +30,7 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: Install Deps
+      if: matrix.os == 'ubuntu-latest'
       run: sudo apt install libwebkit2gtk-4.0-dev libappindicator3-dev clang
     
     - name: Build
@@ -63,6 +64,7 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: Install Deps
+      if: matrix.os == 'ubuntu-latest'
       run: sudo apt install libwebkit2gtk-4.0-dev libappindicator3-dev clang
     
     - name: Build
