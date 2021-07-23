@@ -123,7 +123,7 @@ pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()
                 .with_title(title)
                 .with_window_icon(Some(window_icon.clone()))
                 .with_resizable(true)
-                .with_fullscreen(fullscreen);
+                .with_fullscreen(fullscreen.clone());
 
             let window = window_builder.build(event_loop).unwrap();
 
