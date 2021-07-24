@@ -1,5 +1,5 @@
 use futures::channel::mpsc::UnboundedSender;
-use log::debug;
+use log::info;
 use std::{sync::Arc, thread::JoinHandle};
 
 use crate::{
@@ -173,7 +173,7 @@ async fn run_event_loop_forever(application: ThreadSafeApplication) {
 }
 
 fn send_log_error_message(log_sender: tokio::sync::broadcast::Sender<LogMessage>, message: String) {
-    debug!("[Plugin Runtime] {}", message);
+    info!("[Plugin Runtime] {}", message);
     log_sender
         .send(LogMessage {
             message: message,

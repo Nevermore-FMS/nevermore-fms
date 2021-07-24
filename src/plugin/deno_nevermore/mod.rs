@@ -6,7 +6,7 @@ use crate::field::ThreadSafeField;
 
 use async_graphql::*;
 use deno_core::{include_js_files, op_async, op_sync, Extension, OpState, Resource, ResourceId};
-use log::debug;
+use log::info;
 use serde::Deserialize;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -97,7 +97,7 @@ pub struct LogMessage {
 
 pub fn op_log(state: &mut OpState, message: LogMessage, _: ()) -> anyhow::Result<()> {
     let mut logger = state.try_borrow::<Sender<LogMessage>>();
-    debug!("[Worker] {}", message.message);
+    info!("[Plugin] {}", message.message);
 
     if let Some(logger) = logger.take() {
         logger.send(message).ok();
