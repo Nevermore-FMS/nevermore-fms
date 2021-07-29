@@ -13,6 +13,7 @@
                     scanRunner(rid, callbacks.scan);
                     initialConfigurationRunner(rid, callbacks.initialConfiguration);
                     matchConfigurationRunner(rid, callbacks.matchConfiguration);
+                    return
                 }
                 throw "Not all callbacks defined."
             }
@@ -30,7 +31,7 @@
                 id: rid,
                 reply: await scanCallback()
             }
-            await core.opAsync("op_reply_initial_configuration", args);
+            await core.opAsync("op_reply_scan", args);
         }
     }
 

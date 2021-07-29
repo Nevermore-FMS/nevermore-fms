@@ -112,8 +112,11 @@ async fn run_event_loop_forever(application: ThreadSafeApplication) {
                 .write()
                 .await
                 .clear();
+            let configurator_map = locked_application.field.clone().read().await.network_configurator_map();
             let deno_runtime_safe = DenoPluginRuntime::new(
                 locked_application.field.clone(),
+                locked_application.database.clone(),
+                configurator_map,
                 locked_application.deno_pub_sub.clone(),
                 locked_application.log_sender.clone(),
             )

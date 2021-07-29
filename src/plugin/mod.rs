@@ -4,6 +4,8 @@ pub mod deno_nevermore;
 pub mod deno_pubsub;
 
 use crate::field::ThreadSafeField;
+use crate::field::network::ThreadSafeNetworkConfiguratorMap;
+use crate::models::ThreadSafeDatabase;
 use crate::plugin::deno_nevermore::LogMessage;
 use crate::pub_sub::ThreadSafePubSub;
 use deno_broadcast_channel::InMemoryBroadcastChannel;
@@ -28,6 +30,8 @@ pub struct DenoPluginRuntime {
 impl DenoPluginRuntime {
     pub fn new(
         field: ThreadSafeField,
+        database: ThreadSafeDatabase,
+        configurator_map: ThreadSafeNetworkConfiguratorMap,
         pub_sub: ThreadSafePubSub,
         log_channel: Sender<LogMessage>,
     ) -> anyhow::Result<ThreadSafeDenoPluginRuntime> {
@@ -56,6 +60,7 @@ impl DenoPluginRuntime {
             deno_nevermore::init(field, log_channel.clone()),
             deno_pubsub::init(pub_sub),
             deno_database::init(),
+            deno_network::init(database, configurator_map),
         ];
 
         let mut runtime = JsRuntime::new(RuntimeOptions {

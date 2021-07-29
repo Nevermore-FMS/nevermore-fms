@@ -128,7 +128,7 @@ impl UserMutation {
         let db = app.read().await.database.clone();
 
         let maybe_has_setup = Config::get(db.clone(), ConfigKey::HasSetup).await;
-        if maybe_has_setup.unwrap_or("false".to_string()) == "true".to_string() {
+        if maybe_has_setup.unwrap_or("false".to_string()) != "true".to_string() {
             User::create(db, params).await?;
             Ok(true)
         } else {
