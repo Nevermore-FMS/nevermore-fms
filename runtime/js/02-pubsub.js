@@ -1,6 +1,6 @@
 ((window) => {
     const pubSubMap = {};
-    const Nevermore = window.__bootstrap.nevermore;
+    const Nevermore = window.__bootstrap.nevermore.Nevermore;
     const core = window.Deno.core;
 
     Nevermore.PubSub = {

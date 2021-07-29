@@ -8,7 +8,7 @@
             if (name in dbMap) {
                 return dbMap[name];
             }
-            let db = new Database(await core.opAsync("op_create_database", name));
+            let db = new SQLDatabase(await core.opAsync("op_create_database", name));
             dbMap[name] = db;
             return db;
         }
