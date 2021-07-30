@@ -38,12 +38,13 @@ pub struct Mutation(
     network::NetworkMutation,
     user::UserMutation,
     plugin::PluginMutation,
+    pub_sub::PubSubMutation
 );
 
 // Merged Subscriptions
 
 #[derive(MergedSubscription, Default)]
-pub struct Subscription(dev::DevSubscription, field::FieldSubscription);
+pub struct Subscription(dev::DevSubscription, field::FieldSubscription, pub_sub::PubSubSubscription);
 
 pub fn create_schema(application: ThreadSafeApplication) -> NevermoreSchema {
     Schema::build(

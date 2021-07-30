@@ -34,7 +34,7 @@
         }
 
         async all(stmt, params) {
-            await core.opAsync("op_database_all", {
+            return await core.opAsync("op_database_all", {
                 stmt,
                 params
             });
