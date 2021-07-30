@@ -36,13 +36,13 @@ target/release/nevermore-fms.exe
 ## Developing Plugins
 Want to create your own Nevermore Plugins? Well the good news is it's as simple as a single command to get started:
 ```bash
-npx create-nevermore-app
+npx @nevermore-fms/create-plugin
 ```
 Yep, that's right, with one command you can create a full plugin project scaffold, including all the utilities you could want for easy development.
 
 Once you have configured the project it can easily be run on a local development instance of Nevermore with:
 ```bash
-# Ensure you have a running instance of the Nevermore FMS with developer options enabled.
+# This command will automagically download the latest compatible Nevermore developer build
 npm run develop
 ```
 
