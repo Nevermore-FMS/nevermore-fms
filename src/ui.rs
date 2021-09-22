@@ -100,13 +100,13 @@ pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Wait;
 
-        let mut create_window_or_focus = |title: &str, url: &str| {
+        let mut create_window_or_focus = |title: &str, url: &str| -> anyhow::Result<()> {
             // if we already have one webview, let's focus instead of opening
             if !webviews.is_empty() {
                 for window in webviews.values() {
                     window.window().set_focus();
                 }
-                return;
+                return Ok(());
             }
 
             // create our new window / webview instance
@@ -125,18 +125,16 @@ pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()
                 .with_resizable(true)
                 .with_fullscreen(fullscreen.clone());
 
-            let window = window_builder.build(event_loop).unwrap();
+            let window = window_builder.build(event_loop)?;
 
             let id = window.id();
 
-            let webview = WebViewBuilder::new(window)
-                .unwrap()
-                .with_url(url)
-                .unwrap()
-                .build()
-                .unwrap();
+            let webview = WebViewBuilder::new(window)?
+                .with_url(url)?
+                .build()?;
 
             webviews.insert(id, webview);
+            Ok(())
         };
 
         match event {
@@ -145,7 +143,7 @@ pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()
                 create_window_or_focus(
                     "Nevermore FMS",
                     format!("http://{}:{}/", address, port).as_str(),
-                );
+                ).expect("Couldn't start webview.");
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
@@ -168,14 +166,14 @@ pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()
                 create_window_or_focus(
                     "Nevermore FMS",
                     format!("http://{}:{}/", address, port).as_str(),
-                );
+                ).expect("Couldn't start webview.");
             }
             // open a new referee window
             Event::MenuEvent { menu_id, .. } if menu_id == open_ref_menu_id => {
                 create_window_or_focus(
                     "Nevermore FMS Referee Panel",
                     format!("http://{}:{}/referee", address, port).as_str(),
-                );
+                ).expect("Couldn't start webview.");
             }
             // open a new devtools window
             Event::MenuEvent { menu_id, .. } if menu_id == open_devtools_menu_id => {
@@ -186,7 +184,7 @@ pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()
                         address, port, address, port
                     )
                     .as_str(),
-                );
+                ).expect("Couldn't start webview.");
             }
             // open a new graphql window
             Event::MenuEvent { menu_id, .. } if menu_id == open_graphql_id => {
@@ -197,7 +195,7 @@ pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()
                         address, port
                     )
                     .as_str(),
-                );
+                ).expect("Couldn't start webview.");
             }
             // request to quit
             Event::MenuEvent { menu_id, .. } if menu_id == quit_menu_id => {
@@ -269,12 +267,9 @@ pub fn create_window(
 
     let window = window_builder.build(&event_loop).unwrap();
 
-    let webview = WebViewBuilder::new(window)
-        .unwrap()
-        .with_url(url.as_str())
-        .unwrap()
-        .build()
-        .unwrap();
+    let webview = WebViewBuilder::new(window)?
+        .with_url(url.as_str())?
+        .build()?;
 
     event_loop.run(move |event, _event_loop, control_flow| {
         match event {

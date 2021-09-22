@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use deno_core::{Extension, JsRuntime, RuntimeOptions};
+use deno_core::{JsRuntime, RuntimeOptions};
 use sha2::{Digest, Sha256};
 use std::env;
 use std::io::Cursor;
@@ -188,20 +188,18 @@ fn create_snapshot(mut js_runtime: JsRuntime, snapshot_path: &Path, files: Vec<P
 }
 
 fn create_runtime_snapshot(snapshot_path: &Path, files: Vec<PathBuf>) {
-    let extensions: Vec<Extension> = vec![
+
+    let extensions = vec![
         deno_webidl::init(),
         deno_console::init(),
         deno_url::init(),
         deno_web::init(Default::default(), Default::default()),
-        deno_fetch::init::<deno_fetch::NoFetchPermissions>("".to_owned(), None, None),
-        deno_net::init::<deno_net::NoNetPermissions>(false),
-        deno_websocket::init::<deno_websocket::NoWebSocketPermissions>("".to_owned(), None),
+        deno_fetch::init::<deno_fetch::NoFetchPermissions>("nevermore".to_owned(), None, None, None, None, None),
+        deno_net::init::<deno_net::NoNetPermissions>(None, false, None),
+        deno_websocket::init::<deno_websocket::NoWebSocketPermissions>("nevermore".to_owned(), None, None),
         deno_crypto::init(None),
         deno_timers::init::<deno_timers::NoTimersPermission>(),
-        deno_broadcast_channel::init(
-            deno_broadcast_channel::InMemoryBroadcastChannel::default(),
-            false, // No --unstable.
-        ),
+        deno_broadcast_channel::init(deno_broadcast_channel::InMemoryBroadcastChannel::default(), false),
     ];
 
     let js_runtime = JsRuntime::new(RuntimeOptions {

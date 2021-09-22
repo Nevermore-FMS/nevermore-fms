@@ -78,7 +78,7 @@ pub async fn op_register_configurator(
     let mut borrowed_state = state.try_borrow_mut()?;
     let network_configurator_map = borrowed_state
         .try_borrow::<ThreadSafeNetworkConfiguratorMap>()
-        .ok_or(anyhow::anyhow!("network_configurator_map has been dropped"))?;
+        .ok_or(anyhow::anyhow!("ThreadSafeNetworkConfiguratorMap has been borrowed"))?;
 
     let configurator = network_configurator_map.write().await.register(args.info);
 
@@ -98,8 +98,7 @@ pub async fn op_next_scan(
 
     let configurator = borrowed_state
         .resource_table
-        .get::<NetworkConfiguratoResource>(id)
-        .ok_or(anyhow::anyhow!("resource doesn't exist"))?;
+        .get::<NetworkConfiguratoResource>(id)?;
     let mut rx = configurator.configurator.read().await.subscribe_scan();
 
     Ok(rx.recv().await?)
@@ -114,8 +113,7 @@ pub async fn op_reply_scan(
 
     let configurator = borrowed_state
         .resource_table
-        .get::<NetworkConfiguratoResource>(args.id)
-        .ok_or(anyhow::anyhow!("resource doesn't exist"))?;
+        .get::<NetworkConfiguratoResource>(args.id)?;
     configurator
         .configurator
         .read()
@@ -134,8 +132,7 @@ pub async fn op_next_initial_configuration(
 
     let configurator = borrowed_state
         .resource_table
-        .get::<NetworkConfiguratoResource>(id)
-        .ok_or(anyhow::anyhow!("resource doesn't exist"))?;
+        .get::<NetworkConfiguratoResource>(id)?;
     let mut rx = configurator
         .configurator
         .read()
@@ -154,8 +151,7 @@ pub async fn op_reply_initial_configuration(
 
     let configurator = borrowed_state
         .resource_table
-        .get::<NetworkConfiguratoResource>(args.id)
-        .ok_or(anyhow::anyhow!("resource doesn't exist"))?;
+        .get::<NetworkConfiguratoResource>(args.id)?;
     configurator
         .configurator
         .read()
@@ -174,8 +170,7 @@ pub async fn op_next_match_configuration(
 
     let configurator = borrowed_state
         .resource_table
-        .get::<NetworkConfiguratoResource>(id)
-        .ok_or(anyhow::anyhow!("resource doesn't exist"))?;
+        .get::<NetworkConfiguratoResource>(id)?;
     let mut rx = configurator
         .configurator
         .read()
@@ -195,8 +190,7 @@ pub async fn op_reply_match_configuration(
 
     let configurator = borrowed_state
         .resource_table
-        .get::<NetworkConfiguratoResource>(args.id)
-        .ok_or(anyhow::anyhow!("resource doesn't exist"))?;
+        .get::<NetworkConfiguratoResource>(args.id)?;
     configurator
         .configurator
         .read()

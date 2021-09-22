@@ -96,11 +96,10 @@ pub async fn op_unsubscribe(
         state
             .try_borrow()?
             .resource_table
-            .get::<StreamResource>(id)
-            .ok_or(anyhow::anyhow!("subscription already dropped"))?
+            .get::<StreamResource>(id)?
     };
 
-    state.try_borrow_mut()?.resource_table.close(id);
+    state.try_borrow_mut()?.resource_table.close(id)?;
 
     pub_sub.unsubscribe(resource.topic.clone()).await;
 
@@ -115,8 +114,7 @@ pub async fn op_subscription_next(
     let resource = state
         .try_borrow()?
         .resource_table
-        .get::<StreamResource>(id)
-        .ok_or(anyhow::anyhow!("subscription already dropped"))?;
+        .get::<StreamResource>(id)?;
 
     let mut stream = resource.stream.write().await;
 

@@ -120,7 +120,7 @@ pub async fn op_tick_subscribe(
         let borrowed_state = state.try_borrow()?;
         borrowed_state
             .try_borrow::<ThreadSafeField>()
-            .ok_or(anyhow::anyhow!("field has been dropped"))?
+            .ok_or(anyhow::anyhow!("field has been borrowed"))?
             .clone()
     };
 
@@ -142,8 +142,7 @@ pub async fn op_tick_subscription_next(
     let ticker = state
         .try_borrow()?
         .resource_table
-        .get::<ReceiverResource>(id)
-        .ok_or(anyhow::anyhow!("non-existent subscription"))?;
+        .get::<ReceiverResource>(id)?;
 
     ticker.receiver.write().await.recv().await?;
 
@@ -181,8 +180,7 @@ pub async fn op_close_subscription_next(
     let closer = state
         .try_borrow()?
         .resource_table
-        .get::<ReceiverResource>(id)
-        .ok_or(anyhow::anyhow!("non-existent subscription"))?;
+        .get::<ReceiverResource>(id)?;
 
     closer.receiver.write().await.recv().await?;
 
@@ -383,8 +381,7 @@ pub async fn op_driverstation_get_confirmed_state(
         state
             .try_borrow()?
             .resource_table
-            .get::<DriverStationResource>(id)
-            .ok_or(anyhow::anyhow!("driverstation already dropped"))?
+            .get::<DriverStationResource>(id)?
     };
 
     let confirmed_state = resource.driver_station.read().await.get_confirmed_state()?;
@@ -401,8 +398,7 @@ pub async fn op_driverstation_get_state(
         state
             .try_borrow()?
             .resource_table
-            .get::<DriverStationResource>(id)
-            .ok_or(anyhow::anyhow!("driverstation already dropped"))?
+            .get::<DriverStationResource>(id)?
     };
 
     let ds_state = resource.driver_station.read().await.get_state().await?;
@@ -426,8 +422,7 @@ pub async fn op_driverstation_set_state(
         state
             .try_borrow()?
             .resource_table
-            .get::<DriverStationResource>(args.rid)
-            .ok_or(anyhow::anyhow!("driverstation already dropped"))?
+            .get::<DriverStationResource>(args.rid)?
     };
 
     resource
@@ -449,8 +444,7 @@ pub async fn op_driverstation_is_in_correct_station(
         state
             .try_borrow()?
             .resource_table
-            .get::<DriverStationResource>(id)
-            .ok_or(anyhow::anyhow!("driverstation already dropped"))?
+            .get::<DriverStationResource>(id)?
     };
 
     let is_in_correct_station = resource
@@ -472,8 +466,7 @@ pub async fn op_driverstation_is_in_match(
         state
             .try_borrow()?
             .resource_table
-            .get::<DriverStationResource>(id)
-            .ok_or(anyhow::anyhow!("driverstation already dropped"))?
+            .get::<DriverStationResource>(id)?
     };
 
     let is_in_match = resource.driver_station.read().await.is_in_match().await?;
@@ -490,8 +483,7 @@ pub async fn op_driverstation_get_address(
         state
             .try_borrow()?
             .resource_table
-            .get::<DriverStationResource>(id)
-            .ok_or(anyhow::anyhow!("driverstation already dropped"))?
+            .get::<DriverStationResource>(id)?
     };
 
     let is_in_match = resource.driver_station.read().await.address();
@@ -508,8 +500,7 @@ pub async fn op_driverstation_has_closed(
         state
             .try_borrow()?
             .resource_table
-            .get::<DriverStationResource>(id)
-            .ok_or(anyhow::anyhow!("driverstation already dropped"))?
+            .get::<DriverStationResource>(id)?
     };
 
     let has_closed = resource.driver_station.read().await.has_closed();

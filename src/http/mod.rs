@@ -139,7 +139,7 @@ async fn inspector_connected(ws: WebSocket, application: ThreadSafeApplication) 
 
         let inbound_pump = websocket_rx
             .map(|result| {
-                let result = result.map(|msg| msg.into_bytes()).map_err(AnyError::from);
+                let result = result.map(|msg| msg.into_bytes()).map_err(AnyError::from).unwrap();
                 inbound_tx.unbounded_send(result)
             })
             .map_err(|_| ())

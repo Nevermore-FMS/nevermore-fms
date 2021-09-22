@@ -59,8 +59,7 @@ pub async fn op_database_run(
     let borrowed_state = state.try_borrow()?;
     let database_resource = borrowed_state
         .resource_table
-        .get::<DatabaseResource>(args.rid)
-        .ok_or(anyhow::anyhow!("database not found"))?;
+        .get::<DatabaseResource>(args.rid)?;
 
     let db = database_resource.database.clone();
 
@@ -77,8 +76,7 @@ pub async fn op_database_get(
     let borrowed_state = state.try_borrow()?;
     let database_resource = borrowed_state
         .resource_table
-        .get::<DatabaseResource>(args.rid)
-        .ok_or(anyhow::anyhow!("database not found"))?;
+        .get::<DatabaseResource>(args.rid)?;
 
     let db = database_resource.database.clone();
 
@@ -95,8 +93,7 @@ pub async fn op_database_all(
     let borrowed_state = state.try_borrow()?;
     let database_resource = borrowed_state
         .resource_table
-        .get::<DatabaseResource>(args.rid)
-        .ok_or(anyhow::anyhow!("database not found"))?;
+        .get::<DatabaseResource>(args.rid)?;
 
     let db = database_resource.database.clone();
 
