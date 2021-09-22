@@ -1,5 +1,5 @@
 # Nevermore FMS
-**This project is still a WIP, not everything listed here has been implemented yet. If you want to help feel free to contact me via [email](mailto:macdonnell.chase@gmail.com) or via Discord at `McMackety#0001`**
+**This project is still a WIP, not everything listed here has been implemented yet. If you want to help feel free to contact me via [email](mailto:macdonnell.chase@gmail.com) or via Discord at `McMackety#5189`**
 
 The Nevermore FMS is a fully-customizable and all-around agnostic FMS with the goals of being:
 * **Extensible**: The Nevermore FMS embeds a full V8 Javascript engine within itself to run "Nevermore Plugins". These plugins have the ability to add React components to the UI, listen for events from the field, send messages to it's UI components, implement new hardware, and much more.
