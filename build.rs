@@ -41,6 +41,7 @@ fn build_types() -> std::io::Result<()> {
         out_dir.join("runtime").join("ts").join("pubsub.d.ts"),
         out_dir.join("runtime").join("ts").join("network.d.ts"),
         out_dir.join("runtime").join("ts").join("deno.d.ts"),
+        out_dir.join("runtime").join("ts").join("ssh.d.ts"),
     ];
 
     let mut final_string = String::new();

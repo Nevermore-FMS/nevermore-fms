@@ -39,7 +39,7 @@ declare namespace Nevermore {
             exec(wantsReply: boolean, command: string): Promise<ExecResponse>
 
             /**
-             * Closes SSH connection.
+             * Closes the SSH connection.
              */
             close(): void
         }
