@@ -2,6 +2,7 @@ pub mod deno_database;
 pub mod deno_network;
 pub mod deno_nevermore;
 pub mod deno_pubsub;
+pub mod deno_ssh;
 
 use crate::field::ThreadSafeField;
 use crate::field::network::ThreadSafeNetworkConfiguratorMap;
@@ -61,6 +62,7 @@ impl DenoPluginRuntime {
             deno_pubsub::init(pub_sub),
             deno_database::init(),
             deno_network::init(database, configurator_map),
+            deno_ssh::init()
         ];
 
         let mut runtime = JsRuntime::new(RuntimeOptions {

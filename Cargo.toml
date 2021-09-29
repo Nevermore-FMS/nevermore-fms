@@ -30,6 +30,8 @@ pretty_env_logger = "0.4.0"
 log = "0.4.14"
 chrono = { version = "0.4.19", features = ["serde"] }
 serde = { version = "1.0.126", features = ["derive"] }
+thrussh = "0.33.5"
+thrussh-keys = "0.21.0"
 
 # Database Deps
 rusqlite = { version = "0.25.3", features = ["bundled", "serde_json"] }

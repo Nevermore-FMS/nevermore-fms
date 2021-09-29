@@ -21,6 +21,7 @@
 
         async run(stmt, params) {
             return await core.opAsync("op_database_run", {
+                rid: this.rid,
                 stmt,
                 params
             });
@@ -28,6 +29,7 @@
 
         async get(stmt, params) {
             return await core.opAsync("op_database_get", {
+                rid: this.rid,
                 stmt,
                 params
             });
@@ -35,9 +37,14 @@
 
         async all(stmt, params) {
             return await core.opAsync("op_database_all", {
+                rid: this.rid,
                 stmt,
                 params
             });
+        }
+
+        close() {
+            core.drop(this.rid);
         }
     };
 
