@@ -31,9 +31,11 @@
                 command
             });
 
+            console.log(resp)
+
             return {
                 data: Uint8Array.from(resp.data),
-                exit_status: resp.exit_status
+                exitStatus: resp.exitStatus
             }
         }
 

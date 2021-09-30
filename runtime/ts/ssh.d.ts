@@ -12,7 +12,7 @@ declare namespace Nevermore {
 
         interface ExecResponse {
             data: Uint8Array,
-            exit_status: number
+            exitStatus: number
         }
 
         /**
