@@ -51,4 +51,4 @@ Your plugin should then be deployed to the local Nevermore instance and begin ru
 Want to help in developing the Nevermore FMS? Feel free to take on one of our outstanding issues, add your own features, or contact me for recommendations and help on things to work on.
 
 ## Licensing
-This project is under the GPLV3 license. Essentially, this means that you can modify this code in any way you want, though if you distribute the code you must provide the source code to them.
+This project is under the GPLv3 license. Essentially, this means that you can modify this code in any way you want, though if you distribute the code you must provide the source code to them. For more information, go [here](https://choosealicense.com/licenses/gpl-3.0/)
