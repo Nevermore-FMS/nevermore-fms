@@ -6,9 +6,9 @@ declare namespace Nevermore {
      * Nevermore.Network.registerConfigurator({
      *      name: "ubiquiti-edgerouter-x-full",
      *      readme: "# Ubqiuiti EdgeRouter Network Stack\nThis is the configuration used by the Field at AMRoC Tampa Bay.",
-     *      author: "McMackety",
+     *      author: "EAO",
      *      url: "https://edgarallanohms.com",
-     *      email: "macdonnell.chase@gmail.com",
+     *      email: "frcteam5276@gmail.com",
      *      supportedHardware: ["Ubiquiti Controller", "EdgeRouter X"]
      *  }, {
      *      scan: async function(isFactory) {

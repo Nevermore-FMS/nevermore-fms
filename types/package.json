@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "description": "",
   "typings": "./generated.d.ts",
-  "author": "Chase MacDonnell <macdonnell.chase@gmail.com>",
+  "author": "Edgar Allan Ohms 5276",
   "scripts": {
     "build-docs": "typedoc"
   },
