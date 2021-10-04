@@ -1,6 +1,10 @@
 use async_graphql_warp::{graphql_subscription, Response};
 use std::{convert::Infallible, net::SocketAddr};
-use warp::Filter;
+use warp::{
+    Filter, 
+    http::Method
+};
+ 
 
 use crate::{application::ThreadSafeApplication, http::graph::NevermoreSchema};
 
@@ -104,7 +108,11 @@ pub async fn start(application: ThreadSafeApplication, http_addr: SocketAddr) {
             ws.on_upgrade(|websocket| inspector_connected(websocket, application))
         }));
 
-    warp::serve(routes).run(http_addr).await;
+    let cors = warp::cors()
+        .allow_any_origin()
+        .allow_methods(&[Method::GET, Method::POST, Method::DELETE])
+        .allow_headers(vec!["authorization", "content-type"]);
+    warp::serve(routes.with(cors)).run(http_addr).await;
 }
 
 #[cfg(feature = "developer")]

@@ -1,0 +1,3 @@
+mutation RemoveTeamFromField($teamNumber: Int!) {
+  removeTeamFromField(teamNumber: $teamNumber)
+}

@@ -1,0 +1,3 @@
+mutation AddTeamToField($teamNumber: Int!, $allianceStation: AllianceStation!) {
+  addTeamToField(teamNumber: $teamNumber, allianceStation: $allianceStation)
+}

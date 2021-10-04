@@ -1,0 +1,41 @@
+@import '../../styles/ohms-style/scss/colors.scss';
+
+.header {
+    width: 100%;
+    min-height: 80px;
+    background-color: $ohms-primary;
+    color: white;
+}
+
+.mainHeader {
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+}
+
+.mainHeader {
+    flex-direction: column;
+    justify-content: center;
+}
+
+.headerLogo {
+    max-height: 50px;
+    margin: 10px;
+}
+
+.mainGrowable {
+    overflow: hidden;
+    transition: max-height 0.4s ease-out;
+    width: 100%;
+}
+
+.mainHeaderAction {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.headerText {
+    font-size: larger;
+}

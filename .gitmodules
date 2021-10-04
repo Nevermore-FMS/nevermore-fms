@@ -1,0 +1,3 @@
+[submodule "ui/.\\src\\styles\\ohms-style"]
+	path = ui/.\\src\\styles\\ohms-style
+	url = https://github.com/Edgar-Allan-Ohms-5276/ohms-style.git

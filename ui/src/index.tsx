@@ -1,11 +1,13 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import NevermoreRouter from './router';
-import 'normalize.css';
+import React from "react";
+import ReactDOM from "react-dom";
+import App from "./App";
+import 'semantic-ui-css/semantic.min.css'
+import "./styles/ohms-style/scss/main.scss"
 
 ReactDOM.render(
   <React.StrictMode>
-    <NevermoreRouter />
+    <App />
   </React.StrictMode>,
-  document.getElementById('root')
+  document.getElementById("root")
 );
+

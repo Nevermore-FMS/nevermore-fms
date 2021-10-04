@@ -36,13 +36,14 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn new(db_uri: Option<String>) -> anyhow::Result<ThreadSafeApplication> {
+    pub async fn new(db_uri: Option<String>, ds_address: String) -> anyhow::Result<ThreadSafeApplication> {
         let deno_pub_sub = PubSub::new();
         let database = Database::new(true, false, db_uri).await?;
         let field = Field::new(
             Config::get(database.clone(), ConfigKey::EventName)
                 .await
                 .unwrap_or("nevermore".to_string()),
+                ds_address
         )
         .await?;
         let (log_sender, _) = tokio::sync::broadcast::channel::<LogMessage>(10);

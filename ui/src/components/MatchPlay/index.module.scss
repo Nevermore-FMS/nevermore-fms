@@ -1,0 +1,46 @@
+@use "sass:color";
+@import "../../styles/ohms-style/scss/colors.scss";
+
+.teamsHolder {
+    display: flex;
+    justify-content: center;
+}
+
+.redTeams, .blueTeams {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    flex-grow: 1;
+    padding: 20px;
+
+    :global(.text-input ~ .focus-border:before), :global(.text-input ~ .focus-border:after) {
+        background-color: white;
+    }
+    :global(.text-input ~ .focus-border i:before), :global(.text-input ~ .focus-border i:after) {
+        background-color: white;
+    }
+    :global(.text-input:focus), :global(.text-input:focus ~ label) {
+        color: white;
+    }
+    :global(.text-input) {
+        color: black;
+        border-color: black;
+    }
+    
+}
+
+.redTeams {
+    border-radius: 25px 0px 0px 25px;
+    background-color: color.scale($first-red, $lightness: 30%);
+}
+
+.blueTeams {
+    border-radius: 0px 25px 25px 0px;
+    background-color: color.scale($first-blue, $lightness: 30%);
+}
+
+.actionsHolder {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-evenly;
+}

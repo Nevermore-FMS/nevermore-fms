@@ -1,0 +1,6 @@
+query GetTeamAllianceStations {
+  teamAllianceStations {
+    teamNumber
+    allianceStation
+  }
+}

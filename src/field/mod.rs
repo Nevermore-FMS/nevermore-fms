@@ -1,5 +1,6 @@
 use crate::field::driverstation::{ConfirmedState, DriverStation, State, ThreadSafeDriverStation};
 use crate::field::enums::{AllianceStation, Mode};
+use anyhow::Context;
 use async_graphql::*;
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -169,15 +170,17 @@ impl Field {
 
     // Internal API -->
 
-    pub(crate) async fn new(event_name: String) -> anyhow::Result<ThreadSafeField> {
+    pub(crate) async fn new(event_name: String, ds_address: String) -> anyhow::Result<ThreadSafeField> {
         let (ticker_sender, _) = tokio::sync::broadcast::channel(10);
 
         let (closing_sender, rx1) = tokio::sync::broadcast::channel(1);
         let rx2 = closing_sender.subscribe();
+        
+        let udp_address: SocketAddr = format!("{}:1160", ds_address).parse()?;
 
-        let udp_address: SocketAddr = "10.0.100.5:1160".parse()?;
-
-        let udp_socket = Arc::new(UdpSocket::bind(udp_address).await?);
+        let udp_socket = Arc::new(UdpSocket::bind(udp_address).await.context(format!(
+            "Coult not bind to {}. This computer may not have an interface with that address. To change the ds address, use the --ds-address option."
+            , udp_address))?);
 
         let field = Arc::new(RwLock::new(Field {
             team_number_to_robot: Arc::new(RwLock::new(HashMap::new())),
@@ -195,7 +198,9 @@ impl Field {
         }));
 
         Self::listen_for_udp_messages(field.clone(), udp_socket.clone(), rx2).await?;
-        Self::listen_for_tcp_connections(field.clone(), "10.0.100.5:1750".parse()?, rx1).await?;
+        Self::listen_for_tcp_connections(field.clone(), format!("{}:1750", ds_address).parse()?, rx1).await.context(format!(
+            "Coult not bind to {}. This computer may not have an interface with that address. To change the ds address, use the --ds-address option."
+            , udp_address))?;
         Self::start_ticking(field.clone()).await;
 
         Ok(field.clone())
