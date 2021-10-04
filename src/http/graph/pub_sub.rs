@@ -27,7 +27,6 @@ pub struct PubSubSubscription {}
 
 #[Subscription]
 impl PubSubSubscription {
-    #[graphql(guard(UserTypeGuard(user_type = "UserType::Viewer")))]
     async fn subscribe<'ctx>(&self, ctx: &Context<'ctx>, topic: String) -> Result<impl tokio_stream::Stream<Item = Result<String>>> {
         let stream = {
             let app = ctx.data::<ThreadSafeApplication>()?;
