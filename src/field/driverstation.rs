@@ -54,6 +54,7 @@ pub struct State {
 pub struct DriverStation {
     confirmed_state: Option<ConfirmedState>,
     team_number: u16,
+    apparent_team_number: u16,
     state_map: ThreadSafeStateMap,
     field_override: ThreadSafeFieldOverride,
     tcp_writer: OwnedWriteHalf,
@@ -133,6 +134,11 @@ impl DriverStation {
         tokio::spawn(async move {
             let (tx, mut rx) = tokio::sync::broadcast::channel::<()>(1);
             let (mut reader, writer) = socket.into_split();
+
+            let addr_str = socket_address.to_string();
+            let address_parts: Vec<&str>  = addr_str.split(".").collect();
+            let apparent_team_number: u16 = format!("{}{}", address_parts[1], address_parts[2]).parse().unwrap();
+
             let robot = DriverStation {
                 confirmed_state: None,
                 field_override,
@@ -145,6 +151,7 @@ impl DriverStation {
                 original_event_name: event_name,
                 has_closed: false,
                 team_number: 0,
+                apparent_team_number,
                 state_map,
             };
 
@@ -282,17 +289,25 @@ impl DriverStation {
                     AllianceStation::None
                 };
 
-                let status = if alliance_station != AllianceStation::None {
-                    DriverstationStatus::Good
-                } else {
-                    DriverstationStatus::Waiting
-                };
-
                 let mut locked_robot = robot.write().await;
 
                 locked_robot.team_number = team_number;
 
                 let event_name = locked_robot.original_event_name.clone();
+
+                let status = if alliance_station != AllianceStation::None {
+                    if locked_robot.apparent_team_number == locked_robot.team_number {
+                        DriverstationStatus::Good
+                    } else {
+                        if locked_alliance_station_map.contains_key(&locked_robot.apparent_team_number) { // Only show wrong station if the apparent team is a valid team (allows for non-standard setups)
+                            DriverstationStatus::Bad // TODO Change the above to a feature or config setting
+                        } else {
+                            DriverstationStatus::Good
+                        }
+                    }
+                } else {
+                    DriverstationStatus::Waiting
+                };
 
                 locked_robot
                     .set_state(State {

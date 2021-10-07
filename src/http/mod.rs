@@ -1,10 +1,6 @@
 use async_graphql_warp::{graphql_subscription, Response};
 use std::{convert::Infallible, net::SocketAddr};
-use warp::{
-    Filter, 
-    http::Method
-};
- 
+use warp::{http::Method, Filter};
 
 use crate::{application::ThreadSafeApplication, http::graph::NevermoreSchema};
 
@@ -111,8 +107,9 @@ pub async fn start(application: ThreadSafeApplication, http_addr: SocketAddr) {
 
     let cors = warp::cors()
         .allow_any_origin()
-        .allow_methods(&[Method::GET, Method::POST, Method::DELETE])
-        .allow_headers(vec!["authorization", "content-type"]);
+        .allow_header("content-type")
+        .allow_header("authorization")
+        .allow_methods(&[Method::PUT, Method::DELETE, Method::POST]);
     warp::serve(routes.with(cors)).run(http_addr).await;
 }
 
@@ -148,7 +145,10 @@ async fn inspector_connected(ws: WebSocket, application: ThreadSafeApplication) 
 
         let inbound_pump = websocket_rx
             .map(|result| {
-                let result = result.map(|msg| msg.into_bytes()).map_err(AnyError::from).unwrap();
+                let result = result
+                    .map(|msg| msg.into_bytes())
+                    .map_err(AnyError::from)
+                    .unwrap();
                 inbound_tx.unbounded_send(result)
             })
             .map_err(|_| ())
