@@ -1,6 +1,6 @@
 import { useApolloClient } from "@apollo/client"
 import { useEffect, useState } from "react"
-import { AddTeamToFieldDocument, AddTeamToFieldMutationVariables, AllianceStation, RemoveTeamFromFieldDocument, RemoveTeamFromFieldMutationVariables, useGetTeamAllianceStationsQuery, useRoboticonGameStateSubscription, useStartRoboticonGameMutation, useStopRoboticonGameMutation, useSwitchRoboticonGameMutation } from "../../generated/graphql"
+import { AddTeamToFieldDocument, AddTeamToFieldMutationVariables, AllianceStation, RemoveTeamFromFieldDocument, RemoveTeamFromFieldMutationVariables, useGetTeamAllianceStationsQuery, useRoboticonGameStateSubscription, useStartRoboticonGameMutation, useStopRoboticonGameMutation, useSwitchRoboticonGameMutation, useEStopRoboticonGameMutation } from "../../generated/graphql"
 import Button from "../../styles/ohms-style/react/components/Button"
 import TextField from "../../styles/ohms-style/react/components/TextField"
 import styles from "./index.module.scss"
@@ -23,6 +23,7 @@ export default function MatchPlay() {
     const [startRoboticonGame] = useStartRoboticonGameMutation()
     const [stopRoboticonGame] = useStopRoboticonGameMutation()
     const [switchRoboticonGame] = useSwitchRoboticonGameMutation()
+    const [eStopRoboticonGame] = useEStopRoboticonGameMutation()
 
     let roboticonState: GameState = {
         driverStationInfo: [],
@@ -153,6 +154,12 @@ export default function MatchPlay() {
                 )}
                 {roboticonState.enabled && (
                     <Button variant="primary" large onClick={() => stopRoboticonGame()}>Stop Match</Button>
+                )}
+                {roboticonState.eStopped && (
+                    <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: {eStop: true} })}>Stop EStop</Button>
+                )}
+                {roboticonState.enabled && !roboticonState.eStopped && (
+                    <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: {eStop: true} })}>EStop All</Button>
                 )}
             </div>
         </div>

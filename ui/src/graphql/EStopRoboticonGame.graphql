@@ -1,0 +1,3 @@
+mutation EStopRoboticonGame($eStop: Boolean!) {
+  publish(topic: "roboticonSetAllEStopped", message: "true")
+}

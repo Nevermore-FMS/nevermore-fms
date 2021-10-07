@@ -428,6 +428,13 @@ export type AddTeamToFieldMutationVariables = Exact<{
 
 export type AddTeamToFieldMutation = { __typename?: 'Mutation', addTeamToField: boolean };
 
+export type EStopRoboticonGameMutationVariables = Exact<{
+  eStop: Scalars['Boolean'];
+}>;
+
+
+export type EStopRoboticonGameMutation = { __typename?: 'Mutation', publish: boolean };
+
 export type GetTeamAllianceStationsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -520,6 +527,37 @@ export function useAddTeamToFieldMutation(baseOptions?: Apollo.MutationHookOptio
 export type AddTeamToFieldMutationHookResult = ReturnType<typeof useAddTeamToFieldMutation>;
 export type AddTeamToFieldMutationResult = Apollo.MutationResult<AddTeamToFieldMutation>;
 export type AddTeamToFieldMutationOptions = Apollo.BaseMutationOptions<AddTeamToFieldMutation, AddTeamToFieldMutationVariables>;
+export const EStopRoboticonGameDocument = gql`
+    mutation EStopRoboticonGame($eStop: Boolean!) {
+  publish(topic: "roboticonSetAllEStopped", message: "true")
+}
+    `;
+export type EStopRoboticonGameMutationFn = Apollo.MutationFunction<EStopRoboticonGameMutation, EStopRoboticonGameMutationVariables>;
+
+/**
+ * __useEStopRoboticonGameMutation__
+ *
+ * To run a mutation, you first call `useEStopRoboticonGameMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useEStopRoboticonGameMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [eStopRoboticonGameMutation, { data, loading, error }] = useEStopRoboticonGameMutation({
+ *   variables: {
+ *      eStop: // value for 'eStop'
+ *   },
+ * });
+ */
+export function useEStopRoboticonGameMutation(baseOptions?: Apollo.MutationHookOptions<EStopRoboticonGameMutation, EStopRoboticonGameMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<EStopRoboticonGameMutation, EStopRoboticonGameMutationVariables>(EStopRoboticonGameDocument, options);
+      }
+export type EStopRoboticonGameMutationHookResult = ReturnType<typeof useEStopRoboticonGameMutation>;
+export type EStopRoboticonGameMutationResult = Apollo.MutationResult<EStopRoboticonGameMutation>;
+export type EStopRoboticonGameMutationOptions = Apollo.BaseMutationOptions<EStopRoboticonGameMutation, EStopRoboticonGameMutationVariables>;
 export const GetTeamAllianceStationsDocument = gql`
     query GetTeamAllianceStations {
   teamAllianceStations {

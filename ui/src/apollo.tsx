@@ -52,7 +52,7 @@ class WebSocketLink extends ApolloLink {
 class IncludeApolloClass extends React.Component<PropsWithChildren<RouteComponentProps>> {
 
     subscriptionLink = new WebSocketLink({
-        url: 'ws://fms.nevermore:8000/graphql',
+        url: 'ws://localhost:8000/graphql',
         connectionParams: () => {
             const token = localStorage.getItem('token')
             if (!token) {
@@ -65,7 +65,7 @@ class IncludeApolloClass extends React.Component<PropsWithChildren<RouteComponen
     })
 
     httpLink = createHttpLink({
-        uri: 'http://fms.nevermore:8000/graphql',
+        uri: 'http://localhost:8000/graphql',
     })
 
     authLink = setContext((_, { headers }) => {
