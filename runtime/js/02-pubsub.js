@@ -15,20 +15,25 @@
             const subscription = await core.opAsync("op_subscribe", topic);
             pubSubMap[topic] = subscription;
             while (true) {
-                await callback(
-                    JSON.parse(
-                        await core.opAsync("op_subscription_next", subscription)
-                    )
-                );
+                try {
+                    await callback(
+                        JSON.parse(
+                            await core.opAsync("op_subscription_next", subscription)
+                        )
+                    );
+                } catch(_) {
+                    return;
+                }
             }
         },
 
         unsubscribe: async function (topic) {
-            if ([topic, callback] in pubSubMap) {
+            if (topic in pubSubMap) {
                 await core.opAsync(
                     "op_unsubscribe",
                     pubSubMap[topic]
                 );
+                delete pubSubMap[topic];
             }
         },
     };

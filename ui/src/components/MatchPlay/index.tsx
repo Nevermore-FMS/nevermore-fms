@@ -156,10 +156,10 @@ export default function MatchPlay() {
                     <Button variant="primary" large onClick={() => stopRoboticonGame()}>Stop Match</Button>
                 )}
                 {roboticonState.eStopped && (
-                    <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: {eStop: true} })}>Stop EStop</Button>
+                    <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: {eStop: "false"} })}>Stop EStop</Button>
                 )}
                 {roboticonState.enabled && !roboticonState.eStopped && (
-                    <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: {eStop: true} })}>EStop All</Button>
+                    <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: {eStop: "true"} })}>EStop All</Button>
                 )}
             </div>
         </div>

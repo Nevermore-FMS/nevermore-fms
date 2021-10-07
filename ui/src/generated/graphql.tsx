@@ -429,7 +429,7 @@ export type AddTeamToFieldMutationVariables = Exact<{
 export type AddTeamToFieldMutation = { __typename?: 'Mutation', addTeamToField: boolean };
 
 export type EStopRoboticonGameMutationVariables = Exact<{
-  eStop: Scalars['Boolean'];
+  eStop: Scalars['String'];
 }>;
 
 
@@ -528,8 +528,8 @@ export type AddTeamToFieldMutationHookResult = ReturnType<typeof useAddTeamToFie
 export type AddTeamToFieldMutationResult = Apollo.MutationResult<AddTeamToFieldMutation>;
 export type AddTeamToFieldMutationOptions = Apollo.BaseMutationOptions<AddTeamToFieldMutation, AddTeamToFieldMutationVariables>;
 export const EStopRoboticonGameDocument = gql`
-    mutation EStopRoboticonGame($eStop: Boolean!) {
-  publish(topic: "roboticonSetAllEStopped", message: "true")
+    mutation EStopRoboticonGame($eStop: String!) {
+  publish(topic: "roboticonSetAllEStopped", message: $eStop)
 }
     `;
 export type EStopRoboticonGameMutationFn = Apollo.MutationFunction<EStopRoboticonGameMutation, EStopRoboticonGameMutationVariables>;
