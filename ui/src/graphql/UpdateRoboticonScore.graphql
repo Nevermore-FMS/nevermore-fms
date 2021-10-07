@@ -1,0 +1,3 @@
+mutation UpdateRoboticonScore($data: String!) {
+  publish(topic: "roboticonUpdateScore", message: $data)
+}

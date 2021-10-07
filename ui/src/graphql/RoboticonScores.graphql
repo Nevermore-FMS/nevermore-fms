@@ -1,0 +1,3 @@
+subscription RoboticonScores {
+  subscribe(topic: "roboticonReplyScores")
+}

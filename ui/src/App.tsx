@@ -1,15 +1,9 @@
-import { ApolloProvider } from "@apollo/client";
-import { client } from "./apollo";
-import Header from "./components/Header";
-import MatchTestPage from "./pages/MatchTestPage";
+import Router from "./Router";
 
 function App() {
   return (
     <div>
-        <ApolloProvider client={client}>
-            <Header />
-            <MatchTestPage />
-        </ApolloProvider>
+      <Router />
     </div>
   )
 }

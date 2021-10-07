@@ -1,0 +1,3 @@
+mutation RequestRoboticonScores {
+  publish(topic: "roboticonRequestScores", message: "true")
+}

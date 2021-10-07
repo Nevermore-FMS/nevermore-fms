@@ -1,0 +1,34 @@
+@use "sass:color";
+@import "../../styles/ohms-style/scss/colors.scss";
+
+.holder {
+    display: flex;
+    height: calc(100vh - 80px);
+}
+
+.red, .blue {
+    color: white;
+    flex: 1 1 0px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.red {
+    background-color: color.scale($first-red, $lightness: 30%);
+}
+
+.blue {
+    background-color: color.scale($first-blue, $lightness: 30%);
+}
+
+.teamCard {
+    text-align: center;
+    h1 {
+        font-size: 6em;
+    }
+    p {
+        font-size: 3em;
+        height: 60px;
+    }
+}

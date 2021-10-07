@@ -1,0 +1,3 @@
+mutation SwitchRoboticonGame($game: String!) {
+  publish(topic: "roboticonSwitchGames", message: $game)
+}

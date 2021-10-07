@@ -440,6 +440,53 @@ export type RemoveTeamFromFieldMutationVariables = Exact<{
 
 export type RemoveTeamFromFieldMutation = { __typename?: 'Mutation', removeTeamFromField: boolean };
 
+export type RequestRoboticonScoresMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RequestRoboticonScoresMutation = { __typename?: 'Mutation', publish: boolean };
+
+export type RoboticonGameStateSubscriptionVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RoboticonGameStateSubscription = { __typename?: 'Subscription', subscribe: string };
+
+export type RoboticonScoresSubscriptionVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RoboticonScoresSubscription = { __typename?: 'Subscription', subscribe: string };
+
+export type SignInMutationVariables = Exact<{
+  username: Scalars['String'];
+  password: Scalars['String'];
+}>;
+
+
+export type SignInMutation = { __typename?: 'Mutation', signIn: string };
+
+export type StartRoboticonGameMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type StartRoboticonGameMutation = { __typename?: 'Mutation', publish: boolean };
+
+export type StopRoboticonGameMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type StopRoboticonGameMutation = { __typename?: 'Mutation', publish: boolean };
+
+export type SwitchRoboticonGameMutationVariables = Exact<{
+  game: Scalars['String'];
+}>;
+
+
+export type SwitchRoboticonGameMutation = { __typename?: 'Mutation', publish: boolean };
+
+export type UpdateRoboticonScoreMutationVariables = Exact<{
+  data: Scalars['String'];
+}>;
+
+
+export type UpdateRoboticonScoreMutation = { __typename?: 'Mutation', publish: boolean };
+
 
 export const AddTeamToFieldDocument = gql`
     mutation AddTeamToField($teamNumber: Int!, $allianceStation: AllianceStation!) {
@@ -539,3 +586,241 @@ export function useRemoveTeamFromFieldMutation(baseOptions?: Apollo.MutationHook
 export type RemoveTeamFromFieldMutationHookResult = ReturnType<typeof useRemoveTeamFromFieldMutation>;
 export type RemoveTeamFromFieldMutationResult = Apollo.MutationResult<RemoveTeamFromFieldMutation>;
 export type RemoveTeamFromFieldMutationOptions = Apollo.BaseMutationOptions<RemoveTeamFromFieldMutation, RemoveTeamFromFieldMutationVariables>;
+export const RequestRoboticonScoresDocument = gql`
+    mutation RequestRoboticonScores {
+  publish(topic: "roboticonRequestScores", message: "true")
+}
+    `;
+export type RequestRoboticonScoresMutationFn = Apollo.MutationFunction<RequestRoboticonScoresMutation, RequestRoboticonScoresMutationVariables>;
+
+/**
+ * __useRequestRoboticonScoresMutation__
+ *
+ * To run a mutation, you first call `useRequestRoboticonScoresMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRequestRoboticonScoresMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [requestRoboticonScoresMutation, { data, loading, error }] = useRequestRoboticonScoresMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useRequestRoboticonScoresMutation(baseOptions?: Apollo.MutationHookOptions<RequestRoboticonScoresMutation, RequestRoboticonScoresMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RequestRoboticonScoresMutation, RequestRoboticonScoresMutationVariables>(RequestRoboticonScoresDocument, options);
+      }
+export type RequestRoboticonScoresMutationHookResult = ReturnType<typeof useRequestRoboticonScoresMutation>;
+export type RequestRoboticonScoresMutationResult = Apollo.MutationResult<RequestRoboticonScoresMutation>;
+export type RequestRoboticonScoresMutationOptions = Apollo.BaseMutationOptions<RequestRoboticonScoresMutation, RequestRoboticonScoresMutationVariables>;
+export const RoboticonGameStateDocument = gql`
+    subscription RoboticonGameState {
+  subscribe(topic: "roboticonGameState")
+}
+    `;
+
+/**
+ * __useRoboticonGameStateSubscription__
+ *
+ * To run a query within a React component, call `useRoboticonGameStateSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useRoboticonGameStateSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRoboticonGameStateSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useRoboticonGameStateSubscription(baseOptions?: Apollo.SubscriptionHookOptions<RoboticonGameStateSubscription, RoboticonGameStateSubscriptionVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<RoboticonGameStateSubscription, RoboticonGameStateSubscriptionVariables>(RoboticonGameStateDocument, options);
+      }
+export type RoboticonGameStateSubscriptionHookResult = ReturnType<typeof useRoboticonGameStateSubscription>;
+export type RoboticonGameStateSubscriptionResult = Apollo.SubscriptionResult<RoboticonGameStateSubscription>;
+export const RoboticonScoresDocument = gql`
+    subscription RoboticonScores {
+  subscribe(topic: "roboticonReplyScores")
+}
+    `;
+
+/**
+ * __useRoboticonScoresSubscription__
+ *
+ * To run a query within a React component, call `useRoboticonScoresSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useRoboticonScoresSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRoboticonScoresSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useRoboticonScoresSubscription(baseOptions?: Apollo.SubscriptionHookOptions<RoboticonScoresSubscription, RoboticonScoresSubscriptionVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<RoboticonScoresSubscription, RoboticonScoresSubscriptionVariables>(RoboticonScoresDocument, options);
+      }
+export type RoboticonScoresSubscriptionHookResult = ReturnType<typeof useRoboticonScoresSubscription>;
+export type RoboticonScoresSubscriptionResult = Apollo.SubscriptionResult<RoboticonScoresSubscription>;
+export const SignInDocument = gql`
+    mutation SignIn($username: String!, $password: String!) {
+  signIn(username: $username, password: $password)
+}
+    `;
+export type SignInMutationFn = Apollo.MutationFunction<SignInMutation, SignInMutationVariables>;
+
+/**
+ * __useSignInMutation__
+ *
+ * To run a mutation, you first call `useSignInMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSignInMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [signInMutation, { data, loading, error }] = useSignInMutation({
+ *   variables: {
+ *      username: // value for 'username'
+ *      password: // value for 'password'
+ *   },
+ * });
+ */
+export function useSignInMutation(baseOptions?: Apollo.MutationHookOptions<SignInMutation, SignInMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SignInMutation, SignInMutationVariables>(SignInDocument, options);
+      }
+export type SignInMutationHookResult = ReturnType<typeof useSignInMutation>;
+export type SignInMutationResult = Apollo.MutationResult<SignInMutation>;
+export type SignInMutationOptions = Apollo.BaseMutationOptions<SignInMutation, SignInMutationVariables>;
+export const StartRoboticonGameDocument = gql`
+    mutation StartRoboticonGame {
+  publish(topic: "roboticonStartGame", message: "150")
+}
+    `;
+export type StartRoboticonGameMutationFn = Apollo.MutationFunction<StartRoboticonGameMutation, StartRoboticonGameMutationVariables>;
+
+/**
+ * __useStartRoboticonGameMutation__
+ *
+ * To run a mutation, you first call `useStartRoboticonGameMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useStartRoboticonGameMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [startRoboticonGameMutation, { data, loading, error }] = useStartRoboticonGameMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useStartRoboticonGameMutation(baseOptions?: Apollo.MutationHookOptions<StartRoboticonGameMutation, StartRoboticonGameMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<StartRoboticonGameMutation, StartRoboticonGameMutationVariables>(StartRoboticonGameDocument, options);
+      }
+export type StartRoboticonGameMutationHookResult = ReturnType<typeof useStartRoboticonGameMutation>;
+export type StartRoboticonGameMutationResult = Apollo.MutationResult<StartRoboticonGameMutation>;
+export type StartRoboticonGameMutationOptions = Apollo.BaseMutationOptions<StartRoboticonGameMutation, StartRoboticonGameMutationVariables>;
+export const StopRoboticonGameDocument = gql`
+    mutation StopRoboticonGame {
+  publish(topic: "roboticonStopGame", message: "true")
+}
+    `;
+export type StopRoboticonGameMutationFn = Apollo.MutationFunction<StopRoboticonGameMutation, StopRoboticonGameMutationVariables>;
+
+/**
+ * __useStopRoboticonGameMutation__
+ *
+ * To run a mutation, you first call `useStopRoboticonGameMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useStopRoboticonGameMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [stopRoboticonGameMutation, { data, loading, error }] = useStopRoboticonGameMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useStopRoboticonGameMutation(baseOptions?: Apollo.MutationHookOptions<StopRoboticonGameMutation, StopRoboticonGameMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<StopRoboticonGameMutation, StopRoboticonGameMutationVariables>(StopRoboticonGameDocument, options);
+      }
+export type StopRoboticonGameMutationHookResult = ReturnType<typeof useStopRoboticonGameMutation>;
+export type StopRoboticonGameMutationResult = Apollo.MutationResult<StopRoboticonGameMutation>;
+export type StopRoboticonGameMutationOptions = Apollo.BaseMutationOptions<StopRoboticonGameMutation, StopRoboticonGameMutationVariables>;
+export const SwitchRoboticonGameDocument = gql`
+    mutation SwitchRoboticonGame($game: String!) {
+  publish(topic: "roboticonSwitchGames", message: $game)
+}
+    `;
+export type SwitchRoboticonGameMutationFn = Apollo.MutationFunction<SwitchRoboticonGameMutation, SwitchRoboticonGameMutationVariables>;
+
+/**
+ * __useSwitchRoboticonGameMutation__
+ *
+ * To run a mutation, you first call `useSwitchRoboticonGameMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSwitchRoboticonGameMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [switchRoboticonGameMutation, { data, loading, error }] = useSwitchRoboticonGameMutation({
+ *   variables: {
+ *      game: // value for 'game'
+ *   },
+ * });
+ */
+export function useSwitchRoboticonGameMutation(baseOptions?: Apollo.MutationHookOptions<SwitchRoboticonGameMutation, SwitchRoboticonGameMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SwitchRoboticonGameMutation, SwitchRoboticonGameMutationVariables>(SwitchRoboticonGameDocument, options);
+      }
+export type SwitchRoboticonGameMutationHookResult = ReturnType<typeof useSwitchRoboticonGameMutation>;
+export type SwitchRoboticonGameMutationResult = Apollo.MutationResult<SwitchRoboticonGameMutation>;
+export type SwitchRoboticonGameMutationOptions = Apollo.BaseMutationOptions<SwitchRoboticonGameMutation, SwitchRoboticonGameMutationVariables>;
+export const UpdateRoboticonScoreDocument = gql`
+    mutation UpdateRoboticonScore($data: String!) {
+  publish(topic: "roboticonUpdateScore", message: $data)
+}
+    `;
+export type UpdateRoboticonScoreMutationFn = Apollo.MutationFunction<UpdateRoboticonScoreMutation, UpdateRoboticonScoreMutationVariables>;
+
+/**
+ * __useUpdateRoboticonScoreMutation__
+ *
+ * To run a mutation, you first call `useUpdateRoboticonScoreMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateRoboticonScoreMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateRoboticonScoreMutation, { data, loading, error }] = useUpdateRoboticonScoreMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useUpdateRoboticonScoreMutation(baseOptions?: Apollo.MutationHookOptions<UpdateRoboticonScoreMutation, UpdateRoboticonScoreMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateRoboticonScoreMutation, UpdateRoboticonScoreMutationVariables>(UpdateRoboticonScoreDocument, options);
+      }
+export type UpdateRoboticonScoreMutationHookResult = ReturnType<typeof useUpdateRoboticonScoreMutation>;
+export type UpdateRoboticonScoreMutationResult = Apollo.MutationResult<UpdateRoboticonScoreMutation>;
+export type UpdateRoboticonScoreMutationOptions = Apollo.BaseMutationOptions<UpdateRoboticonScoreMutation, UpdateRoboticonScoreMutationVariables>;

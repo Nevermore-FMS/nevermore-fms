@@ -44,3 +44,20 @@
     display: flex;
     justify-content: space-evenly;
 }
+
+.header {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.headerOptions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.statusCard {
+    background-color: color.scale($first-gray, $lightness: 30%);
+    padding: 30px
+}

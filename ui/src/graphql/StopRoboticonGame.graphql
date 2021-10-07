@@ -1,0 +1,3 @@
+mutation StopRoboticonGame {
+  publish(topic: "roboticonStopGame", message: "true")
+}

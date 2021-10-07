@@ -1,0 +1,3 @@
+mutation StartRoboticonGame {
+  publish(topic: "roboticonStartGame", message: "150")
+}
