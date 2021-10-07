@@ -352,7 +352,7 @@ pub async fn op_get_team_map(
     state: Rc<RefCell<OpState>>,
     _: (),
     _: (),
-) -> anyhow::Result<HashMap<u16, i32>> {
+) -> anyhow::Result<HashMap<String, i32>> {
     let field = {
         let borrowed_state = state.try_borrow()?;
         borrowed_state
@@ -363,10 +363,10 @@ pub async fn op_get_team_map(
 
     let alliance_station_old_map = field.read().await.get_team_alliance_station_map().await?;
 
-    let mut alliance_station_map: HashMap<u16, i32> = HashMap::new();
+    let mut alliance_station_map: HashMap<String, i32> = HashMap::new();
 
     for (key, value) in alliance_station_old_map.iter() {
-        alliance_station_map.insert(*key, value.to_integer());
+        alliance_station_map.insert(key.to_string(), value.to_integer());
     }
 
     Ok(alliance_station_map)
