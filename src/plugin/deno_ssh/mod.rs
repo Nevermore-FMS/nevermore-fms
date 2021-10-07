@@ -37,7 +37,7 @@ impl Handler for Client {
    fn finished(self, session: Session) -> Self::FutureUnit {
        futures::future::ready(Ok((self, session)))
    }
-   fn check_server_key(self, server_public_key: &PublicKey) -> Self::FutureBool {
+   fn check_server_key(self, _: &PublicKey) -> Self::FutureBool {
        self.finished_bool(true)
    }
 }

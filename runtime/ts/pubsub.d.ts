@@ -3,7 +3,7 @@ declare namespace Nevermore {
      * The `Nevermore.PubSub` namespace defines the API used to send messages to and from the frontend.
      */
     namespace PubSub {
-        export type PubSubMessageImpl = object | number | string | null
+        export type PubSubMessageImpl = object | boolean | number | string | null
 
         /**
          * Message represents and JS object capable of being turned into JSON.
@@ -39,6 +39,6 @@ declare namespace Nevermore {
          * @param topic The topic being unsubscribed from.
          * @param callback The callback being unsubscribed from.
          */
-        export function unsubscribe(topic: string, callback: PubSubCallback): Promise<void>;
+        export function unsubscribe(topic: string): Promise<void>;
     }
 }

@@ -13,7 +13,7 @@
 
         subscribe: async function (topic, callback) {
             const subscription = await core.opAsync("op_subscribe", topic);
-            pubSubMap[[topic, callback]] = subscription;
+            pubSubMap[topic] = subscription;
             while (true) {
                 await callback(
                     JSON.parse(
@@ -23,11 +23,11 @@
             }
         },
 
-        unsubscribe: async function (topic, callback) {
+        unsubscribe: async function (topic) {
             if ([topic, callback] in pubSubMap) {
                 await core.opAsync(
                     "op_unsubscribe",
-                    pubSubMap[[topic, callback]]
+                    pubSubMap[topic]
                 );
             }
         },

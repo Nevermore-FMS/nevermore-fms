@@ -74,21 +74,23 @@ impl UserMutation {
         let db = app.read().await.database.clone();
 
         let user = User::get(db.clone(), username.clone()).await?;
-        user.verify_password(password)?;
-
-        let session_storage = app.read().await.session_storage.clone();
-        let mut session_storage = session_storage.write().await;
-        Ok(session_storage.set(username, Duration::hours(2)))
+        if user.verify_password(password)? {
+            let session_storage = app.read().await.session_storage.clone();
+            let mut session_storage = session_storage.write().await;
+            Ok(session_storage.set(username, Duration::hours(2)))
+        } else {
+            Err("Invalid password".into())
+        }
     }
 
     #[graphql(guard(UserTypeGuard(user_type = "UserType::Viewer")))]
     async fn sign_out<'ctx>(&self, ctx: &Context<'ctx>) -> Result<bool> {
         let app = ctx.data::<ThreadSafeApplication>()?;
-        let user = ctx.data::<User>()?;
+        let token = ctx.data::<String>()?;
 
         let session_storage = app.read().await.session_storage.clone();
         let mut session_storage = session_storage.write().await;
-        session_storage.remove(user.username.clone());
+        session_storage.remove(token.to_string());
         Ok(true)
     }
 
@@ -132,7 +134,7 @@ impl UserMutation {
             User::create(db, params).await?;
             Ok(true)
         } else {
-            Err("setup is complete.".into())
+            Err("Setup is already complete.".into())
         }
     }
 }

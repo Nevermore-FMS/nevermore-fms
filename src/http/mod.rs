@@ -57,13 +57,14 @@ pub async fn start(application: ThreadSafeApplication, http_addr: SocketAddr) {
                             .session_storage
                             .write()
                             .await
-                            .verify_token(application.database.clone(), token)
+                            .verify_token(application.database.clone(), token.clone())
                             .await;
 
                         if maybe_session.is_ok() {
                             let session = maybe_session.unwrap();
 
                             request = request.data(session);
+                            request = request.data(token);
                         }
                     }
                 }

@@ -16,7 +16,7 @@ pub type ThreadSafeSessionStorage = Arc<RwLock<SessionStorage>>;
 
 pub struct SessionStorage {
     token_to_session: HashMap<String, Session>,
-    username_to_token: HashMap<String, String>,
+    username_to_token: HashMap<String, Vec<String>>,
 }
 
 impl SessionStorage {
@@ -31,8 +31,11 @@ impl SessionStorage {
         self.remove(username.clone());
 
         let token = random_string(32);
+        let default_vec: Vec<String> = Vec::new();
+        let mut previous_tokens = self.username_to_token.get(&username.clone()).unwrap_or(&default_vec).clone();
+        previous_tokens.push(token.clone());
         self.username_to_token
-            .insert(username.clone(), token.clone());
+            .insert(username.clone(), previous_tokens.clone());
         self.token_to_session.insert(
             token.clone(),
             Session {
@@ -43,13 +46,8 @@ impl SessionStorage {
         token
     }
 
-    pub fn remove(&mut self, username: String) {
-        let username_to_token = self.username_to_token.clone();
-        let mut maybe_token = username_to_token.get(&username.clone());
-        if let Some(token) = maybe_token.take() {
-            self.username_to_token.remove(&username.clone());
-            self.token_to_session.remove(token);
-        };
+    pub fn remove(&mut self, token: String) {
+        self.token_to_session.remove(&token);
     }
 
     pub async fn verify_token(

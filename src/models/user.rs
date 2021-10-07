@@ -63,17 +63,17 @@ impl User {
 
 impl User {
     pub fn verify_password(&self, unverified_password: String) -> anyhow::Result<bool> {
-        Ok(argon2::verify_encoded(
+        argon2::verify_encoded(
             self.password.as_str(),
             unverified_password.as_bytes(),
-        )?)
+        ).map_err(|_| anyhow::anyhow!("Incorrect Password"))
     }
 
     pub fn verify_pin(&self, unverified_pin: String) -> anyhow::Result<bool> {
-        Ok(argon2::verify_encoded(
+        argon2::verify_encoded(
             self.pin.as_str(),
             unverified_pin.as_bytes(),
-        )?)
+        ).map_err(|_| anyhow::anyhow!("Incorrect Pin"))
     }
 }
 
