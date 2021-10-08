@@ -302,11 +302,12 @@ impl DriverStation {
                     if locked_robot.apparent_team_number == locked_robot.team_number {
                         DriverstationStatus::Good
                     } else {
-                        if locked_alliance_station_map.contains_key(&locked_robot.apparent_team_number) { // Only show wrong station if the apparent team is a valid team (allows for non-standard setups)
+                        /*if locked_alliance_station_map.contains_key(&locked_robot.apparent_team_number) { // Only show wrong station if the apparent team is a valid team (allows for non-standard setups)
                             DriverstationStatus::Bad // TODO Change the above to a feature or config setting
                         } else {
                             DriverstationStatus::Good
-                        }
+                        }*/
+                        DriverstationStatus::Bad
                     }
                 } else {
                     DriverstationStatus::Waiting
