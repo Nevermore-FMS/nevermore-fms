@@ -1,0 +1,3 @@
+mutation RoboticonNewDanceMove($data: String!) {
+  publish(topic: "roboticonRequestNewDanceMove", message: $data)
+}

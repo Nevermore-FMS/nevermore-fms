@@ -1,9 +1,11 @@
 import { useEffect } from "react"
-import { useEStopRoboticonGameMutation, useGetTeamAllianceStationsQuery, useRoboticonGameStateSubscription } from "../../generated/graphql"
+import { useEStopRoboticonGameMutation, useGetTeamAllianceStationsQuery, useRoboticonGameStateSubscription, useRoboticonScoresSubscription } from "../../generated/graphql"
 import { GameState, GameType } from "../../roboticon"
 import Button from "../../styles/ohms-style/react/components/Button"
 import BasicPanel from "./basic"
+import DancePartyPanel from "./danceparty"
 import SoccerPanel from "./soccer"
+import StunballPanel from "./stunball"
 
 export default function RefPanel() {
     const { data: stationsData, startPolling, stopPolling } = useGetTeamAllianceStationsQuery()
@@ -28,6 +30,10 @@ export default function RefPanel() {
     }
     if (roboticonTickData?.subscribe != null) { roboticonState = JSON.parse(roboticonTickData.subscribe) }
 
+    const { data: roboticonScoresData } = useRoboticonScoresSubscription()
+    let roboticonScores: { [key: string]: number } = {}
+    if (roboticonScoresData?.subscribe != null) { roboticonScores = JSON.parse(roboticonScoresData.subscribe) }
+
     return (
         <div>
             {roboticonState.eStopped && (
@@ -38,10 +44,16 @@ export default function RefPanel() {
             )}
             <h3>Time left: {roboticonState.timeLeft}</h3>
             {roboticonState.gameType === GameType.BASIC && (
-                <BasicPanel state={roboticonState} />
+                <BasicPanel scores={roboticonScores} />
             )}
             {roboticonState.gameType === GameType.SOCCER && (
-                <SoccerPanel state={roboticonState} />
+                <SoccerPanel scores={roboticonScores} />
+            )}
+            {roboticonState.gameType === GameType.DANCEPARTY && (
+                <DancePartyPanel teams={(stationsData?.teamAllianceStations ?? []).map(a => a.teamNumber)} />
+            )}
+            {roboticonState.gameType === GameType.STUNBALL && (
+                <StunballPanel scores={roboticonScores} />
             )}
         </div>
     )

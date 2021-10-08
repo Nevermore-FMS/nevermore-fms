@@ -6,6 +6,7 @@ import TextField from "../../styles/ohms-style/react/components/TextField"
 import styles from "./index.module.scss"
 import { GameState, GameType } from "../../roboticon"
 import Select from "../../styles/ohms-style/react/components/Select"
+import { whoNotReady } from "../../lib/whoNotReady"
 
 export default function MatchPlay() {
     const client = useApolloClient()
@@ -36,7 +37,9 @@ export default function MatchPlay() {
     if (roboticonTickData?.subscribe != null) { roboticonState = JSON.parse(roboticonTickData.subscribe) }
 
     const finalized = (stationsData?.teamAllianceStations?.length ?? 0) > 0
-    const allReady = true
+
+    const notReady = whoNotReady(stationsData?.teamAllianceStations ?? [], roboticonState.driverStationInfo)
+    const allReady = notReady.length === 0
 
     const defaultInputs: { [key: string]: string } = {
         "RED_1": "",
@@ -109,8 +112,6 @@ export default function MatchPlay() {
         setInputs(defaultInputs)
     }
 
-    console.log(roboticonState)
-
     return (
         <div>
             <div className={styles.headerOptions}>
@@ -126,7 +127,7 @@ export default function MatchPlay() {
                     {!finalized && (
                         <h1>Awaiting Setup</h1>
                     )}
-                    {(finalized && !allReady) && (
+                    {(finalized && !allReady && !roboticonState.enabled) && (
                         <h1>Teams Not Ready</h1>
                     )}
                     {(finalized && allReady && !roboticonState.enabled) && (
@@ -137,6 +138,15 @@ export default function MatchPlay() {
                     )}
                 </div>
             </div>
+            {(finalized && !allReady && !roboticonState.enabled) && (
+                <div className={styles.header}>
+                    {notReady.map(team => (
+                        <div key={team} className={["card", styles.statusCard].join(' ')}>
+                            <h3>{team}</h3>
+                        </div>
+                    ))}
+                </div>
+            )}
             <div className={styles.teamsHolder}>
                 <div className={styles.redTeams}>
                     {textFields(["RED_1", "RED_2", "RED_3"])}
@@ -152,17 +162,17 @@ export default function MatchPlay() {
                 {finalized && !roboticonState.enabled && (
                     <Button variant="primary" large onClick={() => { clearTeams(); resetRoboticonGame() }}>Clear Teams</Button>
                 )}
-                {finalized && allReady && !roboticonState.enabled && (
-                    <Button variant="secondary" large onClick={() => startRoboticonGame()}>Start Match</Button>
+                {finalized && !roboticonState.enabled && (
+                    <Button variant={allReady ? "secondary" : "primary"} large onClick={() => startRoboticonGame()}>Start Match</Button>
                 )}
                 {roboticonState.enabled && (
-                    <Button variant="primary" large onClick={() => stopRoboticonGame() }>Stop Match</Button>
+                    <Button variant="primary" large onClick={() => stopRoboticonGame()}>Stop Match</Button>
                 )}
                 {roboticonState.eStopped && (
-                    <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: {eStop: "false"} })}>Stop EStop</Button>
+                    <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: { eStop: "false" } })}>Stop EStop</Button>
                 )}
                 {roboticonState.enabled && !roboticonState.eStopped && (
-                    <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: {eStop: "true"} })}>EStop All</Button>
+                    <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: { eStop: "true" } })}>EStop All</Button>
                 )}
             </div>
         </div>

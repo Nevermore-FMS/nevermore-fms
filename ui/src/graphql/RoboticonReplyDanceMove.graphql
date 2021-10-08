@@ -1,0 +1,3 @@
+subscription RoboticonReplyDanceMoves {
+  subscribe(topic: "roboticonReplyCurrentDanceMoves")
+}

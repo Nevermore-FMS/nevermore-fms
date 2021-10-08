@@ -1,0 +1,3 @@
+mutation RoboticonStunTeam($data: String!){
+  publish(topic: "roboticonStunTeam", message: $data)
+}

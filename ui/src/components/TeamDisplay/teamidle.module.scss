@@ -1,0 +1,31 @@
+@use "sass:color";
+@import "../../styles/ohms-style/scss/colors.scss";
+
+.red, .blue {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    h1 {
+        font-size: 30em;
+    }
+}
+
+.red {
+    background-color: color.scale($first-red, $lightness: 30%);
+}
+
+.blue {
+    background-color: color.scale($first-blue, $lightness: 30%);
+}
+
+.notconnected {
+    animation: notconnected 1s infinite;
+}
+
+@keyframes notconnected {
+    50% {
+      background-color: black;
+    }
+  }

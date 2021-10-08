@@ -2,8 +2,10 @@ import { useEffect } from "react";
 import { useGetTeamAllianceStationsQuery, useRequestRoboticonScoresMutation, useRoboticonGameStateSubscription, useRoboticonScoresSubscription } from "../../generated/graphql";
 import { GameState, GameType } from "../../roboticon";
 import { BasicPlay } from "./basic-play";
+import { DanceParty } from "./danceparty";
 import IdleDisplay from "./idle";
 import { Matchup } from "./matchup";
+import { StunballDisplay } from "./stunball";
 
 export default function AudienceDisplay() {
 
@@ -42,7 +44,7 @@ export default function AudienceDisplay() {
 
     console.log(roboticonScores)
     return (
-        <div style={{ overflowY: "hidden" }}>
+        <div style={{ overflowY: "hidden", cursor: "none" }}>
             {!finalized && <IdleDisplay />}
             {finalized && !showGameScreen && (
                 <Matchup
@@ -51,6 +53,23 @@ export default function AudienceDisplay() {
             )}
             {finalized && showGameScreen && ([GameType.BASIC, GameType.SOCCER].includes(roboticonState.gameType)) && (
                 <BasicPlay
+                    redTeams={stationsData!!.teamAllianceStations.filter(a => a.allianceStation.toString().includes("RED")).map(a => a.teamNumber.toString())}
+                    blueTeams={stationsData!!.teamAllianceStations.filter(a => a.allianceStation.toString().includes("BLUE")).map(a => a.teamNumber.toString())}
+                    blueScore={roboticonScores["0"] ?? 0}
+                    redScore={roboticonScores["1"] ?? 0}
+                    timeLeft={Math.round(roboticonState.timeLeft)}
+                />
+            )}
+            {finalized && showGameScreen && roboticonState.gameType === GameType.DANCEPARTY && (
+                <DanceParty
+                    redTeams={stationsData!!.teamAllianceStations.filter(a => a.allianceStation.toString().includes("RED")).map(a => a.teamNumber.toString())}
+                    blueTeams={stationsData!!.teamAllianceStations.filter(a => a.allianceStation.toString().includes("BLUE")).map(a => a.teamNumber.toString())}
+                    scores={roboticonScores}
+                    timeLeft={Math.round(roboticonState.timeLeft)}
+                />
+            )}
+            {finalized && showGameScreen && roboticonState.gameType === GameType.STUNBALL && (
+                <StunballDisplay
                     redTeams={stationsData!!.teamAllianceStations.filter(a => a.allianceStation.toString().includes("RED")).map(a => a.teamNumber.toString())}
                     blueTeams={stationsData!!.teamAllianceStations.filter(a => a.allianceStation.toString().includes("BLUE")).map(a => a.teamNumber.toString())}
                     blueScore={roboticonScores["0"] ?? 0}

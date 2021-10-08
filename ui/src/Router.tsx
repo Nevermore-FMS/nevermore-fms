@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage";
 import MatchTestPage from "./pages/MatchTestPage";
 import RefPanelPage from "./pages/RefPanelPage";
 import SoundsPage from "./pages/SoundsPage";
+import TeamDisplayPage from "./pages/TeamDispayPage";
 
 export default function Router() {
   return (
@@ -31,6 +32,10 @@ export default function Router() {
 
           <Route path="/refpanel" exact>
             <RefPanelPage />
+          </Route>
+
+          <Route path="/teamdisplay" exact>
+            <TeamDisplayPage />
           </Route>
 
           <Route>

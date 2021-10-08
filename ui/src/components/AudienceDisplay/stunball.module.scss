@@ -1,0 +1,80 @@
+@use "sass:color";
+@import "../../styles/ohms-style/scss/colors.scss";
+
+.holder {
+    display: flex;
+    height: calc(100vh - 80px - 100px);
+}
+
+.red, .blue {
+    color: white;
+    flex: 1 1 0px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+}
+
+.red {
+    background-color: color.scale($first-red, $lightness: 30%);
+}
+
+.blue {
+    background-color: color.scale($first-blue, $lightness: 30%);
+}
+
+.teamCard {
+    width: 100%;
+    text-align: center;
+}
+
+.teamHolder {
+    display: flex;
+    justify-content: stretch;
+}
+
+.timer {
+    display: flex;
+    justify-content: center;
+    height: 100px;
+    background: linear-gradient(90deg, color.scale($first-red, $lightness: 30%) 50%, color.scale($first-blue, $lightness: 30%) 50%);
+
+    span {
+        margin: 10px;
+        font-size: 4em;
+        background: $ohms-primary-light;
+        border-radius: 1.5em;
+        color: #ffffff;
+        display: inline-block;
+        font-weight: bold;
+        line-height: 1.6em;
+        margin-right: 15px;
+        text-align: center;
+        width: 3em; 
+    }
+}
+
+.score {
+    font-size: 12em;
+    margin: 200px;
+}
+
+.stunned {
+    animation: flash 0.5s infinite;
+}
+
+@keyframes flash {
+    0%, 100% { 
+        background-color: black;
+        color: white;
+    } 
+    50% { 
+        background-color: white;
+        color: black;
+    }
+}
+
+.stunHolder {
+    height: 40px;
+}

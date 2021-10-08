@@ -457,6 +457,18 @@ export type RoboticonGameStateSubscriptionVariables = Exact<{ [key: string]: nev
 
 export type RoboticonGameStateSubscription = { __typename?: 'Subscription', subscribe: string };
 
+export type RoboticonNewDanceMoveMutationVariables = Exact<{
+  data: Scalars['String'];
+}>;
+
+
+export type RoboticonNewDanceMoveMutation = { __typename?: 'Mutation', publish: boolean };
+
+export type RoboticonReplyDanceMovesSubscriptionVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RoboticonReplyDanceMovesSubscription = { __typename?: 'Subscription', subscribe: string };
+
 export type ResetRoboticonGameMutationVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -466,6 +478,18 @@ export type RoboticonScoresSubscriptionVariables = Exact<{ [key: string]: never;
 
 
 export type RoboticonScoresSubscription = { __typename?: 'Subscription', subscribe: string };
+
+export type RoboticonStunTeamMutationVariables = Exact<{
+  data: Scalars['String'];
+}>;
+
+
+export type RoboticonStunTeamMutation = { __typename?: 'Mutation', publish: boolean };
+
+export type RoboticonStunnedAlliancesSubscriptionVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RoboticonStunnedAlliancesSubscription = { __typename?: 'Subscription', subscribe: string };
 
 export type SignInMutationVariables = Exact<{
   username: Scalars['String'];
@@ -686,6 +710,64 @@ export function useRoboticonGameStateSubscription(baseOptions?: Apollo.Subscript
       }
 export type RoboticonGameStateSubscriptionHookResult = ReturnType<typeof useRoboticonGameStateSubscription>;
 export type RoboticonGameStateSubscriptionResult = Apollo.SubscriptionResult<RoboticonGameStateSubscription>;
+export const RoboticonNewDanceMoveDocument = gql`
+    mutation RoboticonNewDanceMove($data: String!) {
+  publish(topic: "roboticonRequestNewDanceMove", message: $data)
+}
+    `;
+export type RoboticonNewDanceMoveMutationFn = Apollo.MutationFunction<RoboticonNewDanceMoveMutation, RoboticonNewDanceMoveMutationVariables>;
+
+/**
+ * __useRoboticonNewDanceMoveMutation__
+ *
+ * To run a mutation, you first call `useRoboticonNewDanceMoveMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRoboticonNewDanceMoveMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [roboticonNewDanceMoveMutation, { data, loading, error }] = useRoboticonNewDanceMoveMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useRoboticonNewDanceMoveMutation(baseOptions?: Apollo.MutationHookOptions<RoboticonNewDanceMoveMutation, RoboticonNewDanceMoveMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RoboticonNewDanceMoveMutation, RoboticonNewDanceMoveMutationVariables>(RoboticonNewDanceMoveDocument, options);
+      }
+export type RoboticonNewDanceMoveMutationHookResult = ReturnType<typeof useRoboticonNewDanceMoveMutation>;
+export type RoboticonNewDanceMoveMutationResult = Apollo.MutationResult<RoboticonNewDanceMoveMutation>;
+export type RoboticonNewDanceMoveMutationOptions = Apollo.BaseMutationOptions<RoboticonNewDanceMoveMutation, RoboticonNewDanceMoveMutationVariables>;
+export const RoboticonReplyDanceMovesDocument = gql`
+    subscription RoboticonReplyDanceMoves {
+  subscribe(topic: "roboticonReplyCurrentDanceMoves")
+}
+    `;
+
+/**
+ * __useRoboticonReplyDanceMovesSubscription__
+ *
+ * To run a query within a React component, call `useRoboticonReplyDanceMovesSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useRoboticonReplyDanceMovesSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRoboticonReplyDanceMovesSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useRoboticonReplyDanceMovesSubscription(baseOptions?: Apollo.SubscriptionHookOptions<RoboticonReplyDanceMovesSubscription, RoboticonReplyDanceMovesSubscriptionVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<RoboticonReplyDanceMovesSubscription, RoboticonReplyDanceMovesSubscriptionVariables>(RoboticonReplyDanceMovesDocument, options);
+      }
+export type RoboticonReplyDanceMovesSubscriptionHookResult = ReturnType<typeof useRoboticonReplyDanceMovesSubscription>;
+export type RoboticonReplyDanceMovesSubscriptionResult = Apollo.SubscriptionResult<RoboticonReplyDanceMovesSubscription>;
 export const ResetRoboticonGameDocument = gql`
     mutation ResetRoboticonGame {
   publish(topic: "roboticonResetGame", message: "true")
@@ -743,6 +825,64 @@ export function useRoboticonScoresSubscription(baseOptions?: Apollo.Subscription
       }
 export type RoboticonScoresSubscriptionHookResult = ReturnType<typeof useRoboticonScoresSubscription>;
 export type RoboticonScoresSubscriptionResult = Apollo.SubscriptionResult<RoboticonScoresSubscription>;
+export const RoboticonStunTeamDocument = gql`
+    mutation RoboticonStunTeam($data: String!) {
+  publish(topic: "roboticonStunTeam", message: $data)
+}
+    `;
+export type RoboticonStunTeamMutationFn = Apollo.MutationFunction<RoboticonStunTeamMutation, RoboticonStunTeamMutationVariables>;
+
+/**
+ * __useRoboticonStunTeamMutation__
+ *
+ * To run a mutation, you first call `useRoboticonStunTeamMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRoboticonStunTeamMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [roboticonStunTeamMutation, { data, loading, error }] = useRoboticonStunTeamMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useRoboticonStunTeamMutation(baseOptions?: Apollo.MutationHookOptions<RoboticonStunTeamMutation, RoboticonStunTeamMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RoboticonStunTeamMutation, RoboticonStunTeamMutationVariables>(RoboticonStunTeamDocument, options);
+      }
+export type RoboticonStunTeamMutationHookResult = ReturnType<typeof useRoboticonStunTeamMutation>;
+export type RoboticonStunTeamMutationResult = Apollo.MutationResult<RoboticonStunTeamMutation>;
+export type RoboticonStunTeamMutationOptions = Apollo.BaseMutationOptions<RoboticonStunTeamMutation, RoboticonStunTeamMutationVariables>;
+export const RoboticonStunnedAlliancesDocument = gql`
+    subscription RoboticonStunnedAlliances {
+  subscribe(topic: "roboticonTeamStunUpdate")
+}
+    `;
+
+/**
+ * __useRoboticonStunnedAlliancesSubscription__
+ *
+ * To run a query within a React component, call `useRoboticonStunnedAlliancesSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useRoboticonStunnedAlliancesSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRoboticonStunnedAlliancesSubscription({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useRoboticonStunnedAlliancesSubscription(baseOptions?: Apollo.SubscriptionHookOptions<RoboticonStunnedAlliancesSubscription, RoboticonStunnedAlliancesSubscriptionVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<RoboticonStunnedAlliancesSubscription, RoboticonStunnedAlliancesSubscriptionVariables>(RoboticonStunnedAlliancesDocument, options);
+      }
+export type RoboticonStunnedAlliancesSubscriptionHookResult = ReturnType<typeof useRoboticonStunnedAlliancesSubscription>;
+export type RoboticonStunnedAlliancesSubscriptionResult = Apollo.SubscriptionResult<RoboticonStunnedAlliancesSubscription>;
 export const SignInDocument = gql`
     mutation SignIn($username: String!, $password: String!) {
   signIn(username: $username, password: $password)
