@@ -4,6 +4,7 @@ import AudienceDisplayPage from "./pages/AudienceDisplayPage";
 import LinksPage from "./pages/LinksPage";
 import LoginPage from "./pages/LoginPage";
 import MatchTestPage from "./pages/MatchTestPage";
+import RefPanelPage from "./pages/RefPanelPage";
 import SoundsPage from "./pages/SoundsPage";
 
 export default function Router() {
@@ -26,6 +27,10 @@ export default function Router() {
 
           <Route path="/audience" exact>
             <AudienceDisplayPage />
+          </Route>
+
+          <Route path="/refpanel" exact>
+            <RefPanelPage />
           </Route>
 
           <Route>

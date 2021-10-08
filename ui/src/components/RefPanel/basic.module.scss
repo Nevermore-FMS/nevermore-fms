@@ -1,0 +1,20 @@
+@import "../../styles/ohms-style/scss/colors.scss";
+
+.redActions, .blueActions {
+    margin: 20px;
+    button {
+        margin: 20px;
+    }
+}
+
+.blueActions {
+    button {
+        background-color: $first-blue;
+    }
+}
+
+.redActions {
+    button {
+        background-color: $first-red;
+    }
+}

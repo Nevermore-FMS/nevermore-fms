@@ -457,6 +457,11 @@ export type RoboticonGameStateSubscriptionVariables = Exact<{ [key: string]: nev
 
 export type RoboticonGameStateSubscription = { __typename?: 'Subscription', subscribe: string };
 
+export type ResetRoboticonGameMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ResetRoboticonGameMutation = { __typename?: 'Mutation', publish: boolean };
+
 export type RoboticonScoresSubscriptionVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -681,6 +686,36 @@ export function useRoboticonGameStateSubscription(baseOptions?: Apollo.Subscript
       }
 export type RoboticonGameStateSubscriptionHookResult = ReturnType<typeof useRoboticonGameStateSubscription>;
 export type RoboticonGameStateSubscriptionResult = Apollo.SubscriptionResult<RoboticonGameStateSubscription>;
+export const ResetRoboticonGameDocument = gql`
+    mutation ResetRoboticonGame {
+  publish(topic: "roboticonResetGame", message: "true")
+}
+    `;
+export type ResetRoboticonGameMutationFn = Apollo.MutationFunction<ResetRoboticonGameMutation, ResetRoboticonGameMutationVariables>;
+
+/**
+ * __useResetRoboticonGameMutation__
+ *
+ * To run a mutation, you first call `useResetRoboticonGameMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useResetRoboticonGameMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [resetRoboticonGameMutation, { data, loading, error }] = useResetRoboticonGameMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useResetRoboticonGameMutation(baseOptions?: Apollo.MutationHookOptions<ResetRoboticonGameMutation, ResetRoboticonGameMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ResetRoboticonGameMutation, ResetRoboticonGameMutationVariables>(ResetRoboticonGameDocument, options);
+      }
+export type ResetRoboticonGameMutationHookResult = ReturnType<typeof useResetRoboticonGameMutation>;
+export type ResetRoboticonGameMutationResult = Apollo.MutationResult<ResetRoboticonGameMutation>;
+export type ResetRoboticonGameMutationOptions = Apollo.BaseMutationOptions<ResetRoboticonGameMutation, ResetRoboticonGameMutationVariables>;
 export const RoboticonScoresDocument = gql`
     subscription RoboticonScores {
   subscribe(topic: "roboticonReplyScores")

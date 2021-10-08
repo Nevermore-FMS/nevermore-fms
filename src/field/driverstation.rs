@@ -163,6 +163,9 @@ impl DriverStation {
                 tokio::select! {
                     result = reader.read(&mut buffer) => {
                         match result {
+                            Ok(0) => {
+                                break
+                            },
                             Ok(_) => {
                                 Self::handle_packet(buffer.clone(), thread_safe_robot.clone()).await;
                             },

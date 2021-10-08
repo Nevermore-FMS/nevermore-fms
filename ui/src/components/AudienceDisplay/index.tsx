@@ -13,9 +13,10 @@ export default function AudienceDisplay() {
 
     useEffect(() => {
         startPolling(200)
-        requestRoboticonScores()
+        const id = setInterval(() => requestRoboticonScores(), 1500)
         return () => {
             stopPolling()
+            clearInterval(id)
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
@@ -36,17 +37,19 @@ export default function AudienceDisplay() {
     const { data: roboticonScoresData } = useRoboticonScoresSubscription()
     let roboticonScores: { [key: string]: number } = {}
     if (roboticonScoresData?.subscribe != null) { roboticonScores = JSON.parse(roboticonScoresData.subscribe) }
-    console.log(roboticonScores)
 
+    const showGameScreen = roboticonState.enabled || Object.keys(roboticonScores).length > 0
+
+    console.log(roboticonScores)
     return (
         <div style={{ overflowY: "hidden" }}>
             {!finalized && <IdleDisplay />}
-            {finalized && !roboticonState.enabled && (
+            {finalized && !showGameScreen && (
                 <Matchup
                     redTeams={stationsData!!.teamAllianceStations.filter(a => a.allianceStation.toString().includes("RED")).map(a => a.teamNumber.toString())}
                     blueTeams={stationsData!!.teamAllianceStations.filter(a => a.allianceStation.toString().includes("BLUE")).map(a => a.teamNumber.toString())} />
             )}
-            {finalized && roboticonState.enabled && roboticonState.gameType === GameType.BASIC && (
+            {finalized && showGameScreen && ([GameType.BASIC, GameType.SOCCER].includes(roboticonState.gameType)) && (
                 <BasicPlay
                     redTeams={stationsData!!.teamAllianceStations.filter(a => a.allianceStation.toString().includes("RED")).map(a => a.teamNumber.toString())}
                     blueTeams={stationsData!!.teamAllianceStations.filter(a => a.allianceStation.toString().includes("BLUE")).map(a => a.teamNumber.toString())}

@@ -1,6 +1,6 @@
 import { useApolloClient } from "@apollo/client"
 import { useEffect, useState } from "react"
-import { AddTeamToFieldDocument, AddTeamToFieldMutationVariables, AllianceStation, RemoveTeamFromFieldDocument, RemoveTeamFromFieldMutationVariables, useGetTeamAllianceStationsQuery, useRoboticonGameStateSubscription, useStartRoboticonGameMutation, useStopRoboticonGameMutation, useSwitchRoboticonGameMutation, useEStopRoboticonGameMutation } from "../../generated/graphql"
+import { AddTeamToFieldDocument, AddTeamToFieldMutationVariables, AllianceStation, RemoveTeamFromFieldDocument, RemoveTeamFromFieldMutationVariables, useGetTeamAllianceStationsQuery, useRoboticonGameStateSubscription, useStartRoboticonGameMutation, useStopRoboticonGameMutation, useSwitchRoboticonGameMutation, useEStopRoboticonGameMutation, useResetRoboticonGameMutation } from "../../generated/graphql"
 import Button from "../../styles/ohms-style/react/components/Button"
 import TextField from "../../styles/ohms-style/react/components/TextField"
 import styles from "./index.module.scss"
@@ -24,6 +24,7 @@ export default function MatchPlay() {
     const [stopRoboticonGame] = useStopRoboticonGameMutation()
     const [switchRoboticonGame] = useSwitchRoboticonGameMutation()
     const [eStopRoboticonGame] = useEStopRoboticonGameMutation()
+    const [resetRoboticonGame] = useResetRoboticonGameMutation()
 
     let roboticonState: GameState = {
         driverStationInfo: [],
@@ -108,6 +109,8 @@ export default function MatchPlay() {
         setInputs(defaultInputs)
     }
 
+    console.log(roboticonState)
+
     return (
         <div>
             <div className={styles.headerOptions}>
@@ -147,13 +150,13 @@ export default function MatchPlay() {
                     <Button variant="secondary" large onClick={() => setTeams()}>Setup Match</Button>
                 )}
                 {finalized && !roboticonState.enabled && (
-                    <Button variant="primary" large onClick={() => clearTeams()}>Clear Teams</Button>
+                    <Button variant="primary" large onClick={() => { clearTeams(); resetRoboticonGame() }}>Clear Teams</Button>
                 )}
                 {finalized && allReady && !roboticonState.enabled && (
                     <Button variant="secondary" large onClick={() => startRoboticonGame()}>Start Match</Button>
                 )}
                 {roboticonState.enabled && (
-                    <Button variant="primary" large onClick={() => stopRoboticonGame()}>Stop Match</Button>
+                    <Button variant="primary" large onClick={() => stopRoboticonGame() }>Stop Match</Button>
                 )}
                 {roboticonState.eStopped && (
                     <Button variant="secondary" large onClick={() => eStopRoboticonGame({ variables: {eStop: "false"} })}>Stop EStop</Button>
