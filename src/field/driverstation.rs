@@ -140,7 +140,7 @@ impl DriverStation {
             let address_parts: Vec<&str>  = addr_str.split(".").collect();
             let part_1: i32 = address_parts[1].parse().unwrap();
             let part_2: i32 = address_parts[2].parse().unwrap();
-            let apparent_team_number: u16 = format!("{}{}", part_1, part_2).parse().unwrap();
+            let apparent_team_number: u16 = format!("{:0>2}{:0>2}", part_1, part_2).parse().unwrap();
 
             let robot = DriverStation {
                 confirmed_state: None,
