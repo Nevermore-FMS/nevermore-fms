@@ -27,6 +27,7 @@
       },
 
       on: async function (name, callback) {
+
         switch (name) {
           case "tick": {
             const ticker = await core.opAsync("op_tick_subscribe");
