@@ -49,6 +49,7 @@ pub struct State {
     pub time_to_display: u16,
     pub match_number: u16,
     pub event_name: String,
+    pub stunned: bool
 }
 
 pub struct DriverStation {
@@ -220,6 +221,10 @@ impl DriverStation {
         let mut buffer: Vec<u8> = vec![0; 22];
 
         let mut state = self.get_state().await.unwrap();
+
+        if state.stunned {
+            return;
+        }
 
         buffer[0] = (state.sequence_number >> 8 & 0xff) as u8;
         buffer[1] = (state.sequence_number & 0xff) as u8;

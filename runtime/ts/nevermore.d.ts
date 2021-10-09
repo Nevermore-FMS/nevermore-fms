@@ -95,7 +95,8 @@ declare namespace Nevermore {
             sequenceNumber: number,
             timeToDisplay: number,
             matchNumber: number,
-            eventName: string
+            eventName: string,
+            stunned: boolean
         }
 
         export interface DriverStationConfirmedState {
