@@ -77,6 +77,13 @@ export default function StunballPanel({ scores }: { scores: { [key: string]: num
                             >
                                 Hit Other Team
                             </Button>
+                            <Button
+                                large
+                                variant="secondary"
+                                onClick={() => updateScore({ variables: { data: JSON.stringify({ teamNumber: alliance === Alliance.RED ? 1 : 0, scoreDifference: -5 }) } })}
+                            >
+                                Went Outside Bounts
+                            </Button>
                         </div>
                     </>
                 )}
