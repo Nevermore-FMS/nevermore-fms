@@ -330,6 +330,7 @@ impl DriverStation {
                         time_to_display: 0,
                         match_number: 0,
                         event_name,
+                        stunned: false
                     })
                     .await;
 

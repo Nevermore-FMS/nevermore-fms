@@ -26,6 +26,7 @@ pub struct StateInput {
     pub time_to_display: u16,
     pub match_number: u16,
     pub event_name: String,
+    pub stunned: bool
 }
 
 #[derive(Default)]
@@ -146,6 +147,7 @@ impl FieldMutation {
             time_to_display: state_input.time_to_display,
             match_number: state_input.match_number,
             event_name: state_input.event_name,
+            stunned: state_input.stunned
         };
         locked_field
             .get_driver_station(team_number)
