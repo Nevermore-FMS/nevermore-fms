@@ -17,7 +17,7 @@ export default function DancePartyPanel({ teams }: { teams: number[] }) {
 
     return (
         <div>
-            <div>
+            <div style={{ display: "flex" }}>
                 <Select placeholder="Team" value={team} onChange={(e) => setTeam(parseInt(e.target.value))}>
                     <option value={-1} disabled>Select a team</option>
                     {teams.map(t => (
