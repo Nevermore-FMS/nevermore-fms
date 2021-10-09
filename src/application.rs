@@ -190,7 +190,7 @@ fn send_log_error_message(log_sender: tokio::sync::broadcast::Sender<LogMessage>
 }
 
 pub fn create_basic_runtime() -> tokio::runtime::Runtime {
-    tokio::runtime::Builder::new_current_thread()
+    tokio::runtime::Builder::new_multi_thread()
         .enable_io()
         .enable_time()
         .build()

@@ -30,7 +30,7 @@ impl PubSub {
         T: Serialize + DeserializeOwned,
     {
         let mut map = self.map.write().await;
-        let publisher = map.entry(topic.clone()).or_insert(Publisher::new(10));
+        let publisher = map.entry(topic.clone()).or_insert(Publisher::new(100000));
         publisher
             .subscribe()
             .map(|x| bincode::deserialize::<T>(&x[..]).unwrap())
