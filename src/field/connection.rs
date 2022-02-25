@@ -55,7 +55,12 @@ impl DriverStationConnection {
         let conn = driver_station_connection.clone();
         tokio::spawn(async move {
             if let Err(e) = conn.handle_tcp_stream().await {
-                if e.to_string() != "early eof" {
+                if e.to_string() == "early eof" {
+                    let raw_conn = conn.raw.read().await;
+                    if let Some(ds) = &raw_conn.driverstation {
+                        info!("Driver station {} disconnected", ds.team_number().await);
+                    }
+                } else {
                     warn!("Error handling TCP stream from driverstation: {}", e);
                 }
                 let mut raw_conn = conn.raw.write().await;
@@ -126,6 +131,7 @@ impl DriverStationConnection {
                 status = DriverstationStatus::Good;
             } else {
                 status = DriverstationStatus::Bad;
+                info!("Driver station {} is not expected to be connected from this IP address", ds.team_number().await);
             }
         }
 

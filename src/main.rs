@@ -46,6 +46,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("Error while creating application, couldn't start Nevermore")?;
 
+    //TODO Remove - Debug
     application
         .field()
         .await
