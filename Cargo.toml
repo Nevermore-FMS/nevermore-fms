@@ -1,0 +1,16 @@
+[package]
+name = "nevermore-fms"
+version = "0.2.0"
+authors = ["Edgar Allan Ohms 5276"]
+edition = "2018"
+
+
+[dependencies]
+tokio = { version = "1.16.1", features = ["full"] }
+async-channel = "1.6.1"
+clap = { version = "3.0.14", features = ["derive", "env"] }
+anyhow = "1.0"
+log = "0.4"
+pretty_env_logger = "0.4"
+cidr = "0.2.1"
+chrono = "0.4.19"
