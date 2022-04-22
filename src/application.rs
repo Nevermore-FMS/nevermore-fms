@@ -34,7 +34,7 @@ impl Application {
 
     // Internal API -->
     pub(super) async fn new(db_uri: Option<String>, ds_address: IpAddr) -> anyhow::Result<Self> {
-        let field = Field::new(String::from("Default Event"), ds_address).await?;
+        let field = Field::new(String::from("DFLT"), ds_address).await?;
 
         let (indicate_running, running_signal) = async_channel::bounded(1);
 

@@ -1,6 +1,6 @@
 use std::{io::Cursor, net::IpAddr, sync::Arc, time::Duration};
 
-use anyhow::Context;
+use anyhow::{bail, Context, Ok};
 use cidr::AnyIpCidr;
 use log::*;
 use tokio::{
@@ -12,7 +12,7 @@ use tokio::{
 
 use super::{
     connection::DriverStationConnection,
-    enums::{AllianceStation, Mode},
+    enums::{AllianceStation, Mode}, Field,
 };
 
 struct RawDriverstation {
@@ -82,6 +82,7 @@ impl DriverStation {
 
 //Represents all driverstations (connected and not connected), their sockets, and manages various ways to index them
 pub struct RawDriverStations {
+    field: Option<Field>,
     all_driverstations: Vec<DriverStation>,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
@@ -95,10 +96,28 @@ pub struct DriverStations {
 impl DriverStations {
     // Public API -->
 
-    pub async fn add_driverstation(&mut self, driverstation: DriverStation) {
-        //TODO more checks
+    pub async fn add_driverstation(&mut self, driverstation: DriverStation) -> anyhow::Result<()> {
+        if let Some(_) = self
+            .get_driverstation_by_team_number(driverstation.team_number().await)
+            .await
+        {
+            bail!(
+                "Driverstation with team number {} already exists",
+                driverstation.team_number().await
+            );
+        }
+
+        if let Some(_) = self.get_driverstation_by_position(driverstation.alliance_station().await).await {
+            bail!(
+                "Driverstation already exists in alliance station {:?}",
+                driverstation.alliance_station().await
+            );
+        }
+
         let mut raw_driverstations = self.raw.write().await;
         raw_driverstations.all_driverstations.push(driverstation);
+
+        Ok(())
     }
 
     pub async fn get_driverstation_by_team_number(
@@ -112,6 +131,28 @@ impl DriverStations {
             }
         }
         return None;
+    }
+
+    pub async fn get_driverstation_by_position(
+        &self,
+        alliance_station: AllianceStation,
+    ) -> Option<DriverStation> {
+        let raw_driverstations = self.raw.read().await;
+        for ds in raw_driverstations.all_driverstations.iter() {
+            if ds.alliance_station().await == alliance_station {
+                return Some(ds.clone());
+            }
+        }
+        return None;
+    }
+
+    pub async fn get_field(&self) -> Field {
+        let raw_driverstations = self.raw.read().await;
+        if let Some(field) = raw_driverstations.field.clone() {
+            field
+        } else {
+            panic!("Driverstations get_field() used too early");
+        }
     }
 
     pub async fn terminate(&self) {
@@ -128,12 +169,13 @@ impl DriverStations {
 
     // Internal API -->
 
-    pub(super) fn new() -> Self {
+    pub(super) fn new(field: Option<Field>) -> Self {
         let (terminate_sender, _) = broadcast::channel(1);
 
         let (indicate_running, running_signal) = async_channel::bounded(1);
 
         let driverstations = RawDriverStations {
+            field,
             all_driverstations: Vec::new(),
             terminate_signal: Some(terminate_sender),
             running_signal,
@@ -149,6 +191,15 @@ impl DriverStations {
         });
 
         driverstations
+    }
+
+    pub(super) async fn set_field(&self, field: Field) -> anyhow::Result<()> {
+        let mut raw_driverstations = self.raw.write().await;
+        if raw_driverstations.field.is_some() {
+            bail!("Field already set");
+        }
+        raw_driverstations.field = Some(field);
+        Ok(())
     }
 
     async fn tick_loop(&self) {

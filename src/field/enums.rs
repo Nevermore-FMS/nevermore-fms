@@ -58,7 +58,7 @@ impl DriverstationStatus {
 
 /// Represents the AllianceStation of a DriverStation. There are six different alliance stations around
 /// an FRC field, three on each side. (Hardcoded due to it's use in the network protocol)
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum AllianceStation {
     Red1,
     Red2,
@@ -91,6 +91,35 @@ impl AllianceStation {
             AllianceStation::Blue2 => 4,
             AllianceStation::Blue3 => 5,
             AllianceStation::None => 0,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum TournamentLevel {
+    Test,
+    Practice,
+    Qualification,
+    Playoff,
+}
+
+impl TournamentLevel {
+    pub fn from_byte(integer: u8) -> TournamentLevel {
+        match integer {
+            0 => TournamentLevel::Test,
+            1 => TournamentLevel::Practice,
+            2 => TournamentLevel::Qualification,
+            3 => TournamentLevel::Playoff,
+            _ => TournamentLevel::Test,
+        }
+    }
+
+    pub fn to_byte(self) -> u8 {
+        match self {
+            TournamentLevel::Test => 0,
+            TournamentLevel::Practice => 1,
+            TournamentLevel::Qualification => 2,
+            TournamentLevel::Playoff => 3,
         }
     }
 }

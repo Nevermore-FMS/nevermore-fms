@@ -1,5 +1,6 @@
 pub mod application;
 pub mod field;
+pub mod control;
 
 use std::{
     env,
@@ -52,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .driverstations()
         .await
-        .add_driverstation(DriverStation::new(5276, AllianceStation::Red1, "0.0.0.0/0".parse().unwrap())).await;
+        .add_driverstation(DriverStation::new(5276, AllianceStation::Red1, "0.0.0.0/0".parse().unwrap())).await?;
 
     application.wait_for_terminate().await;
 

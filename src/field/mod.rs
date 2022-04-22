@@ -17,10 +17,13 @@ use tokio::{
     },
 };
 
-use self::driverstation::DriverStations;
+use self::{driverstation::DriverStations, enums::TournamentLevel};
 
 struct RawField {
     event_name: String,
+    tournament_level: TournamentLevel,
+    match_number: u16,
+    play_number: u8,
     driverstations: DriverStations,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
@@ -50,6 +53,30 @@ impl Field {
         raw.driverstations.clone()
     }
 
+    pub async fn event_name(&self) -> String {
+        let raw = self.raw.read().await;
+        raw.event_name.clone()
+    }
+
+    pub async fn tournament_level(&self) -> TournamentLevel {
+        let raw = self.raw.read().await;
+        raw.tournament_level.clone()
+    }
+
+    pub async fn match_number(&self) -> u16 {
+        let raw = self.raw.read().await;
+        raw.match_number.clone()
+    }
+
+    pub async fn play_number(&self) -> u8 {
+        let raw = self.raw.read().await;
+        raw.play_number.clone()
+    }
+
+    pub async fn time_remaining(&self) -> f64 {
+        69.420 // TODO
+    }
+
     // Internal API -->
 
     pub(super) async fn new(event_name: String, ds_address: IpAddr) -> anyhow::Result<Self> {
@@ -59,13 +86,18 @@ impl Field {
 
         let field = RawField {
             event_name,
-            driverstations: DriverStations::new(),
+            tournament_level: TournamentLevel::Test,
+            match_number: 0,
+            play_number: 0,
+            driverstations: DriverStations::new(None),
             terminate_signal: Some(terminate_sender),
             running_signal,
         };
         let field = Self {
             raw: Arc::new(RwLock::new(field)),
         };
+        
+        field.driverstations().await.set_field(field.clone()).await?;
 
         let udp_address = SocketAddr::new(ds_address, 1160);
         let tcp_address = SocketAddr::new(ds_address, 1750);
