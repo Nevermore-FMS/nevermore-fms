@@ -2,10 +2,11 @@ use std::{net::IpAddr, sync::Arc};
 
 use tokio::sync::RwLock;
 
-use crate::field::Field;
+use crate::{field::Field, plugin::PluginManager};
 
 struct RawApplication {
     pub field: Field,
+    pub plugin_manager: PluginManager,
     running_signal: async_channel::Receiver<()>,
 }
 #[derive(Clone)]
@@ -36,11 +37,14 @@ impl Application {
     pub(super) async fn new(db_uri: Option<String>, ds_address: IpAddr) -> anyhow::Result<Self> {
         let field = Field::new(String::from("DFLT"), ds_address).await?;
 
+        let plugin_manager = PluginManager::new(field.clone());
+
         let (indicate_running, running_signal) = async_channel::bounded(1);
 
         let application = RawApplication {
             field,
             running_signal,
+            plugin_manager
         };
 
         let wait_field = application.field.clone();

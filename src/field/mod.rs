@@ -17,6 +17,8 @@ use tokio::{
     },
 };
 
+use crate::control::{approver::Approver, estopper::Estopper};
+
 use self::{driverstation::DriverStations, enums::TournamentLevel};
 
 struct RawField {
@@ -24,6 +26,7 @@ struct RawField {
     tournament_level: TournamentLevel,
     match_number: u16,
     play_number: u8,
+    time_left: f64,
     driverstations: DriverStations,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
@@ -76,7 +79,8 @@ impl Field {
     }
 
     pub async fn time_remaining(&self) -> f64 {
-        69.420 // TODO
+        let raw = self.raw.read().await;
+        raw.time_left
     }
 
     // Internal API -->
@@ -91,6 +95,7 @@ impl Field {
             tournament_level: TournamentLevel::Test,
             match_number: 0,
             play_number: 0,
+            time_left: 0.0,
             driverstations: DriverStations::new(None),
             terminate_signal: Some(terminate_sender),
             running_signal,

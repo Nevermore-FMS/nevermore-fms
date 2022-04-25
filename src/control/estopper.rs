@@ -26,6 +26,7 @@ impl AllEstopper {
         self.active = true;
     }
 }
+
 #[async_trait]
 impl Estopper for AllEstopper {
     fn name(&self) -> String {
@@ -71,6 +72,7 @@ struct AllianceStationEstopper {
     name: String,
     approved_stations: Vec<AllianceStation>,
 }
+
 impl AllianceStationEstopper {
     pub fn new(name: String) -> Self {
         Self {

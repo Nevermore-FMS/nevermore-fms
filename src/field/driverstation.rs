@@ -20,6 +20,7 @@ struct RawDriverstation {
     alliance_station: AllianceStation,
     expected_ip: AnyIpCidr,
     active_connection: Option<DriverStationConnection>,
+    confirmed_state: Option<ConfirmedState>
 }
 
 #[derive(Clone)]
@@ -40,6 +41,7 @@ impl DriverStation {
             alliance_station,
             expected_ip,
             active_connection: None,
+            confirmed_state: Option::None,
         };
         let driverstation = Self {
             raw: Arc::new(RwLock::new(driverstation)),
@@ -71,7 +73,7 @@ impl DriverStation {
 
     pub(super) async fn set_confirmed_state(&self, confirmed_state: ConfirmedState) {
         let mut raw = self.raw.write().await;
-        raw.team_number = confirmed_state.team_number;
+        raw.confirmed_state = Option::Some(confirmed_state)
     }
 
     pub(super) async fn set_active_connection(&self, active_connection: DriverStationConnection) {
@@ -296,7 +298,7 @@ impl DriverStations {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct ConfirmedState {
     pub is_emergency_stopped: bool,
     pub robot_communications_active: bool,

@@ -7,6 +7,12 @@ pub enum Mode {
     Autonomous,
 }
 
+impl Default for Mode {
+    fn default() -> Self {
+        Self::Test
+    }
+}
+
 impl Mode {
     pub fn from_integer(integer: u8) -> Mode {
         match integer {

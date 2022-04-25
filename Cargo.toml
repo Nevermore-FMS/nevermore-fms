@@ -1,3 +1,5 @@
+cargo-features = ["edition2021"]
+
 [package]
 name = "nevermore-fms"
 version = "0.2.0"
@@ -15,3 +17,9 @@ pretty_env_logger = "0.4"
 cidr = "0.2.1"
 chrono = "0.4.19"
 async-trait = "0.1.52"
+tonic = "0.7"
+prost = "0.10"
+tokio-stream = "0.1"
+
+[build-dependencies]
+tonic-build = "0.7"

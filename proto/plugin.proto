@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package plugin;
+
+service Fms {
+    rpc RegisterPlugin(PluginInfo) returns (Empty);
+
+    // Field Functions
+    rpc OnFieldStateUpdate(Empty) returns (stream FieldState);
+
+    rpc OnFieldTerminate(Empty) returns (stream FieldState);
+
+    rpc GetFieldState(Empty) returns (FieldState);
+
+    rpc SetFieldState(FieldState) returns (FieldState);
+
+    // DriverStation Functions
+    rpc OnDriverStationUpdate(Empty) returns (stream DriverStation);
+
+    rpc GetDriverStations(Empty) returns (DriverStations);
+
+    rpc GetDriverStation(DriverStationQuery) returns (DriverStation);
+
+    rpc SetDriverStation(DriverStationParams) returns (DriverStation);
+
+    rpc DeleteDriverStation(DriverStationParams) returns (Empty);
+}
+
+// Utility Messages
+
+message Empty {}
+
+message PluginInfo {
+    string name = 1;
+    string version = 2;
+    optional string setup_url = 3;
+    
+}
+
+// Enums
+
+enum Mode {
+    TELEOP = 0;
+    TEST = 1;
+    AUTONOMOUS = 2;
+}
+
+enum DriverstationStatus {
+    GOOD = 0;
+    BAD = 1;
+    WAITING = 2;
+}
+
+enum AllianceStation {
+    RED1 = 0;
+    RED2 = 1;
+    RED3 = 2;
+    BLUE1 = 3;
+    BLUE2 = 4;
+    BLUE3 = 5;
+    NONE = 6;
+}
+
+enum TournamentLevel {
+    TESTING = 0;
+    PRACTICE = 1;
+    QUALIFICATION = 2;
+    PLAYOFF = 3;
+}
+
+// Field Messages
+
+message FieldState {
+    string event_name = 1;
+    TournamentLevel tournament_level = 2;
+    uint32 match_number = 3;
+    uint32 play_number = 4;
+}
+
+// DriverStation Messages
+
+message DriverStations {
+    repeated DriverStation driver_stations = 1;
+}
+
+enum DriverStationQueryType {
+    TEAMNUMBER = 0;
+    ALLIANCESTATION = 1;
+}
+
+message DriverStationQuery {
+    DriverStationQueryType type = 1;
+    uint32 team_number = 2;
+    AllianceStation alliance_station = 3;
+}
+
+message DriverStationParams {
+    uint32 team_number = 1;
+    AllianceStation alliance_station = 2;
+    string expected_ip = 3;
+}
+
+message DriverStation {
+    uint32 team_number = 1;
+    AllianceStation alliance_station = 2;
+    string expected_ip = 3;
+    optional DriverStationConnection connection = 4;
+    optional DriverStationConfirmedState confirmed_state = 5;
+}
+
+message DriverStationConnection {
+    bool alive = 1;
+    string ip = 2;
+    uint32 outgoing_sequence_num = 3;
+}
+
+message DriverStationConfirmedState {
+    bool is_emergency_stopped = 1;
+    bool robot_communications_active = 2;
+    bool can_ping_radio = 3;
+    bool can_ping_rio = 4;
+    bool is_enabled = 5;
+    Mode mode = 6;
+    uint32 team_number = 7;
+    float battery_voltage = 8;
+}

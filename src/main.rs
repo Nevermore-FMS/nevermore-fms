@@ -1,6 +1,7 @@
 pub mod application;
 pub mod field;
 pub mod control;
+pub mod plugin;
 
 use std::{
     env,
