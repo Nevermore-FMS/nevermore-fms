@@ -1,11 +1,11 @@
-use std::{sync::Arc, collections::HashMap, net::SocketAddr, hash::Hash};
 use log::info;
+use std::{collections::HashMap, hash::Hash, net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 use tonic::transport::Server;
 
 use crate::field::Field;
 
-use self::{rpc::{PluginInfo, fms_server::FmsServer}, api::FmsImpl};
+use self::{api::FmsImpl, rpc::fms_server::FmsServer};
 
 pub mod rpc {
     tonic::include_proto!("plugin");
@@ -14,24 +14,20 @@ pub mod rpc {
 pub mod api;
 
 pub struct RawPluginManager {
-    plugins: HashMap<String, Plugin>
+    plugins: HashMap<String, Plugin>,
 }
 
 #[derive(Clone)]
 pub struct PluginManager {
-    raw: Arc<RwLock<RawPluginManager>>
+    raw: Arc<RwLock<RawPluginManager>>,
 }
 
 impl PluginManager {
     pub fn new(field: Field) -> Self {
         let manager = PluginManager {
-            raw: Arc::new(
-                RwLock::new(
-                    RawPluginManager { 
-                        plugins: HashMap::new()
-                    }
-                )
-            )
+            raw: Arc::new(RwLock::new(RawPluginManager {
+                plugins: HashMap::new(),
+            })),
         };
 
         let manager_clone = manager.clone();
@@ -39,7 +35,7 @@ impl PluginManager {
             let addr: SocketAddr = "0.0.0.0:5276".parse().unwrap();
             let api_impl = FmsImpl {
                 plugin_manager: manager_clone,
-                field
+                field,
             };
 
             info!("Listening for gRPC plugins on {}", addr.clone());
@@ -47,7 +43,8 @@ impl PluginManager {
             Server::builder()
                 .add_service(FmsServer::new(api_impl))
                 .serve(addr)
-                .await.unwrap();
+                .await
+                .unwrap();
         });
 
         manager
@@ -66,7 +63,7 @@ impl PluginManager {
         let raw = self.raw.read().await;
         for (x, plugin) in raw.plugins.iter() {
             if x.clone() == id {
-                return Some(plugin.clone())
+                return Some(plugin.clone());
             }
         }
         None
@@ -81,32 +78,25 @@ impl PluginManager {
 
 pub struct RawPlugin {
     manager: PluginManager,
-    metadata: PluginMetadata
+    metadata: PluginMetadata,
 }
 
 #[derive(Clone)]
 pub struct PluginMetadata {
     id: String,
     name: String,
-    token: String
+    token: String,
 }
 
 #[derive(Clone)]
 pub struct Plugin {
-    raw: Arc<RwLock<RawPlugin>>
+    raw: Arc<RwLock<RawPlugin>>,
 }
 
 impl Plugin {
     pub fn new(manager: PluginManager, metadata: PluginMetadata) -> Self {
-        Plugin { 
-            raw: Arc::new(
-                RwLock::new(
-                    RawPlugin { 
-                        manager,
-                        metadata
-                    }
-                )
-            )
+        Plugin {
+            raw: Arc::new(RwLock::new(RawPlugin { manager, metadata })),
         }
     }
 }

@@ -12,7 +12,8 @@ use tokio::{
 
 use super::{
     connection::DriverStationConnection,
-    enums::{AllianceStation, Mode}, Field,
+    enums::{AllianceStation, Mode},
+    Field,
 };
 
 struct RawDriverstation {
@@ -21,7 +22,7 @@ struct RawDriverstation {
     mode: Mode,
     expected_ip: AnyIpCidr,
     active_connection: Option<DriverStationConnection>,
-    confirmed_state: Option<ConfirmedState>
+    confirmed_state: Option<ConfirmedState>,
 }
 
 #[derive(Clone)]
@@ -116,7 +117,10 @@ impl DriverStations {
             );
         }
 
-        if let Some(_) = self.get_driverstation_by_position(driverstation.alliance_station().await).await {
+        if let Some(_) = self
+            .get_driverstation_by_position(driverstation.alliance_station().await)
+            .await
+        {
             bail!(
                 "Driverstation already exists in alliance station {:?}",
                 driverstation.alliance_station().await

@@ -3,8 +3,10 @@ pub mod driverstation;
 pub mod enums;
 
 use std::{
+    collections::HashMap,
+    hash::Hash,
     net::{IpAddr, SocketAddr},
-    sync::Arc, collections::HashMap, hash::Hash,
+    sync::Arc,
 };
 
 use anyhow::Context;
@@ -113,8 +115,12 @@ impl Field {
         let field = Self {
             raw: Arc::new(RwLock::new(field)),
         };
-        
-        field.driverstations().await.set_field(field.clone()).await?;
+
+        field
+            .driverstations()
+            .await
+            .set_field(field.clone())
+            .await?;
 
         let udp_address = SocketAddr::new(ds_address, 1160);
         let tcp_address = SocketAddr::new(ds_address, 1750);

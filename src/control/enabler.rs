@@ -16,10 +16,7 @@ struct AllEnabler {
 }
 impl AllEnabler {
     pub fn new(name: String) -> Self {
-        Self {
-            name,
-            active: true,
-        }
+        Self { name, active: true }
     }
     pub fn deactivate(&mut self) {
         self.active = false;
@@ -96,6 +93,7 @@ impl Enabler for AllianceStationEnabler {
         self.name.clone()
     }
     async fn is_ds_enabled(&self, ds: DriverStation) -> bool {
-        self.approved_stations.contains(&ds.alliance_station().await)
+        self.approved_stations
+            .contains(&ds.alliance_station().await)
     }
 }

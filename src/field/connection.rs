@@ -1,18 +1,32 @@
-use std::{sync::Arc, io::Cursor, convert::TryInto, net::{IpAddr, SocketAddr}};
+use std::{
+    convert::TryInto,
+    io::Cursor,
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+};
 
-use chrono::{Local, Timelike, Datelike};
+use chrono::{Datelike, Local, Timelike};
 use log::*;
-use tokio::{sync::{Mutex, RwLock}, net::{TcpStream, UdpSocket}, io::{AsyncReadExt, AsyncWriteExt}};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpStream, UdpSocket},
+    sync::{Mutex, RwLock},
+};
 
-use super::{enums::{AllianceStation, DriverstationStatus, Mode}, driverstation::{DriverStations, DriverStation}};
+use super::{
+    driverstation::{DriverStation, DriverStations},
+    enums::{AllianceStation, DriverstationStatus, Mode},
+};
 
 struct RawDriverStationConnection {
-    driverstations: DriverStations, /// Represents the list of known/expected driver stations
-    driverstation: Option<DriverStation>, /// Represents the current driver station, only if this station is expected to be connected
+    driverstations: DriverStations,
+    /// Represents the list of known/expected driver stations
+    driverstation: Option<DriverStation>,
+    /// Represents the current driver station, only if this station is expected to be connected
     alive: bool,
     tcp_stream: Arc<Mutex<TcpStream>>,
     ip_address: IpAddr,
-    udp_outgoing_sequence_num: u16
+    udp_outgoing_sequence_num: u16,
 }
 
 /// Represents the long-lived connection to the driver station
@@ -39,14 +53,18 @@ impl DriverStationConnection {
     }
 
     // Internal API -->
-    pub(super) async fn new(tcp_stream: TcpStream, ip_address: IpAddr, driverstations: DriverStations) -> Self {
+    pub(super) async fn new(
+        tcp_stream: TcpStream,
+        ip_address: IpAddr,
+        driverstations: DriverStations,
+    ) -> Self {
         let driver_station_connection = RawDriverStationConnection {
             driverstations,
             driverstation: None,
             alive: true,
             tcp_stream: Arc::new(Mutex::new(tcp_stream)),
             ip_address,
-            udp_outgoing_sequence_num: 0
+            udp_outgoing_sequence_num: 0,
         };
         let driver_station_connection = Self {
             raw: Arc::new(RwLock::new(driver_station_connection)),
@@ -132,7 +150,11 @@ impl DriverStationConnection {
                 status = DriverstationStatus::Good;
             } else {
                 status = DriverstationStatus::Bad;
-                info!("Driver station {} is not expected to be connected from this IP address ({})", ds.team_number().await, &raw_conn.ip_address);
+                info!(
+                    "Driver station {} is not expected to be connected from this IP address ({})",
+                    ds.team_number().await,
+                    &raw_conn.ip_address
+                );
             }
         }
 
@@ -158,7 +180,7 @@ impl DriverStationConnection {
         let mut tcp_stream = raw_conn.tcp_stream.lock().await;
 
         let event_code = raw_conn.driverstations.get_field().await.event_name().await;
-        
+
         let mut packet = Cursor::new(Vec::new());
         packet.write_u8(0x14).await?; //ID For Event Code
         packet.write_u8(event_code.len() as u8).await?;
@@ -185,7 +207,7 @@ impl DriverStationConnection {
             } else {
                 raw_conn.udp_outgoing_sequence_num += 1;
             }
-    
+
             let mut packet = Cursor::new(Vec::new());
             packet.write_u16(raw_conn.udp_outgoing_sequence_num).await?;
             packet.write_u8(0x00).await?; //Comm Version
@@ -194,42 +216,101 @@ impl DriverStationConnection {
             match ds.mode().await {
                 Mode::TeleOp => control_byte |= 0x00,
                 Mode::Test => control_byte |= 0x01,
-                Mode::Autonomous => control_byte |= 0x02
+                Mode::Autonomous => control_byte |= 0x02,
             }
 
-            if raw_conn.driverstations.get_field().await.control_system().await.is_ds_enabled(ds.clone()).await {
+            if raw_conn
+                .driverstations
+                .get_field()
+                .await
+                .control_system()
+                .await
+                .is_ds_enabled(ds.clone())
+                .await
+            {
                 control_byte |= 0x04
             }
 
-            if raw_conn.driverstations.get_field().await.control_system().await.is_ds_estopped(ds.clone()).await {
+            if raw_conn
+                .driverstations
+                .get_field()
+                .await
+                .control_system()
+                .await
+                .is_ds_estopped(ds.clone())
+                .await
+            {
                 control_byte |= 0x80
             }
 
             packet.write_u8(control_byte).await?;
             packet.write_u8(0x00).await?; //Request Byte
-            packet.write_u8(ds.alliance_station().await.to_byte()).await?; //Alliance Station
-            packet.write_u8(raw_conn.driverstations.get_field().await.tournament_level().await.to_byte()).await?; //Tournament Level
-            packet.write_u16(raw_conn.driverstations.get_field().await.match_number().await).await?; //Match Number
-            packet.write_u8(raw_conn.driverstations.get_field().await.play_number().await).await?; //Play Number
-            
+            packet
+                .write_u8(ds.alliance_station().await.to_byte())
+                .await?; //Alliance Station
+            packet
+                .write_u8(
+                    raw_conn
+                        .driverstations
+                        .get_field()
+                        .await
+                        .tournament_level()
+                        .await
+                        .to_byte(),
+                )
+                .await?; //Tournament Level
+            packet
+                .write_u16(
+                    raw_conn
+                        .driverstations
+                        .get_field()
+                        .await
+                        .match_number()
+                        .await,
+                )
+                .await?; //Match Number
+            packet
+                .write_u8(
+                    raw_conn
+                        .driverstations
+                        .get_field()
+                        .await
+                        .play_number()
+                        .await,
+                )
+                .await?; //Play Number
+
             let time = Local::now();
-            packet.write_u32(time.nanosecond()/1000).await?;
+            packet.write_u32(time.nanosecond() / 1000).await?;
             packet.write_u8(time.second().try_into().unwrap()).await?;
             packet.write_u8(time.minute().try_into().unwrap()).await?;
             packet.write_u8(time.hour().try_into().unwrap()).await?;
             packet.write_u8(time.day().try_into().unwrap()).await?;
             packet.write_u8(time.month().try_into().unwrap()).await?;
-            packet.write_u8((time.year() - 1900).try_into().unwrap()).await?;
+            packet
+                .write_u8((time.year() - 1900).try_into().unwrap())
+                .await?;
 
-            packet.write_u16(raw_conn.driverstations.get_field().await.time_remaining().await.ceil() as u16).await?; //Time Remaining
-    
+            packet
+                .write_u16(
+                    raw_conn
+                        .driverstations
+                        .get_field()
+                        .await
+                        .time_remaining()
+                        .await
+                        .ceil() as u16,
+                )
+                .await?; //Time Remaining
+
             let buffer = packet.into_inner();
 
             let socket = UdpSocket::bind("0.0.0.0:0").await?;
-            socket.send_to(&buffer, SocketAddr::from((raw_conn.ip_address, 1121))).await?;
+            socket
+                .send_to(&buffer, SocketAddr::from((raw_conn.ip_address, 1121)))
+                .await?;
         }
 
         Ok(())
     }
 }
-
