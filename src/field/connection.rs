@@ -4,7 +4,7 @@ use chrono::{Local, Timelike, Datelike};
 use log::*;
 use tokio::{sync::{Mutex, RwLock}, net::{TcpStream, UdpSocket}, io::{AsyncReadExt, AsyncWriteExt}};
 
-use super::{enums::{AllianceStation, DriverstationStatus}, driverstation::{DriverStations, DriverStation}};
+use super::{enums::{AllianceStation, DriverstationStatus, Mode}, driverstation::{DriverStations, DriverStation}};
 
 struct RawDriverStationConnection {
     driverstations: DriverStations, /// Represents the list of known/expected driver stations
@@ -189,7 +189,23 @@ impl DriverStationConnection {
             let mut packet = Cursor::new(Vec::new());
             packet.write_u16(raw_conn.udp_outgoing_sequence_num).await?;
             packet.write_u8(0x00).await?; //Comm Version
-            packet.write_u8(0x00).await?; //Control Byte TODO
+
+            let mut control_byte = 0x00;
+            match ds.mode().await {
+                Mode::Test => control_byte |= 0x01,
+                Mode::Autonomous => control_byte |= 0x02,
+                _ => {},
+            }
+
+            if raw_conn.driverstations.get_field().await.control_system().await.is_ds_enabled(ds.clone()).await {
+                control_byte |= 0x04
+            }
+
+            if raw_conn.driverstations.get_field().await.control_system().await.is_ds_estopped(ds.clone()).await {
+                control_byte |= 0x80
+            }
+
+            packet.write_u8(control_byte).await?; //Control Byte TODO
             packet.write_u8(0x00).await?; //Request Byte
             packet.write_u8(ds.alliance_station().await.to_byte()).await?; //Alliance Station
             packet.write_u8(raw_conn.driverstations.get_field().await.tournament_level().await.to_byte()).await?; //Tournament Level

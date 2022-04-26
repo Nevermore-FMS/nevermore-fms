@@ -4,7 +4,7 @@ pub mod enums;
 
 use std::{
     net::{IpAddr, SocketAddr},
-    sync::Arc,
+    sync::Arc, collections::HashMap, hash::Hash,
 };
 
 use anyhow::Context;
@@ -17,7 +17,7 @@ use tokio::{
     },
 };
 
-use crate::control::{approver::Approver, estopper::Estopper};
+use crate::control::{enabler::SyncEnabler, estopper::SyncEstopper, ControlSystem};
 
 use self::{driverstation::DriverStations, enums::TournamentLevel};
 
@@ -30,6 +30,7 @@ struct RawField {
     driverstations: DriverStations,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
+    control_system: ControlSystem,
     udp_online: bool,
     tcp_online: bool,
 }
@@ -83,6 +84,11 @@ impl Field {
         raw.time_left
     }
 
+    pub async fn control_system(&self) -> ControlSystem {
+        let raw = self.raw.read().await;
+        raw.control_system.clone()
+    }
+
     // Internal API -->
 
     pub(super) async fn new(event_name: String, ds_address: IpAddr) -> anyhow::Result<Self> {
@@ -99,6 +105,7 @@ impl Field {
             driverstations: DriverStations::new(None),
             terminate_signal: Some(terminate_sender),
             running_signal,
+            control_system: ControlSystem::new(),
             udp_online: false,
             tcp_online: false,
         };

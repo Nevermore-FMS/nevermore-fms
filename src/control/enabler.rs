@@ -2,17 +2,19 @@ use async_trait::async_trait;
 
 use crate::field::{driverstation::DriverStation, enums::AllianceStation};
 
+pub type SyncEnabler = Box<dyn Enabler + Sync + Send>;
+
 #[async_trait]
-pub trait Approver {
-    async fn is_ds_approved(&self, ds: DriverStation) -> bool;
+pub trait Enabler {
+    async fn is_ds_enabled(&self, ds: DriverStation) -> bool;
     fn name(&self) -> String;
 }
 
-struct AllApprover {
+struct AllEnabler {
     name: String,
     active: bool,
 }
-impl AllApprover {
+impl AllEnabler {
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -27,20 +29,20 @@ impl AllApprover {
     }
 }
 #[async_trait]
-impl Approver for AllApprover {
+impl Enabler for AllEnabler {
     fn name(&self) -> String {
         self.name.clone()
     }
-    async fn is_ds_approved(&self, _ds: DriverStation) -> bool {
+    async fn is_ds_enabled(&self, _ds: DriverStation) -> bool {
         self.active
     }
 }
 
-struct TeamNumberApprover {
+struct TeamNumberEnabler {
     name: String,
     approved_team_numbers: Vec<u16>,
 }
-impl TeamNumberApprover {
+impl TeamNumberEnabler {
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -58,20 +60,20 @@ impl TeamNumberApprover {
     }
 }
 #[async_trait]
-impl Approver for TeamNumberApprover {
+impl Enabler for TeamNumberEnabler {
     fn name(&self) -> String {
         self.name.clone()
     }
-    async fn is_ds_approved(&self, ds: DriverStation) -> bool {
+    async fn is_ds_enabled(&self, ds: DriverStation) -> bool {
         self.approved_team_numbers.contains(&ds.team_number().await)
     }
 }
 
-struct AllianceStationApprover {
+struct AllianceStationEnabler {
     name: String,
     approved_stations: Vec<AllianceStation>,
 }
-impl AllianceStationApprover {
+impl AllianceStationEnabler {
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -89,11 +91,11 @@ impl AllianceStationApprover {
     }
 }
 #[async_trait]
-impl Approver for AllianceStationApprover {
+impl Enabler for AllianceStationEnabler {
     fn name(&self) -> String {
         self.name.clone()
     }
-    async fn is_ds_approved(&self, ds: DriverStation) -> bool {
+    async fn is_ds_enabled(&self, ds: DriverStation) -> bool {
         self.approved_stations.contains(&ds.alliance_station().await)
     }
 }

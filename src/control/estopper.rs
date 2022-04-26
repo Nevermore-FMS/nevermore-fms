@@ -2,6 +2,8 @@ use async_trait::async_trait;
 
 use crate::field::{driverstation::DriverStation, enums::AllianceStation};
 
+pub type SyncEstopper = Box<dyn Estopper + Sync + Send>;
+
 #[async_trait]
 pub trait Estopper {
     async fn is_ds_estopped(&self, ds: DriverStation) -> bool;

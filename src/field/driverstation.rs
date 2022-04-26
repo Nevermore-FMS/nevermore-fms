@@ -18,6 +18,7 @@ use super::{
 struct RawDriverstation {
     team_number: u16,
     alliance_station: AllianceStation,
+    mode: Mode,
     expected_ip: AnyIpCidr,
     active_connection: Option<DriverStationConnection>,
     confirmed_state: Option<ConfirmedState>
@@ -39,6 +40,7 @@ impl DriverStation {
         let driverstation = RawDriverstation {
             team_number,
             alliance_station,
+            mode: Mode::Test,
             expected_ip,
             active_connection: None,
             confirmed_state: Option::None,
@@ -57,6 +59,11 @@ impl DriverStation {
     pub async fn alliance_station(&self) -> AllianceStation {
         let raw = self.raw.read().await;
         raw.alliance_station
+    }
+
+    pub async fn mode(&self) -> Mode {
+        let raw = self.raw.read().await;
+        raw.mode
     }
 
     pub async fn expected_ip(&self) -> AnyIpCidr {
