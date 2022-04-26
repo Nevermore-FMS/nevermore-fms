@@ -192,9 +192,9 @@ impl DriverStationConnection {
 
             let mut control_byte = 0x00;
             match ds.mode().await {
+                Mode::TeleOp => control_byte |= 0x00,
                 Mode::Test => control_byte |= 0x01,
-                Mode::Autonomous => control_byte |= 0x02,
-                _ => {},
+                Mode::Autonomous => control_byte |= 0x02
             }
 
             if raw_conn.driverstations.get_field().await.control_system().await.is_ds_enabled(ds.clone()).await {
@@ -205,7 +205,7 @@ impl DriverStationConnection {
                 control_byte |= 0x80
             }
 
-            packet.write_u8(control_byte).await?; //Control Byte TODO
+            packet.write_u8(control_byte).await?;
             packet.write_u8(0x00).await?; //Request Byte
             packet.write_u8(ds.alliance_station().await.to_byte()).await?; //Alliance Station
             packet.write_u8(raw_conn.driverstations.get_field().await.tournament_level().await.to_byte()).await?; //Tournament Level
