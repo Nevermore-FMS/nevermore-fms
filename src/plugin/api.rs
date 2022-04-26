@@ -1,23 +1,23 @@
-use crate::field::Field;
+use crate::field::{Field, driverstation, enums};
 use log::info;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
-use super::rpc::fms_server::{Fms, FmsServer};
+use super::rpc::generic_api_server::{GenericApi, GenericApiServer};
 use super::PluginManager;
 
 use super::rpc::{
-    DriverStation, DriverStationParams, DriverStationQuery, DriverStations, Empty, FieldState,
+    DriverStation, DriverStationParams, DriverStationQuery, DriverStations, Empty, FieldState, DriverStationQueryType,
 };
 
-pub struct FmsImpl {
+pub struct GenericApiImpl {
     pub plugin_manager: PluginManager,
     pub field: Field,
 }
 
 #[tonic::async_trait]
-impl Fms for FmsImpl {
+impl GenericApi for GenericApiImpl {
     type OnFieldStateUpdateStream = ReceiverStream<Result<FieldState, Status>>;
 
     async fn on_field_state_update(
@@ -48,10 +48,7 @@ impl Fms for FmsImpl {
         Err(Status::unknown("TODO"))
     }
 
-    async fn get_field_state(
-        &self,
-        _: Request<Empty>,
-    ) -> Result<Response<FieldState>, Status> {
+    async fn get_field_state(&self, _: Request<Empty>) -> Result<Response<FieldState>, Status> {
         let event_name = self.field.event_name().await;
         let tournament_level = self.field.tournament_level().await.to_byte() as i32;
         let match_number = self.field.match_number().await as u32;
@@ -72,12 +69,30 @@ impl Fms for FmsImpl {
         Err(Status::unknown("TODO"))
     }
 
+    type OnDriverStationCreateStream = ReceiverStream<Result<DriverStation, Status>>;
+
+    async fn on_driver_station_create(
+        &self,
+        request: Request<Empty>,
+    ) -> Result<Response<Self::OnDriverStationCreateStream>, Status> {
+        Err(Status::unknown("TODO"))
+    }
+
     type OnDriverStationUpdateStream = ReceiverStream<Result<DriverStation, Status>>;
 
     async fn on_driver_station_update(
         &self,
         request: Request<Empty>,
     ) -> Result<Response<Self::OnDriverStationUpdateStream>, Status> {
+        Err(Status::unknown("TODO"))
+    }
+
+    type OnDriverStationDeleteStream = ReceiverStream<Result<DriverStation, Status>>;
+
+    async fn on_driver_station_delete(
+        &self,
+        request: Request<Empty>,
+    ) -> Result<Response<Self::OnDriverStationDeleteStream>, Status> {
         Err(Status::unknown("TODO"))
     }
 
@@ -92,10 +107,25 @@ impl Fms for FmsImpl {
         &self,
         request: Request<DriverStationQuery>,
     ) -> Result<Response<DriverStation>, Status> {
-        Err(Status::unknown("TODO"))
+        if request.get_ref().query_type == DriverStationQueryType::Teamnumber as i32 {
+            let ds = self.field.driverstations().await.get_driverstation_by_team_number(request.get_ref().team_number as u16).await.ok_or(Status::unavailable("Can't find driverstation"))?;
+            Ok(Response::new(ds.to_rpc().await))
+        } else {
+            let ds = self.field.driverstations().await.get_driverstation_by_position(enums::AllianceStation::from_byte(request.get_ref().alliance_station as u8)).await.ok_or(Status::unavailable("Can't find driverstation"))?;
+            Ok(Response::new(ds.to_rpc().await))
+        }
     }
 
-    async fn set_driver_station(
+    async fn add_driver_station(
+        &self,
+        request: Request<DriverStationParams>,
+    ) -> Result<Response<DriverStation>, Status> {
+        let ds = driverstation::DriverStation::new(request.get_ref().team_number as u16, enums::AllianceStation::from_byte(request.get_ref().alliance_station as u8), );
+        self.field.driverstations().await.add_driverstation(ds.clone()).await.map_err(|_| Status::unavailable("cannot add driverstation"))?;
+        Ok(Response::new(ds.to_rpc().await))
+    }
+
+    async fn update_driver_station(
         &self,
         request: Request<DriverStationParams>,
     ) -> Result<Response<DriverStation>, Status> {
@@ -108,6 +138,7 @@ impl Fms for FmsImpl {
         &self,
         request: Request<DriverStationParams>,
     ) -> Result<Response<Empty>, Status> {
-        Err(Status::unknown("TODO"))
+        self.field.driverstations().await.delete_driverstation(request.get_ref().team_number as u16).await.map_err(|_| Status::unavailable("cannot delete driverstation"))?;
+        Ok(Response::new(Empty{}))
     }
 }

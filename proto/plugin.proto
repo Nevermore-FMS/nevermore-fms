@@ -2,7 +2,12 @@ syntax = "proto3";
 
 package plugin;
 
-service Fms {
+service NetworkConfiguratorAPI {
+    // DriverStation Functions
+    rpc UpdateDriverStationExpectedIP(DriverStationUpdateExpectedIP) returns (DriverStation);
+}
+
+service GenericAPI {
     // Field Functions
     rpc OnFieldStateUpdate(Empty) returns (stream FieldState);
 
@@ -15,11 +20,17 @@ service Fms {
     // DriverStation Functions
     rpc OnDriverStationUpdate(Empty) returns (stream DriverStation);
 
+    rpc OnDriverStationCreate(Empty) returns (stream DriverStation);
+
+    rpc OnDriverStationDelete(Empty) returns (stream DriverStation);
+
     rpc GetDriverStations(Empty) returns (DriverStations);
 
     rpc GetDriverStation(DriverStationQuery) returns (DriverStation);
 
-    rpc SetDriverStation(DriverStationParams) returns (DriverStation);
+    rpc AddDriverStation(DriverStationParams) returns (DriverStation);
+
+    rpc UpdateDriverStation(DriverStationParams) returns (DriverStation);
 
     rpc DeleteDriverStation(DriverStationParams) returns (Empty);
 }
@@ -80,7 +91,7 @@ enum DriverStationQueryType {
 }
 
 message DriverStationQuery {
-    DriverStationQueryType type = 1;
+    DriverStationQueryType query_type = 1;
     uint32 team_number = 2;
     AllianceStation alliance_station = 3;
 }
@@ -88,13 +99,17 @@ message DriverStationQuery {
 message DriverStationParams {
     uint32 team_number = 1;
     AllianceStation alliance_station = 2;
-    string expected_ip = 3;
+}
+
+message DriverStationUpdateExpectedIP {
+    uint32 team_number = 1;
+    string expected_ip = 2;
 }
 
 message DriverStation {
     uint32 team_number = 1;
     AllianceStation alliance_station = 2;
-    string expected_ip = 3;
+    optional string expected_ip = 3;
     optional DriverStationConnection connection = 4;
     optional DriverStationConfirmedState confirmed_state = 5;
 }

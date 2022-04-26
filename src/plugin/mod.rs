@@ -5,7 +5,7 @@ use tonic::transport::Server;
 
 use crate::field::Field;
 
-use self::{api::FmsImpl, rpc::fms_server::FmsServer};
+use self::{api::GenericApiImpl, rpc::generic_api_server::GenericApiServer};
 
 pub mod rpc {
     tonic::include_proto!("plugin");
@@ -33,7 +33,7 @@ impl PluginManager {
         let manager_clone = manager.clone();
         tokio::spawn(async move {
             let addr: SocketAddr = "0.0.0.0:5276".parse().unwrap();
-            let api_impl = FmsImpl {
+            let api_impl = GenericApiImpl {
                 plugin_manager: manager_clone,
                 field,
             };
@@ -41,7 +41,7 @@ impl PluginManager {
             info!("Listening for gRPC plugins on {}", addr.clone());
 
             Server::builder()
-                .add_service(FmsServer::new(api_impl))
+                .add_service(GenericApiServer::new(api_impl))
                 .serve(addr)
                 .await
                 .unwrap();

@@ -1,3 +1,5 @@
+use crate::plugin::rpc;
+
 // Represents the Mode of a DriverStation. These values correspond to the values you can
 /// get from WPILib and can set on the Driverstation when directly connected.
 #[derive(Clone, Copy)]
@@ -14,7 +16,7 @@ impl Default for Mode {
 }
 
 impl Mode {
-    pub fn from_integer(integer: u8) -> Mode {
+    pub fn from_byte(integer: u8) -> Mode {
         match integer {
             0 => Mode::TeleOp,
             1 => Mode::Test,
@@ -23,7 +25,7 @@ impl Mode {
         }
     }
 
-    pub fn to_integer(self) -> u8 {
+    pub fn to_byte(self) -> u8 {
         match self {
             Mode::TeleOp => 0,
             Mode::Test => 1,

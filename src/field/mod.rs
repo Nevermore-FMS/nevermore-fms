@@ -66,9 +66,19 @@ impl Field {
         raw.event_name.clone()
     }
 
+    pub async fn set_event_name(&self, event_name: String) {
+        let mut raw = self.raw.write().await;
+        raw.event_name = event_name;
+    }
+
     pub async fn tournament_level(&self) -> TournamentLevel {
         let raw = self.raw.read().await;
         raw.tournament_level.clone()
+    }
+
+    pub async fn set_tournament_level(&self, tournament_level: TournamentLevel) {
+        let mut raw = self.raw.write().await;
+        raw.tournament_level = tournament_level;
     }
 
     pub async fn match_number(&self) -> u16 {
@@ -76,14 +86,29 @@ impl Field {
         raw.match_number.clone()
     }
 
+    pub async fn set_match_number(&self, match_number: u16) {
+        let mut raw = self.raw.write().await;
+        raw.match_number = match_number;
+    }
+
     pub async fn play_number(&self) -> u8 {
         let raw = self.raw.read().await;
         raw.play_number.clone()
     }
 
+    pub async fn set_play_number(&self, play_number: u8) {
+        let mut raw = self.raw.write().await;
+        raw.play_number = play_number;
+    }
+
     pub async fn time_remaining(&self) -> f64 {
         let raw = self.raw.read().await;
         raw.time_left
+    }
+
+    pub async fn set_time_remaining(&self, time_left: f64) {
+        let mut raw = self.raw.write().await;
+        raw.time_left = time_left;
     }
 
     pub async fn control_system(&self) -> ControlSystem {

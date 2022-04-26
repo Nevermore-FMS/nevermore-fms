@@ -13,6 +13,8 @@ use tokio::{
     sync::{Mutex, RwLock},
 };
 
+use crate::plugin::rpc;
+
 use super::{
     driverstation::{DriverStation, DriverStations},
     enums::{AllianceStation, DriverstationStatus, Mode},
@@ -49,6 +51,16 @@ impl DriverStationConnection {
         let mut tcp_stream = raw.tcp_stream.lock().await;
         if let Err(e) = tcp_stream.shutdown().await {
             error!("Failed to shutdown TCP stream: {}", e);
+        }
+    }
+
+    pub async fn to_rpc(&self) -> rpc::DriverStationConnection {
+        let raw = self.raw.read().await;
+
+        rpc::DriverStationConnection{
+            alive: raw.alive,
+            ip: raw.ip_address.to_string(),
+            outgoing_sequence_num: raw.udp_outgoing_sequence_num as u32,
         }
     }
 
@@ -146,15 +158,19 @@ impl DriverStationConnection {
 
         if let Some(ds) = raw_conn.driverstation.clone() {
             alliance_station = ds.alliance_station().await;
-            if ds.expected_ip().await.contains(&raw_conn.ip_address) {
-                status = DriverstationStatus::Good;
+            if let Some(expected_ip) = ds.expected_ip().await.take() {
+                if expected_ip.contains(&raw_conn.ip_address) {
+                    status = DriverstationStatus::Good;
+                } else {
+                    status = DriverstationStatus::Bad;
+                    info!(
+                        "Driver station {} is not expected to be connected from this IP address ({})",
+                        ds.team_number().await,
+                        &raw_conn.ip_address
+                    );
+                }
             } else {
-                status = DriverstationStatus::Bad;
-                info!(
-                    "Driver station {} is not expected to be connected from this IP address ({})",
-                    ds.team_number().await,
-                    &raw_conn.ip_address
-                );
+                status = DriverstationStatus::Waiting;
             }
         }
 
