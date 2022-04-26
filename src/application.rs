@@ -9,6 +9,7 @@ struct RawApplication {
     pub plugin_manager: PluginManager,
     running_signal: async_channel::Receiver<()>,
 }
+
 #[derive(Clone)]
 pub struct Application {
     raw: Arc<RwLock<RawApplication>>,
@@ -44,7 +45,7 @@ impl Application {
         let application = RawApplication {
             field,
             running_signal,
-            plugin_manager
+            plugin_manager,
         };
 
         let wait_field = application.field.clone();

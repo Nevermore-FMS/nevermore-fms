@@ -3,8 +3,6 @@ syntax = "proto3";
 package plugin;
 
 service Fms {
-    rpc RegisterPlugin(PluginInfo) returns (Empty);
-
     // Field Functions
     rpc OnFieldStateUpdate(Empty) returns (stream FieldState);
 
@@ -29,13 +27,6 @@ service Fms {
 // Utility Messages
 
 message Empty {}
-
-message PluginInfo {
-    string name = 1;
-    string version = 2;
-    optional string setup_url = 3;
-    
-}
 
 // Enums
 

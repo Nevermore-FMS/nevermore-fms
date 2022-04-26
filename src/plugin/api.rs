@@ -1,26 +1,23 @@
+use crate::field::Field;
 use log::info;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
-use crate::field::Field;
 
-use super::PluginManager;
 use super::rpc::fms_server::{Fms, FmsServer};
+use super::PluginManager;
 
-use super::rpc::{Empty, PluginInfo, FieldState, DriverStations, DriverStationQuery, DriverStation, DriverStationParams};
+use super::rpc::{
+    DriverStation, DriverStationParams, DriverStationQuery, DriverStations, Empty, FieldState,
+};
 
 pub struct FmsImpl {
     pub plugin_manager: PluginManager,
-    pub field: Field
+    pub field: Field,
 }
 
 #[tonic::async_trait]
 impl Fms for FmsImpl {
-    async fn register_plugin(&self, request: tonic::Request<PluginInfo>) -> Result<Response<Empty>, Status> {
-        info!("Register Plugin: {}, {}, {:?}", request.get_ref().name, request.get_ref().version, request.get_ref().setup_url);
-        Ok(Response::new(Empty{}))
-    }
-
     type OnFieldStateUpdateStream = ReceiverStream<Result<FieldState, Status>>;
 
     async fn on_field_state_update(
@@ -33,7 +30,7 @@ impl Fms for FmsImpl {
             loop {
                 let res = tx.send(Ok(FieldState::default())).await;
                 if res.is_err() {
-                    break
+                    break;
                 }
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             }
@@ -53,11 +50,21 @@ impl Fms for FmsImpl {
 
     async fn get_field_state(
         &self,
-        request: Request<Empty>,
+        _: Request<Empty>,
     ) -> Result<Response<FieldState>, Status> {
-        Err(Status::unknown("TODO"))
+        let event_name = self.field.event_name().await;
+        let tournament_level = self.field.tournament_level().await.to_byte() as i32;
+        let match_number = self.field.match_number().await as u32;
+        let play_number = self.field.play_number().await as u32;
+
+        Ok(Response::new(FieldState {
+            event_name,
+            tournament_level,
+            match_number,
+            play_number,
+        }))
     }
-    
+
     async fn set_field_state(
         &self,
         request: Request<FieldState>,
@@ -103,5 +110,4 @@ impl Fms for FmsImpl {
     ) -> Result<Response<Empty>, Status> {
         Err(Status::unknown("TODO"))
     }
-
 }

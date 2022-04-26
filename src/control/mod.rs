@@ -1,4 +1,4 @@
-use std::{sync::Arc, collections::HashMap};
+use std::{collections::HashMap, sync::Arc};
 
 use tokio::sync::RwLock;
 
@@ -9,31 +9,26 @@ use self::{enabler::SyncEnabler, estopper::SyncEstopper};
 pub mod enabler;
 pub mod estopper;
 
-
 pub struct RawControlSystem {
-    plugin_id_to_control_system: HashMap<String, PluginControlSystem>
+    plugin_id_to_control_system: HashMap<String, PluginControlSystem>,
 }
 
 pub struct PluginControlSystem {
     enablers: HashMap<String, SyncEnabler>,
-    estoppers: HashMap<String, SyncEstopper>
+    estoppers: HashMap<String, SyncEstopper>,
 }
 
 #[derive(Clone)]
 pub struct ControlSystem {
-    raw: Arc<RwLock<RawControlSystem>>
+    raw: Arc<RwLock<RawControlSystem>>,
 }
 
 impl ControlSystem {
     pub fn new() -> Self {
-        ControlSystem { 
-            raw: Arc::new(
-                RwLock::new(
-                    RawControlSystem { 
-                        plugin_id_to_control_system: HashMap::new()
-                    }
-                )
-            )
+        ControlSystem {
+            raw: Arc::new(RwLock::new(RawControlSystem {
+                plugin_id_to_control_system: HashMap::new(),
+            })),
         }
     }
 
