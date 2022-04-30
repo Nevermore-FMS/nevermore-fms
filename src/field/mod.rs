@@ -19,7 +19,7 @@ use tokio::{
     },
 };
 
-use crate::control::{enabler::SyncEnabler, estopper::SyncEstopper, ControlSystem};
+use crate::{control::{enabler::SyncEnabler, estopper::SyncEstopper, ControlSystem}, plugin::rpc::FieldState};
 
 use self::{driverstation::DriverStations, enums::TournamentLevel};
 
@@ -114,6 +114,14 @@ impl Field {
     pub async fn control_system(&self) -> ControlSystem {
         let raw = self.raw.read().await;
         raw.control_system.clone()
+    }
+
+    pub async fn update_rpc(&self, state: FieldState) {
+        let mut raw = self.raw.write().await;
+        raw.event_name = state.event_name;
+        raw.tournament_level = TournamentLevel::from_byte(state.tournament_level as u8);
+        raw.match_number = state.match_number as u16;
+        raw.time_left = state.time_left as f64;
     }
 
     // Internal API -->

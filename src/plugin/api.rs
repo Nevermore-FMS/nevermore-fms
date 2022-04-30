@@ -53,12 +53,14 @@ impl GenericApi for GenericApiImpl {
         let tournament_level = self.field.tournament_level().await.to_byte() as i32;
         let match_number = self.field.match_number().await as u32;
         let play_number = self.field.play_number().await as u32;
+        let time_left = self.field.time_remaining().await as f32;
 
         Ok(Response::new(FieldState {
             event_name,
             tournament_level,
             match_number,
             play_number,
+            time_left
         }))
     }
 
@@ -66,7 +68,8 @@ impl GenericApi for GenericApiImpl {
         &self,
         request: Request<FieldState>,
     ) -> Result<Response<FieldState>, Status> {
-        Err(Status::unknown("TODO"))
+        self.field.update_rpc(request.get_ref().clone()).await;
+        Ok(Response::new(request.get_ref().clone()))
     }
 
     type OnDriverStationCreateStream = ReceiverStream<Result<DriverStation, Status>>;
@@ -98,9 +101,9 @@ impl GenericApi for GenericApiImpl {
 
     async fn get_driver_stations(
         &self,
-        request: Request<Empty>,
+        _: Request<Empty>,
     ) -> Result<Response<DriverStations>, Status> {
-        Err(Status::unknown("TODO"))
+        Ok(Response::new(self.field.driverstations().await.get_driverstations_rpc().await))
     }
 
     async fn get_driver_station(
@@ -129,9 +132,9 @@ impl GenericApi for GenericApiImpl {
         &self,
         request: Request<DriverStationParams>,
     ) -> Result<Response<DriverStation>, Status> {
-        //self.field.driverstations().await.add_driverstation(driverstation)
-        // TODO: Chase: Marking where I left off
-        Err(Status::unknown("TODO"))
+        let ds = self.field.driverstations().await.get_driverstation_by_team_number(request.get_ref().team_number as u16).await.ok_or(Status::unavailable("Can't find driverstation"))?;
+        ds.update(request.get_ref().clone()).await;
+        Ok(Response::new(ds.to_rpc().await))
     }
 
     async fn delete_driver_station(

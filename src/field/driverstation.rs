@@ -95,6 +95,11 @@ impl DriverStation {
         }
     }
 
+    pub async fn update(&self, ds: rpc::DriverStationParams) {
+        let mut raw = self.raw.write().await;
+        raw.alliance_station = AllianceStation::from_byte(ds.alliance_station as u8);
+    }
+
     // Internal API -->
 
     pub(super) async fn set_confirmed_state(&self, confirmed_state: ConfirmedState) {
@@ -114,6 +119,9 @@ pub struct RawDriverStations {
     all_driverstations: Vec<DriverStation>,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
+    create_driverstation_signal: broadcast::Sender<rpc::DriverStation>,
+    update_driverstation_signal: broadcast::Sender<rpc::DriverStation>,
+    delete_driverstation_signal: broadcast::Sender<rpc::DriverStation>,
 }
 
 #[derive(Clone)]
@@ -146,7 +154,9 @@ impl DriverStations {
         }
 
         let mut raw_driverstations = self.raw.write().await;
-        raw_driverstations.all_driverstations.push(driverstation);
+        raw_driverstations.all_driverstations.push(driverstation.clone());
+
+        raw_driverstations.create_driverstation_signal.send(driverstation.to_rpc().await).ok();
 
         Ok(())
     }
@@ -158,6 +168,8 @@ impl DriverStations {
         for ds in raw_driverstations.all_driverstations.iter() {
             if ds.team_number().await != team_number {
                 new_driverstations.push(ds.clone());
+            } else {
+                raw_driverstations.delete_driverstation_signal.send(ds.to_rpc().await).ok();
             }
         }
 
@@ -192,6 +204,20 @@ impl DriverStations {
         return None;
     }
 
+    pub async fn get_driverstations_rpc(
+        &self
+    ) -> rpc::DriverStations {
+        let raw_driverstations = self.raw.read().await;
+        let mut driver_stations: Vec<rpc::DriverStation> = Vec::new();
+        for ds in raw_driverstations.all_driverstations.iter() {
+            driver_stations.push(ds.to_rpc().await);
+        }
+
+        rpc::DriverStations{
+            driver_stations
+        }
+    }
+
     pub async fn get_field(&self) -> Field {
         let raw_driverstations = self.raw.read().await;
         if let Some(field) = raw_driverstations.field.clone() {
@@ -213,10 +239,28 @@ impl DriverStations {
         let _ = running_signal.recv().await;
     }
 
+    pub async fn create_driverstation_receiver(&self) -> broadcast::Receiver<rpc::DriverStation> {
+        let raw_driverstations = self.raw.read().await;
+        raw_driverstations.create_driverstation_signal.subscribe()
+    }
+
+    pub async fn update_driverstation_receiver(&self) -> broadcast::Receiver<rpc::DriverStation> {
+        let raw_driverstations = self.raw.read().await;
+        raw_driverstations.update_driverstation_signal.subscribe()
+    }
+
+    pub async fn delete_driverstation_receiver(&self) -> broadcast::Receiver<rpc::DriverStation> {
+        let raw_driverstations = self.raw.read().await;
+        raw_driverstations.delete_driverstation_signal.subscribe()
+    }
+
     // Internal API -->
 
     pub(super) fn new(field: Option<Field>) -> Self {
         let (terminate_sender, _) = broadcast::channel(1);
+        let (create_driverstation_signal, _) = broadcast::channel(1);
+        let (update_driverstation_signal, _) = broadcast::channel(1);
+        let (delete_driverstation_signal, _) = broadcast::channel(1);
 
         let (indicate_running, running_signal) = async_channel::bounded(1);
 
@@ -225,6 +269,10 @@ impl DriverStations {
             all_driverstations: Vec::new(),
             terminate_signal: Some(terminate_sender),
             running_signal,
+            create_driverstation_signal,
+            update_driverstation_signal,
+            delete_driverstation_signal
+
         };
         let driverstations = Self {
             raw: Arc::new(RwLock::new(driverstations)),
