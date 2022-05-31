@@ -19,7 +19,7 @@ chrono = "0.4.19"
 async-trait = "0.1.52"
 tonic = "0.7"
 prost = "0.10"
-tokio-stream = "0.1"
+tokio-stream = { version = "0.1.8", features = ["sync"] }
 
 [build-dependencies]
 tonic-build = "0.7"

@@ -1,7 +1,7 @@
 use crate::field::{Field, driverstation, enums};
 use log::info;
-use tokio::sync::mpsc;
-use tokio_stream::wrappers::ReceiverStream;
+use tokio::sync::{mpsc, broadcast};
+use tokio_stream::wrappers::{ReceiverStream, BroadcastStream};
 use tonic::{transport::Server, Request, Response, Status};
 
 use super::rpc::generic_api_server::{GenericApi, GenericApiServer};
@@ -78,7 +78,23 @@ impl GenericApi for GenericApiImpl {
         &self,
         request: Request<Empty>,
     ) -> Result<Response<Self::OnDriverStationCreateStream>, Status> {
-        Err(Status::unknown("TODO"))
+        let (tx, rx) = mpsc::channel::<Result<DriverStation, Status>>(1);
+        let mut recv = self.field.driverstations().await.create_driverstation_receiver().await;
+
+        tokio::spawn(async move {
+            loop {
+                let raw = recv.recv().await;
+                if raw.is_err() {
+                    break
+                }
+                let res = tx.send(Ok(raw.unwrap())).await;
+                if res.is_err() {
+                    break;
+                }
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
     }
 
     type OnDriverStationUpdateStream = ReceiverStream<Result<DriverStation, Status>>;
@@ -87,7 +103,23 @@ impl GenericApi for GenericApiImpl {
         &self,
         request: Request<Empty>,
     ) -> Result<Response<Self::OnDriverStationUpdateStream>, Status> {
-        Err(Status::unknown("TODO"))
+        let (tx, rx) = mpsc::channel::<Result<DriverStation, Status>>(1);
+        let mut recv = self.field.driverstations().await.update_driverstation_receiver().await;
+
+        tokio::spawn(async move {
+            loop {
+                let raw = recv.recv().await;
+                if raw.is_err() {
+                    break
+                }
+                let res = tx.send(Ok(raw.unwrap())).await;
+                if res.is_err() {
+                    break;
+                }
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
     }
 
     type OnDriverStationDeleteStream = ReceiverStream<Result<DriverStation, Status>>;
@@ -96,7 +128,23 @@ impl GenericApi for GenericApiImpl {
         &self,
         request: Request<Empty>,
     ) -> Result<Response<Self::OnDriverStationDeleteStream>, Status> {
-        Err(Status::unknown("TODO"))
+        let (tx, rx) = mpsc::channel::<Result<DriverStation, Status>>(1);
+        let mut recv = self.field.driverstations().await.delete_driverstation_receiver().await;
+
+        tokio::spawn(async move {
+            loop {
+                let raw = recv.recv().await;
+                if raw.is_err() {
+                    break
+                }
+                let res = tx.send(Ok(raw.unwrap())).await;
+                if res.is_err() {
+                    break;
+                }
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
     }
 
     async fn get_driver_stations(
