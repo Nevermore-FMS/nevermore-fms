@@ -18,7 +18,6 @@ service GenericAPI {
     rpc SetFieldState(FieldState) returns (FieldState);
 
     // DriverStation Functions
-    rpc OnDriverStationUpdate(Empty) returns (stream DriverStation);
 
     rpc OnDriverStationCreate(Empty) returns (stream DriverStation);
 
@@ -29,8 +28,6 @@ service GenericAPI {
     rpc GetDriverStation(DriverStationQuery) returns (DriverStation);
 
     rpc AddDriverStation(DriverStationParams) returns (DriverStation);
-
-    rpc UpdateDriverStation(DriverStationParams) returns (DriverStation);
 
     rpc DeleteDriverStation(DriverStationParams) returns (Empty);
 }

@@ -62,11 +62,11 @@ impl ControlSystem {
     }
 
     pub async fn active_faults(&self) -> Vec<Fault> {
-        let mut faults = Vec::new();
+        let mut faults: Vec<Fault> = Vec::new();
         for (_, control_system) in self.raw.read().await.plugin_id_to_control_system.iter() {
             for (_, fault) in control_system.faults.iter() {
                 if fault.active() {
-                    faults.push(fault)
+                    faults.push(fault.clone())
                 }
             }
         }

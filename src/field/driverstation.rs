@@ -95,9 +95,9 @@ impl DriverStation {
         }
     }
 
-    pub async fn update(&self, ds: rpc::DriverStationParams) {
+    pub async fn update_expected_ip(&self, expected_ip: AnyIpCidr) {
         let mut raw = self.raw.write().await;
-        raw.alliance_station = AllianceStation::from_byte(ds.alliance_station as u8);
+        raw.expected_ip = Option::Some(expected_ip);
     }
 
     // Internal API -->
@@ -120,7 +120,6 @@ pub struct RawDriverStations {
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
     create_driverstation_signal: broadcast::Sender<rpc::DriverStation>,
-    update_driverstation_signal: broadcast::Sender<rpc::DriverStation>,
     delete_driverstation_signal: broadcast::Sender<rpc::DriverStation>,
 }
 
@@ -244,11 +243,6 @@ impl DriverStations {
         raw_driverstations.create_driverstation_signal.subscribe()
     }
 
-    pub async fn update_driverstation_receiver(&self) -> broadcast::Receiver<rpc::DriverStation> {
-        let raw_driverstations = self.raw.read().await;
-        raw_driverstations.update_driverstation_signal.subscribe()
-    }
-
     pub async fn delete_driverstation_receiver(&self) -> broadcast::Receiver<rpc::DriverStation> {
         let raw_driverstations = self.raw.read().await;
         raw_driverstations.delete_driverstation_signal.subscribe()
@@ -259,7 +253,6 @@ impl DriverStations {
     pub(super) fn new(field: Option<Field>) -> Self {
         let (terminate_sender, _) = broadcast::channel(1);
         let (create_driverstation_signal, _) = broadcast::channel(1);
-        let (update_driverstation_signal, _) = broadcast::channel(1);
         let (delete_driverstation_signal, _) = broadcast::channel(1);
 
         let (indicate_running, running_signal) = async_channel::bounded(1);
@@ -270,7 +263,6 @@ impl DriverStations {
             terminate_signal: Some(terminate_sender),
             running_signal,
             create_driverstation_signal,
-            update_driverstation_signal,
             delete_driverstation_signal
 
         };

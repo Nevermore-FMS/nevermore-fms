@@ -1,3 +1,4 @@
+use crate::field::enums::TournamentLevel;
 use crate::field::{Field, driverstation, enums};
 use log::info;
 use tokio::sync::{mpsc, broadcast};
@@ -68,7 +69,10 @@ impl GenericApi for GenericApiImpl {
         &self,
         request: Request<FieldState>,
     ) -> Result<Response<FieldState>, Status> {
-        self.field.update_rpc(request.get_ref().clone()).await;
+        self.field.set_event_name(request.get_ref().event_name.clone()).await;
+        self.field.set_tournament_level(TournamentLevel::from_byte(request.get_ref().tournament_level as u8)).await;
+        self.field.set_match_number(request.get_ref().match_number as u16).await;
+        self.field.set_time_remaining(request.get_ref().time_left as f64).await;
         Ok(Response::new(request.get_ref().clone()))
     }
 
@@ -80,31 +84,6 @@ impl GenericApi for GenericApiImpl {
     ) -> Result<Response<Self::OnDriverStationCreateStream>, Status> {
         let (tx, rx) = mpsc::channel::<Result<DriverStation, Status>>(1);
         let mut recv = self.field.driverstations().await.create_driverstation_receiver().await;
-
-        tokio::spawn(async move {
-            loop {
-                let raw = recv.recv().await;
-                if raw.is_err() {
-                    break
-                }
-                let res = tx.send(Ok(raw.unwrap())).await;
-                if res.is_err() {
-                    break;
-                }
-            }
-        });
-
-        Ok(Response::new(ReceiverStream::new(rx)))
-    }
-
-    type OnDriverStationUpdateStream = ReceiverStream<Result<DriverStation, Status>>;
-
-    async fn on_driver_station_update(
-        &self,
-        request: Request<Empty>,
-    ) -> Result<Response<Self::OnDriverStationUpdateStream>, Status> {
-        let (tx, rx) = mpsc::channel::<Result<DriverStation, Status>>(1);
-        let mut recv = self.field.driverstations().await.update_driverstation_receiver().await;
 
         tokio::spawn(async move {
             loop {
@@ -173,15 +152,6 @@ impl GenericApi for GenericApiImpl {
     ) -> Result<Response<DriverStation>, Status> {
         let ds = driverstation::DriverStation::new(request.get_ref().team_number as u16, enums::AllianceStation::from_byte(request.get_ref().alliance_station as u8), );
         self.field.driverstations().await.add_driverstation(ds.clone()).await.map_err(|_| Status::unavailable("cannot add driverstation"))?;
-        Ok(Response::new(ds.to_rpc().await))
-    }
-
-    async fn update_driver_station(
-        &self,
-        request: Request<DriverStationParams>,
-    ) -> Result<Response<DriverStation>, Status> {
-        let ds = self.field.driverstations().await.get_driverstation_by_team_number(request.get_ref().team_number as u16).await.ok_or(Status::unavailable("Can't find driverstation"))?;
-        ds.update(request.get_ref().clone()).await;
         Ok(Response::new(ds.to_rpc().await))
     }
 

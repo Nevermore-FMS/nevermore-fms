@@ -3,8 +3,6 @@ pub mod driverstation;
 pub mod enums;
 
 use std::{
-    collections::HashMap,
-    hash::Hash,
     net::{IpAddr, SocketAddr},
     sync::Arc,
 };
@@ -19,7 +17,7 @@ use tokio::{
     },
 };
 
-use crate::{control::{enabler::SyncEnabler, estopper::SyncEstopper, ControlSystem}, plugin::rpc::FieldState};
+use crate::{control::{ControlSystem}};
 
 use self::{driverstation::DriverStations, enums::TournamentLevel};
 
@@ -28,7 +26,7 @@ struct RawField {
     tournament_level: TournamentLevel,
     match_number: u16,
     play_number: u8,
-    time_left: f64,
+    time_left: f64, //TODO Switch to epoch diff
     driverstations: DriverStations,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
@@ -114,14 +112,6 @@ impl Field {
     pub async fn control_system(&self) -> ControlSystem {
         let raw = self.raw.read().await;
         raw.control_system.clone()
-    }
-
-    pub async fn update_rpc(&self, state: FieldState) {
-        let mut raw = self.raw.write().await;
-        raw.event_name = state.event_name;
-        raw.tournament_level = TournamentLevel::from_byte(state.tournament_level as u8);
-        raw.match_number = state.match_number as u16;
-        raw.time_left = state.time_left as f64;
     }
 
     // Internal API -->
