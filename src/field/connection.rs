@@ -138,7 +138,8 @@ impl DriverStationConnection {
                     drop(tcp_stream);
                     self.send_tcp_station_info().await?;
                     self.send_tcp_event_code().await?;
-                }
+                },
+                0x2 | 0x16 | 0x1d | 0x17 => {/* Intentionall omitted */}
                 unknown_id => {
                     warn!(
                         "Received a TCP packet from a driverstation with an unknown id {:#x}",

@@ -50,6 +50,10 @@ impl ControlSystem {
     }
 
     pub async fn is_ds_estopped(&self, ds: DriverStation) -> bool {
+        if self.active_faults().await.len() > 0 {
+            return true
+        }
+
         for (_, control_system) in self.raw.read().await.plugin_id_to_control_system.iter() {
             for (_, estopper) in control_system.estoppers.iter() {
                 if estopper.is_ds_estopped(ds.clone()).await {

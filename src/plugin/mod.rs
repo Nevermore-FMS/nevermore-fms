@@ -3,7 +3,7 @@ use std::{collections::HashMap, hash::Hash, net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 use tonic::transport::Server;
 
-use crate::field::Field;
+use crate::{field::Field, plugin::{api::NetworkConfiguratorApiImpl, rpc::network_configurator_api_server::NetworkConfiguratorApiServer}};
 
 use self::{api::GenericApiImpl, rpc::generic_api_server::GenericApiServer};
 
@@ -33,15 +33,19 @@ impl PluginManager {
         let manager_clone = manager.clone();
         tokio::spawn(async move {
             let addr: SocketAddr = "0.0.0.0:5276".parse().unwrap();
-            let api_impl = GenericApiImpl {
+            let generic_api_impl = GenericApiImpl {
                 plugin_manager: manager_clone,
+                field: field.clone(),
+            };
+            let network_api_impl = NetworkConfiguratorApiImpl {
                 field,
             };
 
             info!("Listening for gRPC plugins on {}", addr.clone());
 
             Server::builder()
-                .add_service(GenericApiServer::new(api_impl))
+                .add_service(GenericApiServer::new(generic_api_impl))
+                .add_service(NetworkConfiguratorApiServer::new(network_api_impl))
                 .serve(addr)
                 .await
                 .unwrap();

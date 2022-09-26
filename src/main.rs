@@ -48,18 +48,6 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("Error while creating application, couldn't start Nevermore")?;
 
-    //TODO Remove - Debug
-    application
-        .field()
-        .await
-        .driverstations()
-        .await
-        .add_driverstation(DriverStation::new(
-            5276,
-            AllianceStation::Red1
-        ))
-        .await?;
-
     application.wait_for_terminate().await;
 
     return Ok(());

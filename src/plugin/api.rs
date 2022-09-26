@@ -1,5 +1,6 @@
 use crate::field::enums::TournamentLevel;
 use crate::field::{Field, driverstation, enums};
+use cidr::{Ipv4Cidr, AnyIpCidr};
 use log::info;
 use tokio::sync::{mpsc, broadcast};
 use tokio_stream::wrappers::{ReceiverStream, BroadcastStream};
@@ -8,8 +9,9 @@ use tonic::{transport::Server, Request, Response, Status};
 use super::rpc::generic_api_server::{GenericApi, GenericApiServer};
 use super::PluginManager;
 
+use super::rpc::network_configurator_api_server::NetworkConfiguratorApi;
 use super::rpc::{
-    DriverStation, DriverStationParams, DriverStationQuery, DriverStations, Empty, FieldState, DriverStationQueryType,
+    DriverStation, DriverStationParams, DriverStationQuery, DriverStations, Empty, FieldState, DriverStationQueryType, DriverStationUpdateExpectedIp,
 };
 
 pub struct GenericApiImpl {
@@ -150,8 +152,8 @@ impl GenericApi for GenericApiImpl {
         &self,
         request: Request<DriverStationParams>,
     ) -> Result<Response<DriverStation>, Status> {
-        let ds = driverstation::DriverStation::new(request.get_ref().team_number as u16, enums::AllianceStation::from_byte(request.get_ref().alliance_station as u8), );
-        self.field.driverstations().await.add_driverstation(ds.clone()).await.map_err(|_| Status::unavailable("cannot add driverstation"))?;
+        let ds = driverstation::DriverStation::new(request.get_ref().team_number as u16, enums::AllianceStation::from_byte(request.get_ref().alliance_station as u8));
+        self.field.driverstations().await.add_driverstation(ds.clone()).await.map_err(|e| Status::unavailable(e.to_string()))?;
         Ok(Response::new(ds.to_rpc().await))
     }
 
@@ -159,7 +161,81 @@ impl GenericApi for GenericApiImpl {
         &self,
         request: Request<DriverStationParams>,
     ) -> Result<Response<Empty>, Status> {
-        self.field.driverstations().await.delete_driverstation(request.get_ref().team_number as u16).await.map_err(|_| Status::unavailable("cannot delete driverstation"))?;
+        self.field.driverstations().await.delete_driverstation(request.get_ref().team_number as u16).await.map_err(|e| Status::unavailable(e.to_string()))?;
         Ok(Response::new(Empty{}))
+    }
+}
+
+pub struct NetworkConfiguratorApiImpl {
+    pub field: Field
+}
+
+#[tonic::async_trait]
+impl NetworkConfiguratorApi for NetworkConfiguratorApiImpl {
+
+    type OnDriverStationCreateStream = ReceiverStream<Result<DriverStation, Status>>;
+
+    async fn on_driver_station_create(
+        &self,
+        request: Request<Empty>,
+    ) -> Result<Response<Self::OnDriverStationCreateStream>, Status> {
+        let (tx, rx) = mpsc::channel::<Result<DriverStation, Status>>(1);
+        let mut recv = self.field.driverstations().await.create_driverstation_receiver().await;
+
+        tokio::spawn(async move {
+            loop {
+                let raw = recv.recv().await;
+                if raw.is_err() {
+                    break
+                }
+                let res = tx.send(Ok(raw.unwrap())).await;
+                if res.is_err() {
+                    break;
+                }
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
+    type OnDriverStationDeleteStream = ReceiverStream<Result<DriverStation, Status>>;
+
+    async fn on_driver_station_delete(
+        &self,
+        request: Request<Empty>,
+    ) -> Result<Response<Self::OnDriverStationDeleteStream>, Status> {
+        let (tx, rx) = mpsc::channel::<Result<DriverStation, Status>>(1);
+        let mut recv = self.field.driverstations().await.delete_driverstation_receiver().await;
+
+        tokio::spawn(async move {
+            loop {
+                let raw = recv.recv().await;
+                if raw.is_err() {
+                    break
+                }
+                let res = tx.send(Ok(raw.unwrap())).await;
+                if res.is_err() {
+                    break;
+                }
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
+    async fn update_driver_station_expected_ip(
+        &self,
+        request: Request<DriverStationUpdateExpectedIp>,
+    ) -> Result<Response<DriverStation>, Status> {
+        if let Some(ds) = self.field.driverstations().await.get_driverstation_by_team_number(request.get_ref().team_number as u16).await {
+            if let Ok(cidr) = request.get_ref().expected_ip.parse::<AnyIpCidr>() {
+                ds.update_expected_ip(cidr).await;
+                return Ok(Response::new(ds.to_rpc().await));
+            } else {
+                return Err(Status::invalid_argument("cidr not valid"));
+            }
+        } else {
+            return Err(Status::invalid_argument("team number is not a current driver station"));
+        }
     }
 }

@@ -5,6 +5,10 @@ package plugin;
 service NetworkConfiguratorAPI {
     // DriverStation Functions
     rpc UpdateDriverStationExpectedIP(DriverStationUpdateExpectedIP) returns (DriverStation);
+
+    rpc OnDriverStationCreate(Empty) returns (stream DriverStation);
+
+    rpc OnDriverStationDelete(Empty) returns (stream DriverStation);
 }
 
 service GenericAPI {

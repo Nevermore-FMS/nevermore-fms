@@ -93,6 +93,8 @@ impl DriverStation {
             connection,
             confirmed_state: raw.confirmed_state.map(|x| x.to_rpc()),
         }
+
+        //TODO Do in api.rs
     }
 
     pub async fn update_expected_ip(&self, expected_ip: AnyIpCidr) {
@@ -214,7 +216,7 @@ impl DriverStations {
 
         rpc::DriverStations{
             driver_stations
-        }
+        } //TODO Do in api.rs
     }
 
     pub async fn get_field(&self) -> Field {
