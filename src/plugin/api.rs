@@ -173,6 +173,13 @@ pub struct NetworkConfiguratorApiImpl {
 #[tonic::async_trait]
 impl NetworkConfiguratorApi for NetworkConfiguratorApiImpl {
 
+    async fn get_driver_stations(
+        &self,
+        _: Request<Empty>,
+    ) -> Result<Response<DriverStations>, Status> {
+        Ok(Response::new(self.field.driverstations().await.get_driverstations_rpc().await))
+    }
+
     type OnDriverStationCreateStream = ReceiverStream<Result<DriverStation, Status>>;
 
     async fn on_driver_station_create(

@@ -6,6 +6,8 @@ service NetworkConfiguratorAPI {
     // DriverStation Functions
     rpc UpdateDriverStationExpectedIP(DriverStationUpdateExpectedIP) returns (DriverStation);
 
+    rpc GetDriverStations(Empty) returns (DriverStations);
+
     rpc OnDriverStationCreate(Empty) returns (stream DriverStation);
 
     rpc OnDriverStationDelete(Empty) returns (stream DriverStation);
