@@ -56,26 +56,15 @@ impl GenericApi for GenericApiImpl {
         let tournament_level = self.field.tournament_level().await.to_byte() as i32;
         let match_number = self.field.match_number().await as u32;
         let play_number = self.field.play_number().await as u32;
-        let time_left = self.field.time_remaining().await as f32;
+        let timer = self.field.timer().await.to_rpc();
 
         Ok(Response::new(FieldState {
             event_name,
             tournament_level,
             match_number,
             play_number,
-            time_left
+            timer: Some(timer),
         }))
-    }
-
-    async fn set_field_state(
-        &self,
-        request: Request<FieldState>,
-    ) -> Result<Response<FieldState>, Status> {
-        self.field.set_event_name(request.get_ref().event_name.clone()).await;
-        self.field.set_tournament_level(TournamentLevel::from_byte(request.get_ref().tournament_level as u8)).await;
-        self.field.set_match_number(request.get_ref().match_number as u16).await;
-        self.field.set_time_remaining(request.get_ref().time_left as f64).await;
-        Ok(Response::new(request.get_ref().clone()))
     }
 
     type OnDriverStationCreateStream = ReceiverStream<Result<DriverStation, Status>>;

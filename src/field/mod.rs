@@ -5,6 +5,7 @@ pub mod enums;
 use std::{
     net::{IpAddr, SocketAddr},
     sync::Arc,
+    time::Duration
 };
 
 use anyhow::Context;
@@ -17,7 +18,7 @@ use tokio::{
     },
 };
 
-use crate::{control::{ControlSystem}};
+use crate::{control::{ControlSystem}, difftimer};
 
 use self::{driverstation::DriverStations, enums::TournamentLevel};
 
@@ -26,7 +27,7 @@ struct RawField {
     tournament_level: TournamentLevel,
     match_number: u16,
     play_number: u8,
-    time_left: f64, //TODO Switch to epoch diff
+    time_left: difftimer::DiffTimer,
     driverstations: DriverStations,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
@@ -99,14 +100,14 @@ impl Field {
         raw.play_number = play_number;
     }
 
-    pub async fn time_remaining(&self) -> f64 {
+    pub async fn timer(&self) -> difftimer::DiffTimer {
         let raw = self.raw.read().await;
-        raw.time_left
+        raw.time_left.clone()
     }
 
     pub async fn set_time_remaining(&self, time_left: f64) {
         let mut raw = self.raw.write().await;
-        raw.time_left = time_left;
+        raw.time_left = difftimer::DiffTimer::new(Duration::from_secs_f64(time_left), raw.time_left.is_running());
     }
 
     pub async fn control_system(&self) -> ControlSystem {
@@ -126,7 +127,7 @@ impl Field {
             tournament_level: TournamentLevel::Test,
             match_number: 0,
             play_number: 0,
-            time_left: 0.0,
+            time_left: difftimer::DiffTimer::new(Duration::ZERO, false),
             driverstations: DriverStations::new(None),
             terminate_signal: Some(terminate_sender),
             running_signal,

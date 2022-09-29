@@ -21,8 +21,6 @@ service GenericAPI {
 
     rpc GetFieldState(Empty) returns (FieldState);
 
-    rpc SetFieldState(FieldState) returns (FieldState);
-
     // DriverStation Functions
 
     rpc OnDriverStationCreate(Empty) returns (stream DriverStation);
@@ -80,7 +78,7 @@ message FieldState {
     TournamentLevel tournament_level = 2;
     uint32 match_number = 3;
     uint32 play_number = 4;
-    float time_left = 5;
+    DiffTimer timer = 5;
 }
 
 // DriverStation Messages
@@ -133,4 +131,18 @@ message DriverStationConfirmedState {
     Mode mode = 6;
     uint32 team_number = 7;
     float battery_voltage = 8;
+}
+
+// Generics
+
+/// DiffTimer is a way to represent the game time remaining in a way that can easily be synced
+/// between different displaying devices provided they all use NTP.
+///
+/// If started_at is 0, then the timer is currently frozen and time_remaining represents the milliseconds that should be displayed
+///
+/// If started_at is >0, then the timer is currently running and time_remaining represents the milliseconds
+/// that the clock had at the time specified by started_at (epoch time in ms).
+message DiffTimer {
+    uint64 started_at = 1;
+    uint64 time_remaining = 2;
 }

@@ -314,9 +314,10 @@ impl DriverStationConnection {
                         .driverstations
                         .get_field()
                         .await
-                        .time_remaining()
+                        .timer()
                         .await
-                        .ceil() as u16,
+                        .current_time_remaining()
+                        .as_secs() as u16,
                 )
                 .await?; //Time Remaining
 

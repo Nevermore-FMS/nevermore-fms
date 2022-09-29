@@ -2,6 +2,7 @@ pub mod application;
 pub mod control;
 pub mod field;
 pub mod plugin;
+pub mod difftimer;
 
 use std::{
     env,
