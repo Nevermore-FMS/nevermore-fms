@@ -14,16 +14,18 @@ pub struct RawControlSystem {
     plugin_id_to_control_system: HashMap<String, PluginControlSystem>,
 }
 
+#[derive(Clone)]
+pub struct ControlSystem {
+    raw: Arc<RwLock<RawControlSystem>>,
+}
+
 pub struct PluginControlSystem {
     enablers: HashMap<String, SyncEnabler>,
     estoppers: HashMap<String, SyncEstopper>,
     faults: HashMap<String, Fault>,
 }
 
-#[derive(Clone)]
-pub struct ControlSystem {
-    raw: Arc<RwLock<RawControlSystem>>,
-}
+
 
 impl ControlSystem {
     pub fn new() -> Self {
@@ -76,4 +78,80 @@ impl ControlSystem {
         }
         faults
     }
+
+    pub async fn register_plugin(&self, plugin_id: String) {
+        let mut raw = self.raw.write().await;
+        raw.plugin_id_to_control_system.insert(plugin_id, PluginControlSystem{
+            enablers: HashMap::new(),
+            estoppers: HashMap::new(),
+            faults: HashMap::new()
+        });
+    }
+
+    pub async fn deregister_plugin(&self, plugin_id: String) {
+        let mut raw = self.raw.write().await;
+        raw.plugin_id_to_control_system.remove(&plugin_id);
+    }
+
+    pub async fn register_enabler(&self, plugin_id: String, enabler_id: String, enabler: SyncEnabler) -> anyhow::Result<()> {
+        let mut raw = self.raw.write().await;
+        if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
+            plugin_cs.enablers.insert(enabler_id, enabler);
+        } else {
+            return Err(anyhow::anyhow!("Plugin is not registered"));
+        }
+        Ok(())
+    }
+
+    pub async fn deregister_enabler(&self, plugin_id: String, enabler_id: String) -> anyhow::Result<()> {
+        let mut raw = self.raw.write().await;
+        if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
+            plugin_cs.enablers.remove(&enabler_id);
+        } else {
+            return Err(anyhow::anyhow!("Plugin is not registered"));
+        }
+        Ok(())
+    }
+
+    pub async fn register_estopper(&self, plugin_id: String, estopper_id: String, estopper: SyncEstopper) -> anyhow::Result<()> {
+        let mut raw = self.raw.write().await;
+        if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
+            plugin_cs.estoppers.insert(estopper_id, estopper);
+        } else {
+            return Err(anyhow::anyhow!("Plugin is not registered"));
+        }
+        Ok(())
+    }
+
+    pub async fn deregister_estopper(&self, plugin_id: String, estopper_id: String) -> anyhow::Result<()> {
+        let mut raw = self.raw.write().await;
+        if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
+            plugin_cs.estoppers.remove(&estopper_id);
+        } else {
+            return Err(anyhow::anyhow!("Plugin is not registered"));
+        }
+        Ok(())
+    }
+
+    pub async fn register_fault(&self, plugin_id: String, fault_id: String, fault: Fault) -> anyhow::Result<()> {
+        let mut raw = self.raw.write().await;
+        if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
+            plugin_cs.faults.insert(fault_id, fault);
+        } else {
+            return Err(anyhow::anyhow!("Plugin is not registered"));
+        }
+        Ok(())
+    }
+
+    pub async fn deregister_fault(&self, plugin_id: String, fault_id: String) -> anyhow::Result<()> {
+        let mut raw = self.raw.write().await;
+        if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
+            plugin_cs.faults.remove(&fault_id);
+        } else {
+            return Err(anyhow::anyhow!("Plugin is not registered"));
+        }
+        Ok(())
+    }
+    
+
 }
