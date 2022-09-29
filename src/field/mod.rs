@@ -19,6 +19,7 @@ use tokio::{
 };
 
 use crate::{control::{ControlSystem}, difftimer};
+use crate::plugin::rpc;
 
 use self::{driverstation::DriverStations, enums::TournamentLevel};
 
@@ -105,14 +106,35 @@ impl Field {
         raw.time_left.clone()
     }
 
-    pub async fn set_time_remaining(&self, time_left: f64) {
+    pub async fn set_time_remaining(&self, time_left: Duration) {
         let mut raw = self.raw.write().await;
-        raw.time_left = difftimer::DiffTimer::new(Duration::from_secs_f64(time_left), raw.time_left.is_running());
+        raw.time_left = difftimer::DiffTimer::new(time_left, raw.time_left.is_running());
+    }
+
+    pub async fn start_timer(&self) {
+        let mut raw = self.raw.write().await;
+        raw.time_left = raw.time_left.start();
+    }
+
+    pub async fn stop_timer(&self) {
+        let mut raw = self.raw.write().await;
+        raw.time_left = raw.time_left.stop();
     }
 
     pub async fn control_system(&self) -> ControlSystem {
         let raw = self.raw.read().await;
         raw.control_system.clone()
+    }
+
+    pub async fn state_to_rpc(&self) -> rpc::FieldState {
+        let raw = self.raw.read().await;
+        rpc::FieldState {
+            event_name: raw.event_name.clone(),
+            match_number: raw.match_number as u32,
+            play_number: raw.play_number as u32,
+            tournament_level: raw.tournament_level.to_byte() as i32,
+            timer: Some(self.timer().await.to_rpc())
+        }
     }
 
     // Internal API -->

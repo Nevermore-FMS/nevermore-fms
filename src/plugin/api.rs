@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::field::enums::TournamentLevel;
 use crate::field::{Field, driverstation, enums};
 use cidr::{Ipv4Cidr, AnyIpCidr};
@@ -11,7 +13,7 @@ use super::PluginManager;
 
 use super::rpc::network_configurator_api_server::NetworkConfiguratorApi;
 use super::rpc::{
-    DriverStation, DriverStationParams, DriverStationQuery, DriverStations, Empty, FieldState, DriverStationQueryType, DriverStationUpdateExpectedIp,
+    DriverStation, DriverStationParams, DriverStationQuery, DriverStations, Empty, FieldState, DriverStationQueryType, DriverStationUpdateExpectedIp, FieldTimerUpdate, FieldConfiguration,
 };
 
 pub struct GenericApiImpl {
@@ -52,19 +54,30 @@ impl GenericApi for GenericApiImpl {
     }
 
     async fn get_field_state(&self, _: Request<Empty>) -> Result<Response<FieldState>, Status> {
-        let event_name = self.field.event_name().await;
-        let tournament_level = self.field.tournament_level().await.to_byte() as i32;
-        let match_number = self.field.match_number().await as u32;
-        let play_number = self.field.play_number().await as u32;
-        let timer = self.field.timer().await.to_rpc();
+        Ok(Response::new(self.field.state_to_rpc().await))
+    }
 
-        Ok(Response::new(FieldState {
-            event_name,
-            tournament_level,
-            match_number,
-            play_number,
-            timer: Some(timer),
-        }))
+    async fn configure_field(&self, request: Request<FieldConfiguration>) -> Result<Response<FieldState>, Status> {
+        self.field.set_event_name(request.get_ref().event_name.clone()).await;
+        self.field.set_tournament_level(TournamentLevel::from_byte(request.get_ref().tournament_level as u8)).await;
+        self.field.set_match_number(request.get_ref().match_number as u16).await;
+        self.field.set_play_number(request.get_ref().play_number as u8).await;
+
+        Ok(Response::new(self.field.state_to_rpc().await))
+    }
+
+    async fn update_field_timer(&self, request: Request<FieldTimerUpdate>) -> Result<Response<FieldState>, Status> {
+        if request.get_ref().running {
+            self.field.start_timer().await;
+        } else {
+            self.field.stop_timer().await;
+        }
+
+        if let Some(time_left) = request.get_ref().time_remaining {
+            self.field.set_time_remaining(Duration::from_millis(time_left)).await;
+        }
+
+        Ok(Response::new(self.field.state_to_rpc().await))
     }
 
     type OnDriverStationCreateStream = ReceiverStream<Result<DriverStation, Status>>;

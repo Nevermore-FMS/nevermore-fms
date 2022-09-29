@@ -21,6 +21,10 @@ service GenericAPI {
 
     rpc GetFieldState(Empty) returns (FieldState);
 
+    rpc ConfigureField(FieldConfiguration) returns (FieldState);
+
+    rpc UpdateFieldTimer(FieldTimerUpdate) returns (FieldState);
+
     // DriverStation Functions
 
     rpc OnDriverStationCreate(Empty) returns (stream DriverStation);
@@ -79,6 +83,18 @@ message FieldState {
     uint32 match_number = 3;
     uint32 play_number = 4;
     DiffTimer timer = 5;
+}
+
+message FieldConfiguration {
+    string event_name = 1;
+    TournamentLevel tournament_level = 2;
+    uint32 match_number = 3;
+    uint32 play_number = 4;
+}
+
+message FieldTimerUpdate {
+    optional uint64 time_remaining = 1;
+    bool running = 2;
 }
 
 // DriverStation Messages
