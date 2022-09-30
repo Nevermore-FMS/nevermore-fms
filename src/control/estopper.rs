@@ -2,21 +2,21 @@ use async_trait::async_trait;
 
 use crate::field::{driverstation::DriverStation, enums::AllianceStation};
 
-pub type SyncEstopper = Box<dyn Estopper + Sync + Send>;
+pub type Estopper = Box<dyn EstopperTrait + Sync + Send>;
 
 #[async_trait]
-pub trait Estopper {
+pub trait EstopperTrait {
     async fn is_ds_estopped(&self, ds: DriverStation) -> bool;
     fn name(&self) -> String;
 }
 
-struct AllEstopper {
+pub struct AllEstopper {
     name: String,
     active: bool,
 }
 impl AllEstopper {
-    pub fn new(name: String) -> Self {
-        Self { name, active: true }
+    pub fn new(name: String, active: bool) -> Estopper {
+        Box::new(Self { name, active })
     }
     pub fn deactivate(&mut self) {
         self.active = false;
@@ -27,7 +27,7 @@ impl AllEstopper {
 }
 
 #[async_trait]
-impl Estopper for AllEstopper {
+impl EstopperTrait for AllEstopper {
     fn name(&self) -> String {
         self.name.clone()
     }
@@ -36,66 +36,66 @@ impl Estopper for AllEstopper {
     }
 }
 
-struct TeamNumberEstopper {
+pub struct TeamNumberEstopper {
     name: String,
-    approved_team_numbers: Vec<u16>,
+    estopped_team_numbers: Vec<u16>,
 }
 impl TeamNumberEstopper {
-    pub fn new(name: String) -> Self {
-        Self {
+    pub fn new(name: String, estopped_team_numbers: Vec<u16>) -> Estopper {
+        Box::new(Self {
             name,
-            approved_team_numbers: Vec::new(),
-        }
+            estopped_team_numbers,
+        })
     }
     pub fn add_team_number(&mut self, team_number: u16) {
-        self.approved_team_numbers.push(team_number);
+        self.estopped_team_numbers.push(team_number);
     }
     pub fn remove_team_number(&mut self, team_number: u16) {
-        self.approved_team_numbers.retain(|&x| x != team_number);
+        self.estopped_team_numbers.retain(|&x| x != team_number);
     }
     pub fn clear_team_numbers(&mut self) {
-        self.approved_team_numbers.clear();
+        self.estopped_team_numbers.clear();
     }
 }
 #[async_trait]
-impl Estopper for TeamNumberEstopper {
+impl EstopperTrait for TeamNumberEstopper {
     fn name(&self) -> String {
         self.name.clone()
     }
     async fn is_ds_estopped(&self, ds: DriverStation) -> bool {
-        self.approved_team_numbers.contains(&ds.team_number().await)
+        self.estopped_team_numbers.contains(&ds.team_number().await)
     }
 }
 
-struct AllianceStationEstopper {
+pub struct AllianceStationEstopper {
     name: String,
-    approved_stations: Vec<AllianceStation>,
+    estopped_stations: Vec<AllianceStation>,
 }
 
 impl AllianceStationEstopper {
-    pub fn new(name: String) -> Self {
-        Self {
+    pub fn new(name: String, estopped_stations: Vec<AllianceStation>) -> Estopper {
+        Box::new(Self {
             name,
-            approved_stations: Vec::new(),
-        }
+            estopped_stations,
+        })
     }
     pub fn add_station(&mut self, station: AllianceStation) {
-        self.approved_stations.push(station);
+        self.estopped_stations.push(station);
     }
     pub fn remove_station(&mut self, station: AllianceStation) {
-        self.approved_stations.retain(|&x| x != station);
+        self.estopped_stations.retain(|&x| x != station);
     }
     pub fn clear_stations(&mut self) {
-        self.approved_stations.clear();
+        self.estopped_stations.clear();
     }
 }
 #[async_trait]
-impl Estopper for AllianceStationEstopper {
+impl EstopperTrait for AllianceStationEstopper {
     fn name(&self) -> String {
         self.name.clone()
     }
     async fn is_ds_estopped(&self, ds: DriverStation) -> bool {
-        self.approved_stations
+        self.estopped_stations
             .contains(&ds.alliance_station().await)
     }
 }

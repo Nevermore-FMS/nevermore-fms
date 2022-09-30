@@ -4,7 +4,7 @@ use tokio::sync::RwLock;
 
 use crate::field::driverstation::DriverStation;
 
-use self::{enabler::SyncEnabler, estopper::SyncEstopper, fault::Fault};
+use self::{enabler::Enabler, estopper::Estopper, fault::Fault};
 
 pub mod enabler;
 pub mod estopper;
@@ -20,8 +20,8 @@ pub struct ControlSystem {
 }
 
 pub struct PluginControlSystem {
-    enablers: HashMap<String, SyncEnabler>,
-    estoppers: HashMap<String, SyncEstopper>,
+    enablers: HashMap<String, Enabler>,
+    estoppers: HashMap<String, Estopper>,
     faults: HashMap<String, Fault>,
 }
 
@@ -64,7 +64,7 @@ impl ControlSystem {
             }
         }
 
-        return true;
+        return false;
     }
 
     pub async fn active_faults(&self) -> Vec<Fault> {
@@ -93,7 +93,7 @@ impl ControlSystem {
         raw.plugin_id_to_control_system.remove(&plugin_id);
     }
 
-    pub async fn register_enabler(&self, plugin_id: String, enabler_id: String, enabler: SyncEnabler) -> anyhow::Result<()> {
+    pub async fn update_enabler(&self, plugin_id: String, enabler_id: String, enabler: Enabler) -> anyhow::Result<()> {
         let mut raw = self.raw.write().await;
         if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
             plugin_cs.enablers.insert(enabler_id, enabler);
@@ -103,7 +103,7 @@ impl ControlSystem {
         Ok(())
     }
 
-    pub async fn deregister_enabler(&self, plugin_id: String, enabler_id: String) -> anyhow::Result<()> {
+    pub async fn remove_enabler(&self, plugin_id: String, enabler_id: String) -> anyhow::Result<()> {
         let mut raw = self.raw.write().await;
         if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
             plugin_cs.enablers.remove(&enabler_id);
@@ -113,7 +113,7 @@ impl ControlSystem {
         Ok(())
     }
 
-    pub async fn register_estopper(&self, plugin_id: String, estopper_id: String, estopper: SyncEstopper) -> anyhow::Result<()> {
+    pub async fn update_estopper(&self, plugin_id: String, estopper_id: String, estopper: Estopper) -> anyhow::Result<()> {
         let mut raw = self.raw.write().await;
         if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
             plugin_cs.estoppers.insert(estopper_id, estopper);
@@ -123,7 +123,7 @@ impl ControlSystem {
         Ok(())
     }
 
-    pub async fn deregister_estopper(&self, plugin_id: String, estopper_id: String) -> anyhow::Result<()> {
+    pub async fn remove_estopper(&self, plugin_id: String, estopper_id: String) -> anyhow::Result<()> {
         let mut raw = self.raw.write().await;
         if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
             plugin_cs.estoppers.remove(&estopper_id);
@@ -147,6 +147,34 @@ impl ControlSystem {
         let mut raw = self.raw.write().await;
         if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
             plugin_cs.faults.remove(&fault_id);
+        } else {
+            return Err(anyhow::anyhow!("Plugin is not registered"));
+        }
+        Ok(())
+    }
+
+    pub async fn activate_fault(&self, plugin_id: String, fault_id: String) -> anyhow::Result<()> {
+        let mut raw = self.raw.write().await;
+        if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
+            if let Some(fault) = plugin_cs.faults.get_mut(&fault_id) {
+                fault.activate()
+            } else {
+                return Err(anyhow::anyhow!("Fault is not registered"));
+            }
+        } else {
+            return Err(anyhow::anyhow!("Plugin is not registered"));
+        }
+        Ok(())
+    }
+
+    pub async fn clear_fault(&self, plugin_id: String, fault_id: String) -> anyhow::Result<()> {
+        let mut raw = self.raw.write().await;
+        if let Some(plugin_cs) = raw.plugin_id_to_control_system.get_mut(&plugin_id) {
+            if let Some(fault) = plugin_cs.faults.get_mut(&fault_id) {
+                fault.clear()
+            } else {
+                return Err(anyhow::anyhow!("Fault is not registered"));
+            }
         } else {
             return Err(anyhow::anyhow!("Plugin is not registered"));
         }

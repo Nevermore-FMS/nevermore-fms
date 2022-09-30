@@ -2,21 +2,21 @@ use async_trait::async_trait;
 
 use crate::field::{driverstation::DriverStation, enums::AllianceStation};
 
-pub type SyncEnabler = Box<dyn Enabler + Sync + Send>;
+pub type Enabler = Box<dyn EnablerTrait + Sync + Send>;
 
 #[async_trait]
-pub trait Enabler {
+pub trait EnablerTrait {
     async fn is_ds_enabled(&self, ds: DriverStation) -> bool;
     fn name(&self) -> String;
 }
 
-struct AllEnabler {
+pub struct AllEnabler {
     name: String,
     active: bool,
 }
 impl AllEnabler {
-    pub fn new(name: String) -> Self {
-        Self { name, active: true }
+    pub fn new(name: String, active: bool) -> Enabler {
+        Box::new(Self { name, active })
     }
     pub fn deactivate(&mut self) {
         self.active = false;
@@ -26,7 +26,7 @@ impl AllEnabler {
     }
 }
 #[async_trait]
-impl Enabler for AllEnabler {
+impl EnablerTrait for AllEnabler {
     fn name(&self) -> String {
         self.name.clone()
     }
@@ -35,16 +35,16 @@ impl Enabler for AllEnabler {
     }
 }
 
-struct TeamNumberEnabler {
+pub struct TeamNumberEnabler {
     name: String,
     approved_team_numbers: Vec<u16>,
 }
 impl TeamNumberEnabler {
-    pub fn new(name: String) -> Self {
-        Self {
+    pub fn new(name: String, approved_team_numbers: Vec<u16>) -> Enabler {
+        Box::new(Self {
             name,
-            approved_team_numbers: Vec::new(),
-        }
+            approved_team_numbers,
+        })
     }
     pub fn add_team_number(&mut self, team_number: u16) {
         self.approved_team_numbers.push(team_number);
@@ -57,7 +57,7 @@ impl TeamNumberEnabler {
     }
 }
 #[async_trait]
-impl Enabler for TeamNumberEnabler {
+impl EnablerTrait for TeamNumberEnabler {
     fn name(&self) -> String {
         self.name.clone()
     }
@@ -66,16 +66,16 @@ impl Enabler for TeamNumberEnabler {
     }
 }
 
-struct AllianceStationEnabler {
+pub struct AllianceStationEnabler {
     name: String,
     approved_stations: Vec<AllianceStation>,
 }
 impl AllianceStationEnabler {
-    pub fn new(name: String) -> Self {
-        Self {
+    pub fn new(name: String, approved_stations: Vec<AllianceStation>) -> Enabler {
+        Box::new(Self {
             name,
-            approved_stations: Vec::new(),
-        }
+            approved_stations,
+        })
     }
     pub fn add_station(&mut self, station: AllianceStation) {
         self.approved_stations.push(station);
@@ -88,7 +88,7 @@ impl AllianceStationEnabler {
     }
 }
 #[async_trait]
-impl Enabler for AllianceStationEnabler {
+impl EnablerTrait for AllianceStationEnabler {
     fn name(&self) -> String {
         self.name.clone()
     }

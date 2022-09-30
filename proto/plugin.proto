@@ -25,6 +25,18 @@ service GenericAPI {
 
     rpc UpdateFieldTimer(FieldTimerUpdate) returns (FieldState);
 
+    //Enabler Functions
+
+    rpc UpdateEnabler(EnablerConfig) returns (Empty);
+
+    rpc RemoveEnabler(EnablerQuery) returns (Empty);
+
+    //Estopper Functions
+
+    rpc UpdateEstopper(EstopperConfig) returns (Empty);
+
+    rpc RemoveEstopper(EstopperQuery) returns (Empty);
+
     // DriverStation Functions
 
     rpc OnDriverStationCreate(Empty) returns (stream DriverStation);
@@ -147,6 +159,62 @@ message DriverStationConfirmedState {
     Mode mode = 6;
     uint32 team_number = 7;
     float battery_voltage = 8;
+}
+
+// Enablers
+
+message EnablerQuery {
+    string id = 1;
+}
+
+message EnablerConfig {
+    string id = 1;
+    string name = 2;
+    oneof enabler {
+        AllEnablerConfig all_enabler = 3;
+        TeamNumberEnablerConfig team_number_enabler = 4;
+        AllianceStationEnablerConfig alliance_station_enabler = 5;
+    }
+}
+
+message AllEnablerConfig {
+    bool active = 1;
+}
+
+message TeamNumberEnablerConfig {
+    repeated uint32 approved_team_numbers = 1;
+}
+
+message AllianceStationEnablerConfig {
+    repeated AllianceStation approved_stations = 1;
+}
+
+// Estoppers
+
+message EstopperQuery {
+    string id = 1;
+}
+
+message EstopperConfig {
+    string id = 1;
+    string name = 2;
+    oneof estopper {
+        AllEstopperConfig all_estopper = 3;
+        TeamNumberEstopperConfig team_number_estopper = 4;
+        AllianceStationEstopperConfig alliance_station_estopper = 5;
+    }
+}
+
+message AllEstopperConfig {
+    bool active = 1;
+}
+
+message TeamNumberEstopperConfig {
+    repeated uint32 estopped_team_numbers = 1;
+}
+
+message AllianceStationEstopperConfig {
+    repeated AllianceStation estopped_stations = 1;
 }
 
 // Generics

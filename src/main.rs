@@ -13,7 +13,7 @@ use anyhow::Context;
 use clap::Parser;
 use log::*;
 
-use crate::field::{driverstation::DriverStation, enums::AllianceStation};
+use crate::field::{driverstation::DriverStation};
 
 const BIRD: &'static str = include_str!("eaobird.txt");
 
@@ -48,6 +48,8 @@ async fn main() -> anyhow::Result<()> {
     let application = application::Application::new(None, cli.ds_address)
         .await
         .context("Error while creating application, couldn't start Nevermore")?;
+
+    application.field().await.control_system().await.register_plugin(String::from("defaultplugin")).await; //TODO Remove defaultplugin
 
     application.wait_for_terminate().await;
 
