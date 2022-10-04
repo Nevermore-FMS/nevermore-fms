@@ -102,6 +102,11 @@ impl DriverStation {
         raw.expected_ip = Option::Some(expected_ip);
     }
 
+    pub async fn update_mode(&self, mode: Mode) {
+        let mut raw = self.raw.write().await;
+        raw.mode = mode;
+    }
+
     // Internal API -->
 
     pub(super) async fn set_confirmed_state(&self, confirmed_state: ConfirmedState) {

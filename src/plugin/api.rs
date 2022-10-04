@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::control::{enabler, estopper};
-use crate::field::enums::{AllianceStation, TournamentLevel};
+use crate::field::enums::{AllianceStation, TournamentLevel, Mode};
 use crate::field::{driverstation, enums, Field};
 use cidr::{AnyIpCidr, Ipv4Cidr};
 use log::info;
@@ -18,7 +18,7 @@ use super::rpc::network_configurator_api_server::NetworkConfiguratorApi;
 use super::rpc::{
     DriverStation, DriverStationParams, DriverStationQuery, DriverStationQueryType,
     DriverStationUpdateExpectedIp, DriverStations, Empty, EnablerConfig, EnablerQuery,
-    EstopperConfig, EstopperQuery, FieldConfiguration, FieldState, FieldTimerUpdate,
+    EstopperConfig, EstopperQuery, FieldConfiguration, FieldState, FieldTimerUpdate, DriverStationUpdateMode,
 };
 
 pub struct GenericApiImpl {
@@ -338,6 +338,21 @@ impl GenericApi for GenericApiImpl {
             .delete_driverstation(request.get_ref().team_number as u16)
             .await
             .map_err(|e| Status::unavailable(e.to_string()))?;
+        Ok(Response::new(Empty {}))
+    }
+
+    async fn update_driver_station_mode(
+        &self,
+        request: Request<DriverStationUpdateMode>,
+    ) -> Result<Response<Empty>, Status> {
+        self.field
+            .driverstations()
+            .await
+            .get_driverstation_by_team_number(request.get_ref().team_number as u16)
+            .await
+            .ok_or(Status::unavailable("Can't find driverstation"))?
+            .update_mode(Mode::from_byte(request.get_ref().mode as u8))
+            .await;
         Ok(Response::new(Empty {}))
     }
 }

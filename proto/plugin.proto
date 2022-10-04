@@ -50,6 +50,8 @@ service GenericAPI {
     rpc AddDriverStation(DriverStationParams) returns (DriverStation);
 
     rpc DeleteDriverStation(DriverStationParams) returns (Empty);
+
+    rpc UpdateDriverStationMode(DriverStationUpdateMode) returns (Empty);
 }
 
 // Utility Messages
@@ -134,6 +136,11 @@ message DriverStationParams {
 message DriverStationUpdateExpectedIP {
     uint32 team_number = 1;
     string expected_ip = 2;
+}
+
+message DriverStationUpdateMode {
+    uint32 team_number = 1;
+    Mode mode = 2;
 }
 
 message DriverStation {
