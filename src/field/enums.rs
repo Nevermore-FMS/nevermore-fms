@@ -1,3 +1,5 @@
+use std::fmt;
+
 // Represents the Mode of a DriverStation. These values correspond to the values you can
 /// get from WPILib and can set on the Driverstation when directly connected.
 #[derive(Clone, Copy)]
@@ -32,6 +34,16 @@ impl Mode {
     }
 }
 
+impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Mode::TeleOp => write!(f, "TeleOp"),
+            Mode::Test => write!(f, "Test"),
+            Mode::Autonomous => write!(f, "Autonomous"),
+        }
+    }
+}
+
 /// Represents the Status of a Driverstation. Used to tell the operator of a Driverstation
 /// whether they should be in a game and whether they're in the correct station. Send
 /// `DriverstationStatus::Good` when in the correct position, `DriverstationStatus::Bad`
@@ -58,6 +70,16 @@ impl DriverstationStatus {
             DriverstationStatus::Good => 0,
             DriverstationStatus::Bad => 1,
             DriverstationStatus::Waiting => 2,
+        }
+    }
+}
+
+impl fmt::Display for DriverstationStatus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            DriverstationStatus::Good => write!(f, "Good"),
+            DriverstationStatus::Bad => write!(f, "Bad"),
+            DriverstationStatus::Waiting => write!(f, "Waiting"),
         }
     }
 }
@@ -101,6 +123,20 @@ impl AllianceStation {
     }
 }
 
+impl fmt::Display for AllianceStation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            AllianceStation::Red1 => write!(f, "Red1"),
+            AllianceStation::Red2 => write!(f, "Red2"),
+            AllianceStation::Red3 => write!(f, "Red3"),
+            AllianceStation::Blue1 => write!(f, "Blue1"),
+            AllianceStation::Blue2 => write!(f, "Blue2"),
+            AllianceStation::Blue3 => write!(f, "Blue3"),
+            AllianceStation::None => write!(f, "None"),
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TournamentLevel {
     Test,
@@ -126,6 +162,17 @@ impl TournamentLevel {
             TournamentLevel::Practice => 1,
             TournamentLevel::Qualification => 2,
             TournamentLevel::Playoff => 3,
+        }
+    }
+}
+
+impl fmt::Display for TournamentLevel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            TournamentLevel::Playoff => write!(f, "Playoff"),
+            TournamentLevel::Practice => write!(f, "Practice"),
+            TournamentLevel::Qualification => write!(f, "Qualification"),
+            TournamentLevel::Test => write!(f, "Test"),
         }
     }
 }

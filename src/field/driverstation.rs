@@ -100,11 +100,13 @@ impl DriverStation {
     pub async fn update_expected_ip(&self, expected_ip: AnyIpCidr) {
         let mut raw = self.raw.write().await;
         raw.expected_ip = Option::Some(expected_ip);
+        info!("Expected ip of {} set to {}", raw.team_number, raw.expected_ip.unwrap());
     }
 
     pub async fn update_mode(&self, mode: Mode) {
         let mut raw = self.raw.write().await;
         raw.mode = mode;
+        info!("Mode of {} set to {}", raw.team_number, raw.mode);
     }
 
     // Internal API -->
@@ -163,6 +165,7 @@ impl DriverStations {
         raw_driverstations.all_driverstations.push(driverstation.clone());
 
         raw_driverstations.create_driverstation_signal.send(driverstation.to_rpc().await).ok();
+        info!("Added driverstation {} to {}", driverstation.team_number().await, driverstation.alliance_station().await);
 
         Ok(())
     }
@@ -180,6 +183,7 @@ impl DriverStations {
         }
 
         raw_driverstations.all_driverstations = new_driverstations;
+        info!("Deleted driverstation {}", team_number);
 
         Ok(())
     }

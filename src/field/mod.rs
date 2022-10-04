@@ -69,6 +69,7 @@ impl Field {
     pub async fn set_event_name(&self, event_name: String) {
         let mut raw = self.raw.write().await;
         raw.event_name = event_name;
+        info!("Event name set to {}", raw.event_name.clone());
     }
 
     pub async fn tournament_level(&self) -> TournamentLevel {
@@ -79,6 +80,7 @@ impl Field {
     pub async fn set_tournament_level(&self, tournament_level: TournamentLevel) {
         let mut raw = self.raw.write().await;
         raw.tournament_level = tournament_level;
+        info!("Tournament Level set to {}", raw.tournament_level.clone());
     }
 
     pub async fn match_number(&self) -> u16 {
@@ -89,6 +91,7 @@ impl Field {
     pub async fn set_match_number(&self, match_number: u16) {
         let mut raw = self.raw.write().await;
         raw.match_number = match_number;
+        info!("Match Number set to {}", &raw.match_number);
     }
 
     pub async fn play_number(&self) -> u8 {
@@ -99,6 +102,7 @@ impl Field {
     pub async fn set_play_number(&self, play_number: u8) {
         let mut raw = self.raw.write().await;
         raw.play_number = play_number;
+        info!("Play number set to {}", &raw.play_number);
     }
 
     pub async fn timer(&self) -> difftimer::DiffTimer {
@@ -109,16 +113,19 @@ impl Field {
     pub async fn set_time_remaining(&self, time_left: Duration) {
         let mut raw = self.raw.write().await;
         raw.time_left = difftimer::DiffTimer::new(time_left, raw.time_left.is_running());
+        info!("Timer set to {} ms", time_left.as_millis());
     }
 
     pub async fn start_timer(&self) {
         let mut raw = self.raw.write().await;
         raw.time_left = raw.time_left.start();
+        info!("Timer started");
     }
 
     pub async fn stop_timer(&self) {
         let mut raw = self.raw.write().await;
         raw.time_left = raw.time_left.stop();
+        info!("Timer stopped");
     }
 
     pub async fn control_system(&self) -> ControlSystem {

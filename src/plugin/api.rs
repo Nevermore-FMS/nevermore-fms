@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::control::{enabler, estopper};
-use crate::field::enums::{AllianceStation, TournamentLevel, Mode};
+use crate::field::enums::{AllianceStation, Mode, TournamentLevel};
 use crate::field::{driverstation, enums, Field};
 use cidr::{AnyIpCidr, Ipv4Cidr};
 use log::info;
@@ -17,8 +17,8 @@ use super::PluginManager;
 use super::rpc::network_configurator_api_server::NetworkConfiguratorApi;
 use super::rpc::{
     DriverStation, DriverStationParams, DriverStationQuery, DriverStationQueryType,
-    DriverStationUpdateExpectedIp, DriverStations, Empty, EnablerConfig, EnablerQuery,
-    EstopperConfig, EstopperQuery, FieldConfiguration, FieldState, FieldTimerUpdate, DriverStationUpdateMode,
+    DriverStationUpdateExpectedIp, DriverStationUpdateMode, DriverStations, Empty, EnablerConfig,
+    EnablerQuery, EstopperConfig, EstopperQuery, FieldConfiguration, FieldState, FieldTimerUpdate,
 };
 
 pub struct GenericApiImpl {
@@ -88,16 +88,16 @@ impl GenericApi for GenericApiImpl {
         &self,
         request: Request<FieldTimerUpdate>,
     ) -> Result<Response<FieldState>, Status> {
-        if request.get_ref().running {
-            self.field.start_timer().await;
-        } else {
-            self.field.stop_timer().await;
-        }
-
         if let Some(time_left) = request.get_ref().time_remaining {
             self.field
                 .set_time_remaining(Duration::from_millis(time_left))
                 .await;
+        }
+
+        if request.get_ref().running {
+            self.field.start_timer().await;
+        } else {
+            self.field.stop_timer().await;
         }
 
         Ok(Response::new(self.field.state_to_rpc().await))
