@@ -318,6 +318,7 @@ impl GenericApi for GenericApiImpl {
         let ds = driverstation::DriverStation::new(
             request.get_ref().team_number as u16,
             enums::AllianceStation::from_byte(request.get_ref().alliance_station as u8),
+            Mode::Autonomous
         );
         self.field
             .driverstations()

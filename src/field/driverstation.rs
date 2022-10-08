@@ -38,11 +38,12 @@ impl DriverStation {
     pub fn new(
         team_number: u16,
         alliance_station: AllianceStation,
+        initial_mode: Mode
     ) -> Self {
         let driverstation = RawDriverstation {
             team_number,
             alliance_station,
-            mode: Mode::Test,
+            mode: initial_mode,
             expected_ip: None,
             active_connection: None,
             confirmed_state: Option::None,
