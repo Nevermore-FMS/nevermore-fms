@@ -2,7 +2,7 @@ use std::{net::IpAddr, sync::Arc};
 
 use tokio::sync::RwLock;
 
-use crate::{field::Field, plugin::PluginManager, difftimer::DiffTimer};
+use crate::{field::Field, plugin::PluginManager, web::start_web};
 
 struct RawApplication {
     pub field: Field,
@@ -40,12 +40,14 @@ impl Application {
 
         let plugin_manager = PluginManager::new(field.clone());
 
+        start_web(field.clone(), plugin_manager.clone()).await;
+
         let (indicate_running, running_signal) = async_channel::bounded(1);
 
         let application = RawApplication {
             field,
             running_signal,
-            plugin_manager,
+            plugin_manager
         };
 
         let wait_field = application.field.clone();

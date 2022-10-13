@@ -2,6 +2,7 @@ use log::info;
 use std::{collections::HashMap, hash::Hash, net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 use tonic::transport::Server;
+use serde_derive::Serialize;
 
 use crate::{field::Field, plugin::{api::NetworkConfiguratorApiImpl, rpc::network_configurator_api_server::NetworkConfiguratorApiServer}};
 
@@ -73,6 +74,15 @@ impl PluginManager {
         None
     }
 
+    pub async fn get_plugins_metadata(&self) -> Vec<PluginMetadata> {
+        let raw = self.raw.read().await;
+        let mut out: Vec<PluginMetadata> = vec![];
+        for (_, plugin) in raw.plugins.iter() {
+            out.push(plugin.get_metadata().await.clone());
+        }
+        out
+    }
+
     pub async fn remove_plugin(&self, id: String) -> Option<Plugin> {
         let mut raw = self.raw.write().await;
         let plugin = raw.plugins.remove(&id);
@@ -85,7 +95,7 @@ pub struct RawPlugin {
     metadata: PluginMetadata,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct PluginMetadata {
     id: String,
     name: String,
@@ -98,6 +108,11 @@ pub struct Plugin {
 }
 
 impl Plugin {
+    pub async fn get_metadata(&self) -> PluginMetadata {
+        let raw = self.raw.read().await;
+        return raw.metadata.clone();
+    }
+
     pub fn new(manager: PluginManager, metadata: PluginMetadata) -> Self {
         Plugin {
             raw: Arc::new(RwLock::new(RawPlugin { manager, metadata })),
