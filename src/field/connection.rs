@@ -128,7 +128,7 @@ impl DriverStationConnection {
                         .await
                     {
                         raw_conn.driverstation = Some(ds.clone());
-                        ds.set_active_connection(self.clone()).await;
+                        ds.set_active_connection(Some(self.clone())).await;
                         info!("Driver station {} connected", team_number);
                     } else {
                         warn!("Received a connection from a driver station that is not in the list of known driver stations. Team Number: {}", team_number);
