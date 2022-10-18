@@ -40,8 +40,8 @@ impl Application {
 
         let plugin_manager = PluginManager::new(field.clone());
 
-        start_web(field.clone(), plugin_manager.clone()).await;
-
+        start_web(field.clone(), plugin_manager.clone()).await?;
+        
         let (indicate_running, running_signal) = async_channel::bounded(1);
 
         let application = RawApplication {

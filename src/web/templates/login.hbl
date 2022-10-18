@@ -7,11 +7,12 @@
     <meta name="keywords" content="first fms frc robots robotics">
     <link rel="stylesheet" href="/static/css/main.min.css" />
     <link rel="stylesheet" href="/static/css/normalize.min.css" />
+    <link rel="icon" type="image/x-icon" href="/static/logos/eao_bird_circle.png">
     <style>
         .background {
             background: linear-gradient(180deg, #4F5B62 12.89%, #263238 72.43%, rgba(154, 0, 7, 0.93) 120.46%);
         }
-        
+
         .login-container {
             padding-top: 300px;
             display: flex;
@@ -19,38 +20,47 @@
             color: white;
             text-align: center;
             flex-direction: column;
-            width: 50vh;
+            width: 40%;
         }
-        
+
         .image {
             display: block;
             margin: 0 auto;
         }
-        
+
         .label-transparent {
             pointer-events: none;
+        }
+
+        @media screen and (max-width: 900px) {
+            .background {
+                background: linear-gradient(180deg, #4F5B62 12.89%, #263238 82.43%, rgba(154, 0, 7, 0.93) 130.46%);
+            }
+
+            .login-container {
+                width: 95%;
+            }
         }
     </style>
 </head>
 
 <body class="background">
-    <div class="container">
-        <div class="login-container">
-            <img class="image" src="/static/logos/eao_bird_circle.png" width="163px" height="163px" />
-            <h1>Nevermore FMS</h1>
-            <div class="input-effect">
-                <input type="text" class="text-input" />
-                <label class="label-transparent">Username</label>
-                <span class="focus-border"><i></i></span>
-            </div>
-            <div class="input-effect">
-                <input type="password" class="text-input" />
-                <label class="label-transparent">Password</label>
-                <span class="focus-border"><i></i></span>
-            </div>
-            <button class="button-secondary">Login</button>
+    <form class="login-container" action="/login" method="post">
+        <input type="hidden" name="csrf_token" value="{{ token }}" />
+        <img class="image" src="/static/logos/eao_bird_circle.png" width="163px" height="163px" />
+        <h1>Nevermore FMS</h1>
+        <div class="input-effect">
+            <input type="text" class="text-input" name="username" required minlength="3" maxlength="24" />
+            <label class="label-transparent">Username</label>
+            <span class="focus-border"><i></i></span>
         </div>
-    </div>
+        <div class="input-effect">
+            <input type="password" class="text-input" name="password" required minlength="3" maxlength="32" />
+            <label class="label-transparent">Password</label>
+            <span class="focus-border"><i></i></span>
+        </div>
+        <input type="submit" class="button-secondary"></input>
+    </form>
 </body>
 
 </html>

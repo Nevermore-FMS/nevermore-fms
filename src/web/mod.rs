@@ -1,85 +1,76 @@
+use actix_csrf::{CsrfMiddleware, extractor::{CsrfToken, CsrfGuarded, Csrf}};
+use actix_web::{get, web::{self, Form}, App, HttpServer, HttpResponse, http::{header::ContentType, Method}, Responder, post};
 use handlebars::Handlebars;
-use serde::Serialize;
+use rand::rngs::StdRng;
+use serde_derive::Deserialize;
 use serde_json::json;
-use std::{path::Path, sync::Arc};
-
-use warp::{Filter, Reply, Rejection};
+use std::{sync::Arc, path::Path};
 
 use crate::{field::Field, plugin::PluginManager};
 
-struct WithTemplate<T: Serialize> {
-    name: &'static str,
-    value: T,
+#[get("/")]
+async fn index(plugin_manager: web::Data<PluginManager>, hb: web::Data<Arc<Handlebars<'_>>>) -> actix_web::Result<HttpResponse> {
+    let out = hb.render("index.hbl", &json!({
+        "plugins": plugin_manager.get_plugins_metadata().await,
+        "plugin_token": plugin_manager.get_plugin_registration_token().await
+    })).unwrap();
+    Ok(HttpResponse::Ok()
+        .content_type(ContentType::html())
+        .body(out))
 }
 
-pub async fn handle_index(args: (PluginManager, Arc<Handlebars<'_>>)) -> Result<impl Reply, Rejection> {
-    let (plugin_manager, hb) = args;
-    Ok(render(
-        WithTemplate {
-            name: "index.hbl",
-            value: json!({
-                "plugins": plugin_manager.get_plugins_metadata().await
-            }),
-        },
-        hb,
-    ))
+#[get("/login")]
+async fn login_ui(hb: web::Data<Arc<Handlebars<'_>>>, token: CsrfToken) -> actix_web::Result<HttpResponse> {
+    let out = hb.render("login.hbl", &json!({
+        "token": token.get()
+    })).unwrap();
+    Ok(HttpResponse::Ok()
+        .content_type(ContentType::html())
+        .body(out))
 }
 
-pub async fn handle_login(args: (PluginManager, Arc<Handlebars<'_>>)) -> Result<impl Reply, Rejection> {
-    let (plugin_manager, hb) = args;
-    Ok(render(
-        WithTemplate {
-            name: "login.hbl",
-            value: json!({
-                "plugins": plugin_manager.get_plugins_metadata().await
-            }),
-        },
-        hb,
-    ))
+#[derive(Deserialize)]
+struct LoginForm {
+    csrf_token: CsrfToken,
+    username: String,
+    password: String,
 }
 
-fn render<T>(template: WithTemplate<T>, hbs: Arc<Handlebars<'_>>) -> impl warp::Reply
-where
-    T: Serialize,
-{
-    let render = hbs
-        .render(template.name, &template.value)
-        .unwrap_or_else(|err| err.to_string());
-    warp::reply::html(render)
+impl CsrfGuarded for LoginForm {
+    fn csrf_token(&self) -> &CsrfToken {
+        &self.csrf_token
+    }
 }
 
-pub async fn start_web(field: Field, plugin_manager: PluginManager) {
-    tokio::spawn(async move {
-        let mut reg = Handlebars::new();
-        reg.register_template_string("index.hbl", include_str!("./templates/index.hbl"))
-            .unwrap();
-        reg.register_template_string("login.hbl", include_str!("./templates/login.hbl"))
-            .unwrap();
+#[post("/login")]
+async fn login(form: Csrf<Form<LoginForm>>) -> impl Responder {
+    return HttpResponse::Ok().body(form.username.clone());
+}
 
-        let static_serve = warp::path("static").and(warp::fs::dir(
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("public/static"),
-        ));
+pub async fn start_web(field: Field, plugin_manager: PluginManager) -> anyhow::Result<()> {
+    let mut reg = Handlebars::new();
+    reg.register_template_string("index.hbl", include_str!("./templates/index.hbl"))?;
+    reg.register_template_string("login.hbl", include_str!("./templates/login.hbl"))?;
 
-        let hb = Arc::new(reg);
+    let hb = Arc::new(reg);
 
-        //let handlebars = |with_template| async move {render(with_template.await, hb.clone())};
+    //let handlebars = |with_template| async move {render(with_template.await, hb.clone())};
 
-        let index_hb = hb.clone();
-        let index_plugin_manager = plugin_manager.clone();
-        let index = warp::get()
-            .and(warp::path::end())
-            .map(move || (index_plugin_manager.clone(), index_hb.clone()))
-            .and_then(handle_index);
-
-        let login_hb = hb.clone();
-        let login_plugin_manager = plugin_manager.clone();
-        let login = warp::get()
-            .and(warp::path("login"))
-            .map(move || (login_plugin_manager.clone(), login_hb.clone()))
-            .and_then(handle_login);
-
-        let route = warp::any().and(index.or(login).or(static_serve));
-
-        warp::serve(route).run(([127, 0, 0, 1], 3030)).await;
-    });
+    tokio::spawn(HttpServer::new(move || {
+        let csrf = CsrfMiddleware::<StdRng>::new()
+            .set_cookie(Method::GET, "/login");
+            
+        App::new()
+        .app_data(web::Data::new(field.clone()))
+        .app_data(web::Data::new(plugin_manager.clone()))
+        .app_data(web::Data::new(hb.clone()))
+        .wrap(csrf)
+        .service(index)
+        .service(login_ui)
+        .service(login)
+        .service(actix_files::Files::new("/static", Path::new(env!("CARGO_MANIFEST_DIR")).join("public/static")))
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run());
+    Ok(())
 }

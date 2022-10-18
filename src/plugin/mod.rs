@@ -3,6 +3,7 @@ use std::{collections::HashMap, hash::Hash, net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 use tonic::transport::Server;
 use serde_derive::Serialize;
+use rand::{Rng, distributions::Alphanumeric};
 
 use crate::{field::Field, plugin::{api::NetworkConfiguratorApiImpl, rpc::network_configurator_api_server::NetworkConfiguratorApiServer}};
 
@@ -16,6 +17,7 @@ pub mod api;
 
 pub struct RawPluginManager {
     plugins: HashMap<String, Plugin>,
+    plugin_registration_token: String
 }
 
 #[derive(Clone)]
@@ -28,6 +30,11 @@ impl PluginManager {
         let manager = PluginManager {
             raw: Arc::new(RwLock::new(RawPluginManager {
                 plugins: HashMap::new(),
+                plugin_registration_token: rand::thread_rng()
+                    .sample_iter(&Alphanumeric)
+                    .take(24)
+                    .map(char::from)
+                    .collect()
             })),
         };
 
@@ -72,6 +79,11 @@ impl PluginManager {
             }
         }
         None
+    }
+
+    pub async fn get_plugin_registration_token(&self) -> String {
+        let raw = self.raw.read().await;
+        raw.plugin_registration_token.clone()
     }
 
     pub async fn get_plugins_metadata(&self) -> Vec<PluginMetadata> {
