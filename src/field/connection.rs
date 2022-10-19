@@ -5,7 +5,7 @@ use std::{
     sync::Arc,
 };
 
-use chrono::{Datelike, Local, Timelike};
+use chrono::{Datelike, Local, Timelike, DateTime, Utc};
 use log::*;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -87,6 +87,7 @@ impl DriverStationConnection {
             tcp_stream: Arc::new(Mutex::new(tcp_stream)),
             ip_address,
             udp_outgoing_sequence_num: 0,
+            last_udp_packet_reception: Utc::now()
         };
         let driver_station_connection = Self {
             raw: Arc::new(RwLock::new(driver_station_connection)),
