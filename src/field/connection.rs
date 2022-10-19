@@ -29,6 +29,7 @@ struct RawDriverStationConnection {
     tcp_stream: Arc<Mutex<TcpStream>>,
     ip_address: IpAddr,
     udp_outgoing_sequence_num: u16,
+    last_udp_packet_reception: DateTime<Utc>,
 }
 
 /// Represents the long-lived connection to the driver station
@@ -42,6 +43,12 @@ impl DriverStationConnection {
 
     pub async fn is_alive(&self) -> bool {
         let raw = self.raw.read().await;
+        if raw.alive && Utc::now().signed_duration_since(ds.last_packet_reception().await) > chrono::Duration::seconds(2) {
+            drop(raw);
+            conn.kill().await;
+            return self.is_alive()
+        }
+        
         raw.alive
     }
 
@@ -51,6 +58,9 @@ impl DriverStationConnection {
         let mut tcp_stream = raw.tcp_stream.lock().await;
         if let Err(e) = tcp_stream.shutdown().await {
             error!("Failed to shutdown TCP stream: {}", e);
+        }
+        if let Some(ds) = raw.driverstation {
+            ds.set_active_connection(None).await;
         }
     }
 

@@ -26,7 +26,6 @@ struct RawDriverstation {
     expected_ip: Option<AnyIpCidr>,
     active_connection: Option<DriverStationConnection>,
     confirmed_state: Option<ConfirmedState>,
-    last_packet_reception: DateTime<Utc>
 }
 
 #[derive(Clone)]
@@ -49,7 +48,6 @@ impl DriverStation {
             expected_ip: None,
             active_connection: None,
             confirmed_state: Option::None,
-            last_packet_reception: Utc::now()
         };
         let driverstation = Self {
             raw: Arc::new(RwLock::new(driverstation)),
@@ -336,10 +334,7 @@ impl DriverStations {
         let raw_driverstations = self.raw.read().await;
         for ds in raw_driverstations.all_driverstations.iter() {
             if let Some(conn) = ds.active_connection().await {
-                if Utc::now().signed_duration_since(ds.last_packet_reception().await) > chrono::Duration::seconds(10) { // If disconnected for 10 secs force disconnect
-                    conn.kill().await;
-                    ds.set_active_connection(None).await;
-                } else {
+                if conn.is_alive().await {
                     if let Err(e) = conn.send_udp_message().await {
                         error!(
                             "Error sending udp message to driver station{}: {}",
