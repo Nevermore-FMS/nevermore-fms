@@ -46,7 +46,6 @@
 
 <body class="background">
     <form class="login-container" action="/login" method="post">
-        <input type="hidden" name="csrf_token" value="{{ token }}" />
         <img class="image" src="/static/logos/eao_bird_circle.png" width="163px" height="163px" />
         <h1>Nevermore FMS</h1>
         <div class="input-effect">

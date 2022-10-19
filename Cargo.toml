@@ -11,7 +11,8 @@ edition = "2018"
 tokio = { version = "1.16.1", features = ["full"] }
 actix-web = "4"
 actix-files = "0.6.2"
-actix-csrf = "0.7.0"
+actix-web-lab = "0.18.5"
+actix-session = { version = "0.7.2", features = ["cookie-session"]}
 handlebars = "4.3.0"
 serde = "1.0.145"
 serde_derive = "1.0.145"
@@ -28,6 +29,10 @@ tonic = "0.7"
 prost = "0.10"
 rand = "0.8.5"
 tokio-stream = { version = "0.1.8", features = ["sync"] }
+
+# User Storage
+jfs = "0.7.1"
+rust-argon2 = "1.0"
 
 [build-dependencies]
 tonic-build = "0.7"
