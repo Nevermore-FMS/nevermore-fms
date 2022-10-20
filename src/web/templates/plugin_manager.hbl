@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Nevermore FMS</title>
+    <title>Plugin Manager | Nevermore FMS</title>
     <meta name="description" content="The Home Page of the Nevermore FMS.">
     <meta name="keywords" content="first fms frc robots robotics">
     <link rel="stylesheet" href="/static/css/main.min.css" />
@@ -31,10 +31,6 @@
             background-color: white;
             margin-top: 15px;
         }
-
-        .button-margin {
-            padding-top: 32px;
-        }
         
         .background {
             background: linear-gradient(180deg, #4F5B62 12.89%, #263238 72.43%, rgba(154, 0, 7, 0.93) 120.46%);
@@ -62,25 +58,8 @@
 <body class="background">
     <div class="topbar">
         <img class="logo" src="/static/logos/eao_bird_circle.png" width="82px" height="78px" />
-        <div class="select-effect select-size">
-            <select class="select select-head">
-                {{ #if pluins.length}}
-                <option value="" selected="" disabled="">&lt;Select a Plugin&gt;</option>
-                {{ #each plugins }}
-                <option value="{{ this.id }}">{{this.name}}</option>
-                {{/each}}
-                {{else}}
-                <option value="" selected="" disabled="">&lt;No Plugins Available&gt;</option>
-                {{/if}}
-            </select>
-            <label>Select</label>
-        </div>
-        <div class="button-margin">
-            <a class="button-secondary" href="/plugin_manager">Plugin Manager</a>
-            <a class="button-secondary" href="/settings">Settings</a>
-        </div>
         <div class="container interface">
-            <h1 class="header-text">You when no plugins are installed :( {{ plugin_token }}</h1>
+            <h1 class="header-text">Plugin Manager</h1>
             <!--<img class="center" src="/static/logos/monkey-banana.gif" />-->
         </div>
     </div>

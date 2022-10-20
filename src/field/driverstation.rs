@@ -1,7 +1,7 @@
 use std::{io::Cursor, net::IpAddr, sync::Arc, time::Duration};
 
 use anyhow::{bail, Context, Ok};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use cidr::AnyIpCidr;
 use log::*;
 use tokio::{
@@ -70,11 +70,6 @@ impl DriverStation {
         raw.mode
     }
 
-    pub async fn last_packet_reception(&self) -> DateTime<Utc> {
-        let raw = self.raw.read().await;
-        raw.last_packet_reception
-    }
-
     pub async fn expected_ip(&self) -> Option<AnyIpCidr> {
         let raw = self.raw.read().await;
         raw.expected_ip
@@ -120,8 +115,10 @@ impl DriverStation {
 
     pub(super) async fn set_confirmed_state(&self, confirmed_state: ConfirmedState) {
         let mut raw = self.raw.write().await;
-        raw.last_packet_reception = Utc::now();
         raw.confirmed_state = Option::Some(confirmed_state);
+        if raw.active_connection.is_some() {
+            raw.active_connection.as_ref().unwrap().update_last_udp_packet_reception(Utc::now()).await;
+        }
     }
 
     pub(super) async fn set_active_connection(&self, active_connection: Option<DriverStationConnection>) {

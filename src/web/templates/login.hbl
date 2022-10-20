@@ -48,6 +48,9 @@
     <form class="login-container" action="/login" method="post">
         <img class="image" src="/static/logos/eao_bird_circle.png" width="163px" height="163px" />
         <h1>Nevermore FMS</h1>
+        {{ #if error}}
+            <div class="error">{{ error }}</div>
+        {{ /if }}
         <div class="input-effect">
             <input type="text" class="text-input" name="username" required minlength="3" maxlength="24" />
             <label class="label-transparent">Username</label>

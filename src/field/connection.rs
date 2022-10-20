@@ -43,13 +43,18 @@ impl DriverStationConnection {
 
     pub async fn is_alive(&self) -> bool {
         let raw = self.raw.read().await;
-        if raw.alive && Utc::now().signed_duration_since(ds.last_packet_reception().await) > chrono::Duration::seconds(2) {
+        if raw.alive && Utc::now().signed_duration_since(raw.last_udp_packet_reception) > chrono::Duration::seconds(2) {
             drop(raw);
-            conn.kill().await;
-            return self.is_alive()
+            self.kill().await;
+            return false
         }
         
         raw.alive
+    }
+
+    pub async fn update_last_udp_packet_reception(&self, time: DateTime<Utc>) {
+        let mut raw = self.raw.write().await;
+        raw.last_udp_packet_reception = time;
     }
 
     pub async fn kill(&self) {
@@ -59,7 +64,7 @@ impl DriverStationConnection {
         if let Err(e) = tcp_stream.shutdown().await {
             error!("Failed to shutdown TCP stream: {}", e);
         }
-        if let Some(ds) = raw.driverstation {
+        if let Some(ds) = &raw.driverstation {
             ds.set_active_connection(None).await;
         }
     }

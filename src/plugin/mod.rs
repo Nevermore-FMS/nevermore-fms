@@ -1,5 +1,5 @@
 use log::info;
-use std::{collections::HashMap, hash::Hash, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, hash::Hash, net::{SocketAddr, IpAddr}, sync::Arc};
 use tokio::sync::RwLock;
 use tonic::transport::Server;
 use serde_derive::Serialize;
@@ -105,13 +105,26 @@ impl PluginManager {
 pub struct RawPlugin {
     manager: PluginManager,
     metadata: PluginMetadata,
+    proxy: Option<PluginHTTPProxy>
+}
+
+#[derive(Clone, Serialize)]
+pub struct PluginHTTPProxy {
+    protocol: String,
+    ip_addr: IpAddr,
+    port: u16
 }
 
 #[derive(Clone, Serialize)]
 pub struct PluginMetadata {
     id: String,
     name: String,
-    token: String,
+    description: String,
+    readme: String,
+    version: String,
+    authors: Vec<String>,
+    src_url: String,
+    docs_url: String
 }
 
 #[derive(Clone)]
@@ -127,7 +140,7 @@ impl Plugin {
 
     pub fn new(manager: PluginManager, metadata: PluginMetadata) -> Self {
         Plugin {
-            raw: Arc::new(RwLock::new(RawPlugin { manager, metadata })),
+            raw: Arc::new(RwLock::new(RawPlugin { manager, metadata, proxy: None })),
         }
     }
 }
