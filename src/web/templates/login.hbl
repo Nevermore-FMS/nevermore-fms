@@ -61,7 +61,7 @@
             <label class="label-transparent">Password</label>
             <span class="focus-border"><i></i></span>
         </div>
-        <input type="submit" class="button-secondary"></input>
+        <input type="submit" class="button-secondary" value="Login"></input>
     </form>
     <script src="/static/js/text-box.js"></script>
 </body>

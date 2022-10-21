@@ -15,15 +15,13 @@ use anyhow::Context;
 use clap::Parser;
 use log::*;
 
-use crate::field::{driverstation::DriverStation};
-
 const BIRD: &'static str = include_str!("eaobird.txt");
 
 /// An alternative FIRST FMS designed around extensibility and compatibility.
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Cli {
-    /// Sets the uri used to access the SQL Database using sqlx. TODO
+    /// Sets the path of the Json DB
     #[clap(long, default_value = "file:main.db", env = "NEVERMORE_DB_URI")]
     db_uri: String,
 

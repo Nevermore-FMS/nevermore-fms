@@ -118,13 +118,13 @@ pub struct PluginHTTPProxy {
 #[derive(Clone, Serialize)]
 pub struct PluginMetadata {
     id: String,
-    name: String,
-    description: String,
-    readme: String,
-    version: String,
-    authors: Vec<String>,
-    src_url: String,
-    docs_url: String
+    name: Option<String>,
+    description: Option<String>,
+    readme: Option<String>,
+    version: Option<String>,
+    authors: Option<Vec<String>>,
+    src_url: Option<String>,
+    docs_url: Option<String>
 }
 
 #[derive(Clone)]

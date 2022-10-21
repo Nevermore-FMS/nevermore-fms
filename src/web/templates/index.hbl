@@ -61,10 +61,10 @@
 
 <body class="background">
     <div class="topbar">
-        <img class="logo" src="/static/logos/eao_bird_circle.png" width="82px" height="78px" />
+        <a href="/"><img class="logo" src="/static/logos/eao_bird_circle.png" width="82px" height="78px" /></a>
         <div class="select-effect select-size">
             <select class="select select-head">
-                {{ #if pluins.length}}
+                {{ #if (len plugins)}}
                 <option value="" selected="" disabled="">&lt;Select a Plugin&gt;</option>
                 {{ #each plugins }}
                 <option value="{{ this.id }}">{{this.name}}</option>
