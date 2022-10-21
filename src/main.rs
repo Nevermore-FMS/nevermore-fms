@@ -4,6 +4,7 @@ pub mod field;
 pub mod plugin;
 pub mod difftimer;
 pub mod web;
+pub mod store;
 
 use std::{
     env,

@@ -8,9 +8,8 @@ use jfs::Store;
 use serde_derive::Deserialize;
 use serde_json::json;
 
-use crate::{plugin::PluginManager, web::users::Users};
+use crate::{plugin::PluginManager, store::user::{User, Users}};
 
-use super::users::User;
 
 fn verify_session(session: Session) -> Option<User> {
     if session.get::<User>("user").is_err() {

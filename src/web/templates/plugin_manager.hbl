@@ -56,6 +56,7 @@
 </head>
 
 <body class="background">
+    <script src="/static/js/text-box.js"></script>
     <div class="topbar">
         <img class="logo" src="/static/logos/eao_bird_circle.png" width="82px" height="78px" />
         <div class="container interface">

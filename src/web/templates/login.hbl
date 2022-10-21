@@ -63,6 +63,7 @@
         </div>
         <input type="submit" class="button-secondary"></input>
     </form>
+    <script src="/static/js/text-box.js"></script>
 </body>
 
 </html>

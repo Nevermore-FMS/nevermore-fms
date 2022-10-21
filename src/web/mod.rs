@@ -1,14 +1,10 @@
 use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_web::{web::{self}, App, HttpServer, cookie::Key};
 use handlebars::Handlebars;
-use jfs::Store;
-use std::{sync::Arc, path::Path, collections::HashMap};
+use std::{sync::Arc, path::Path};
 
-use crate::{field::Field, plugin::PluginManager};
+use crate::{field::Field, plugin::PluginManager, store::create_store};
 
-use self::users::{Users, User};
-
-pub mod users;
 pub mod routes;
 
 pub async fn start_web(field: Field, plugin_manager: PluginManager) -> anyhow::Result<()> {
@@ -20,17 +16,7 @@ pub async fn start_web(field: Field, plugin_manager: PluginManager) -> anyhow::R
     let hb = Arc::new(reg);
 
 
-    let store = Store::new("data").unwrap();
-
-    let mut users: HashMap<String, User> = HashMap::new();
-
-    users.insert("test".to_string(), User::new("Test".to_string(), "test".to_string(), "test".to_string()));
-
-    let users_obj = Users{
-        users
-    };
-
-    store.save_with_id(&users_obj, "users").unwrap();
+    let store = create_store()?;
 
     tokio::spawn(HttpServer::new(move || {
             

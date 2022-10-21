@@ -84,6 +84,7 @@
             <!--<img class="center" src="/static/logos/monkey-banana.gif" />-->
         </div>
     </div>
+    <script src="/static/js/text-box.js"></script>
 </body>
 
 </html>
