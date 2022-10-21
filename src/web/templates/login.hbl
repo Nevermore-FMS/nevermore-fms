@@ -52,12 +52,12 @@
             <div class="error">{{ error }}</div>
         {{ /if }}
         <div class="input-effect">
-            <input type="text" class="text-input" name="username" required minlength="3" maxlength="24" />
+            <input type="text" class="text-input" name="username" required minlength="3" maxlength="24" style="color: white;" />
             <label class="label-transparent">Username</label>
             <span class="focus-border"><i></i></span>
         </div>
         <div class="input-effect">
-            <input type="password" class="text-input" name="password" required minlength="3" maxlength="32" />
+            <input type="password" class="text-input" name="password" required minlength="3" maxlength="32" style="color: white;" />
             <label class="label-transparent">Password</label>
             <span class="focus-border"><i></i></span>
         </div>

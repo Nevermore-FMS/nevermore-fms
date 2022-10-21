@@ -3,7 +3,7 @@ const inputs = document.querySelectorAll('.text-input');
 for (input of inputs) {
     updateInput(input)
     input.addEventListener('change', (event) => {
-        updateInput(input)
+        updateInput(event.target)
     });
 }
 
