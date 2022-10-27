@@ -6,6 +6,7 @@ use crate::{field::Field, plugin::PluginManager, web::start_web};
 
 struct RawApplication {
     pub field: Field,
+    #[allow(dead_code)] // This is not dead code, and prevents the plugin manager from being dropped.
     pub plugin_manager: PluginManager,
     running_signal: async_channel::Receiver<()>,
 }
@@ -35,7 +36,7 @@ impl Application {
     }
 
     // Internal API -->
-    pub(super) async fn new(db_uri: Option<String>, ds_address: IpAddr) -> anyhow::Result<Self> {
+    pub(super) async fn new(ds_address: IpAddr) -> anyhow::Result<Self> {
         let field = Field::new(String::from("DFLT"), ds_address).await?;
 
         let plugin_manager = PluginManager::new(field.clone());

@@ -1,13 +1,13 @@
 use log::info;
-use std::{collections::HashMap, hash::Hash, net::{SocketAddr, IpAddr}, sync::Arc};
-use tokio::sync::RwLock;
+use std::{collections::HashMap, net::{SocketAddr, IpAddr}, sync::Arc};
+use tokio::sync::{RwLock, broadcast};
 use tonic::transport::Server;
 use serde_derive::Serialize;
 use rand::{Rng, distributions::Alphanumeric};
 
-use crate::{field::Field, plugin::{api::NetworkConfiguratorApiImpl, rpc::network_configurator_api_server::NetworkConfiguratorApiServer}};
+use crate::{field::Field, plugin::api::PluginApiImpl};
 
-use self::{api::GenericApiImpl, rpc::generic_api_server::GenericApiServer};
+use self::rpc::{plugin_api_server::PluginApiServer, JsonRpcMessage, PluginRegistrationRequest, PluginRegistrationResponse};
 
 pub mod rpc {
     tonic::include_proto!("plugin");
@@ -17,12 +17,18 @@ pub mod api;
 
 pub struct RawPluginManager {
     plugins: HashMap<String, Plugin>,
-    plugin_registration_token: String
+    plugin_registration_token: String,
 }
 
 #[derive(Clone)]
 pub struct PluginManager {
     raw: Arc<RwLock<RawPluginManager>>,
+
+}
+
+#[derive(Clone)]
+pub struct PluginExtension {
+    pub plugin: Plugin,
 }
 
 impl PluginManager {
@@ -41,19 +47,15 @@ impl PluginManager {
         let manager_clone = manager.clone();
         tokio::spawn(async move {
             let addr: SocketAddr = "0.0.0.0:5276".parse().unwrap();
-            let generic_api_impl = GenericApiImpl {
-                plugin_manager: manager_clone,
-                field: field.clone(),
-            };
-            let network_api_impl = NetworkConfiguratorApiImpl {
+            let plugin_api_impl = PluginApiImpl {
+                plugin_manager: manager_clone.clone(),
                 field,
             };
 
             info!("Listening for gRPC plugins on {}", addr.clone());
 
             Server::builder()
-                .add_service(GenericApiServer::new(generic_api_impl))
-                .add_service(NetworkConfiguratorApiServer::new(network_api_impl))
+                .add_service(PluginApiServer::new(plugin_api_impl))
                 .serve(addr)
                 .await
                 .unwrap();
@@ -62,8 +64,32 @@ impl PluginManager {
         manager
     }
 
+    pub async fn register_plugin(&self, req: PluginRegistrationRequest) -> anyhow::Result<PluginRegistrationResponse> {
+        if req.plugin.is_none() {
+            return Err(anyhow::anyhow!("No plugin in message!"));
+        }
+        let data = req.plugin.unwrap();
+        let metadata = PluginMetadata{
+            id: data.id.clone(),
+            name: data.name,
+            description: data.description,
+            readme: data.readme,
+            version: data.version,
+            authors: data.authors,
+            src_url: data.src_url,
+            docs_url: data.docs_url,
+        };
+
+        let plugin = Plugin::new(metadata.clone());
+
+        let mut raw = self.raw.write().await;
+        raw.plugins.insert(data.id, plugin.clone());
+
+        Ok(PluginRegistrationResponse { token: plugin.get_token().await })
+    }
+
     pub async fn set_plugin(&self, meta: PluginMetadata) -> Plugin {
-        let plugin = Plugin::new(self.clone(), meta.clone());
+        let plugin = Plugin::new(meta.clone());
 
         let mut raw = self.raw.write().await;
         raw.plugins.insert(meta.id, plugin.clone());
@@ -75,6 +101,16 @@ impl PluginManager {
         let raw = self.raw.read().await;
         for (x, plugin) in raw.plugins.iter() {
             if x.clone() == id {
+                return Some(plugin.clone());
+            }
+        }
+        None
+    }
+
+    pub async fn get_plugin_by_token(&self, token: String) -> Option<Plugin> {
+        let raw = self.raw.read().await;
+        for (_, plugin) in raw.plugins.iter() {
+            if plugin.get_token().await == token {
                 return Some(plugin.clone());
             }
         }
@@ -103,9 +139,10 @@ impl PluginManager {
 }
 
 pub struct RawPlugin {
-    manager: PluginManager,
     metadata: PluginMetadata,
-    proxy: Option<PluginHTTPProxy>
+    plugin_token: String,
+    proxy: Option<PluginHTTPProxy>,
+    message_channel: broadcast::Sender<JsonRpcMessage>
 }
 
 #[derive(Clone, Serialize)]
@@ -115,6 +152,12 @@ pub struct PluginHTTPProxy {
     port: u16
 }
 
+impl PluginHTTPProxy {
+    pub fn generate_uri(&self, tail: String) -> String {
+        format!("{}://{}:{}/{}", self.protocol, self.ip_addr.to_string(), self.port, tail)
+    }
+}
+
 #[derive(Clone, Serialize)]
 pub struct PluginMetadata {
     id: String,
@@ -122,7 +165,7 @@ pub struct PluginMetadata {
     description: Option<String>,
     readme: Option<String>,
     version: Option<String>,
-    authors: Option<Vec<String>>,
+    authors: Vec<String>,
     src_url: Option<String>,
     docs_url: Option<String>
 }
@@ -138,9 +181,36 @@ impl Plugin {
         return raw.metadata.clone();
     }
 
-    pub fn new(manager: PluginManager, metadata: PluginMetadata) -> Self {
+    pub async fn get_token(&self) -> String {
+        let raw = self.raw.read().await;
+        return raw.plugin_token.clone();
+    }
+
+    pub async fn get_http_proxy(&self) -> Option<PluginHTTPProxy> {
+        let raw = self.raw.read().await;
+        return raw.proxy.clone();
+    }
+
+    pub async fn publish(&self, msg: JsonRpcMessage) -> anyhow::Result<()> {
+        let raw = self.raw.read().await;
+        raw.message_channel.send(msg)?;
+        Ok(())
+    }
+
+    pub async fn subscribe(&self) -> broadcast::Receiver<JsonRpcMessage> {
+        let raw = self.raw.read().await;
+        return raw.message_channel.subscribe();
+    }
+
+    pub fn new(metadata: PluginMetadata) -> Self {
+        let (tx, _) = broadcast::channel(100);
+
         Plugin {
-            raw: Arc::new(RwLock::new(RawPlugin { manager, metadata, proxy: None })),
+            raw: Arc::new(RwLock::new(RawPlugin { metadata, proxy: None, message_channel: tx, plugin_token: rand::thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(24)
+                .map(char::from)
+                .collect() })),
         }
     }
 }

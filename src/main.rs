@@ -21,10 +21,6 @@ const BIRD: &'static str = include_str!("eaobird.txt");
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Cli {
-    /// Sets the path of the Json DB
-    #[clap(long, default_value = "file:main.db", env = "NEVERMORE_DB_URI")]
-    db_uri: String,
-
     /// Sets the address that the FMS listens to for driver stations.
     #[clap(long, default_value = "10.0.100.5", env = "NEVERMORE_DS_ADDRESS")]
     ds_address: IpAddr,
@@ -45,7 +41,7 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    let application = application::Application::new(None, cli.ds_address)
+    let application = application::Application::new(cli.ds_address)
         .await
         .context("Error while creating application, couldn't start Nevermore")?;
 

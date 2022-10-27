@@ -25,14 +25,18 @@ pretty_env_logger = "0.4"
 cidr = "0.2.1"
 chrono = "0.4.19"
 async-trait = "0.1.52"
-tonic = "0.7"
-prost = "0.10"
+tonic = "0.8.1"
+prost = "0.11"
 rand = "0.8.5"
 tokio-stream = { version = "0.1.8", features = ["sync"] }
+bmrng = "0.5.2"
+tonic-async-interceptor = "0.1.0"
+lazy_static = "1.4.0"
+awc = "3.0.1"
 
 # User Storage
 jfs = "0.7.1"
 rust-argon2 = "1.0"
 
 [build-dependencies]
-tonic-build = "0.7"
+tonic-build = "0.8.1"

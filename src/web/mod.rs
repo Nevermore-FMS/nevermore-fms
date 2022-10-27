@@ -30,6 +30,7 @@ pub async fn start_web(field: Field, plugin_manager: PluginManager) -> anyhow::R
         .service(routes::login_ui)
         .service(routes::login)
         .service(routes::plugin_manager_ui)
+        .service(routes::proxy_get)
         .service(actix_files::Files::new("/static", Path::new(env!("CARGO_MANIFEST_DIR")).join("public/static")))
     })
     .bind(("127.0.0.1", 8080))?

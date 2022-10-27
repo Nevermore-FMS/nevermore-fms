@@ -2,18 +2,19 @@ syntax = "proto3";
 
 package plugin;
 
-service NetworkConfiguratorAPI {
-    // DriverStation Functions
+service PluginAPI {
+    // Plugin Registration Functions
+    rpc RegisterPlugin(PluginRegistrationRequest) returns (PluginRegistrationResponse);
+
+    // RPC Functions
+
+    rpc JsonRPCPublish(JSONRpcMessage) returns (Empty);
+
+    rpc JsonRPCSubscribe(Empty) returns (stream JSONRpcMessage);
+
+    // Network Configuration Functions
     rpc UpdateDriverStationExpectedIP(DriverStationUpdateExpectedIP) returns (DriverStation);
 
-    rpc GetDriverStations(Empty) returns (DriverStations);
-
-    rpc OnDriverStationCreate(Empty) returns (stream DriverStation);
-
-    rpc OnDriverStationDelete(Empty) returns (stream DriverStation);
-}
-
-service GenericAPI {
     // Field Functions
     rpc OnFieldStateUpdate(Empty) returns (stream FieldState);
 
@@ -87,6 +88,32 @@ enum TournamentLevel {
     PRACTICE = 1;
     QUALIFICATION = 2;
     PLAYOFF = 3;
+}
+
+// Plugin Registration Messages
+message PluginMetadata {
+    string id = 1;
+    optional string name = 2;
+    optional string description = 3;
+    optional string readme = 4;
+    optional string version = 5;
+    repeated string authors = 6;
+    optional string src_url = 7;
+    optional string docs_url = 8;
+}
+
+message PluginRegistrationRequest {
+    string registration_token = 1;
+    PluginMetadata plugin = 2;
+}
+
+message PluginRegistrationResponse {
+    string token = 1;
+}
+
+message JSONRpcMessage {
+    string plugin_id = 1;
+    string data = 2;
 }
 
 // Field Messages

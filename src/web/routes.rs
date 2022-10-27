@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use actix_session::Session;
-use actix_web::{get, web::{self, Form}, HttpResponse, http::{header::ContentType, StatusCode}, Responder, post};
+use actix_web::{get, web::{self, Form}, HttpResponse, http::{header::ContentType, StatusCode}, Responder, post, route};
 use actix_web_lab::web::Redirect;
+use awc::Client;
 use handlebars::Handlebars;
 use jfs::Store;
 use serde_derive::Deserialize;
@@ -65,6 +66,41 @@ async fn plugin_manager_ui(plugin_manager: web::Data<PluginManager>, hb: web::Da
         .body(out))
 }
 
+#[route("/proxy/{plugin_id}/{tail:.*}", method = "GET")]
+async fn proxy_get(plugin_manager: web::Data<PluginManager>, path: web::Path<(String, String)>, session: Session) -> actix_web::Result<impl Responder> {
+    if verify_session(session).is_none() {
+        return Ok(HttpResponse::Found().insert_header(("Location", "/login")).finish());
+    }
+    let (plugin_id, tail) = path.into_inner();
+    let plugin = plugin_manager.get_plugin(plugin_id).await;
+    if plugin.is_some() {
+        let plugin = plugin.unwrap();
+        let proxy = plugin.get_http_proxy().await;
+        if proxy.is_some() {
+            let proxy = proxy.unwrap();
+            let client = Client::default();
+
+            let res = client.get(proxy.generate_uri(tail)).send().await;
+            if res.is_err() {
+                return Ok(HttpResponse::BadGateway().finish());
+            }
+            let res = res.unwrap();
+            let mut response = HttpResponse::build(res.status());
+
+            res.headers().iter().for_each(|(k, v)| {
+                response.insert_header((k, v.clone()));
+            });
+
+            response.streaming(res);
+
+            return Ok(response.finish());
+        } else {
+            return Ok(HttpResponse::NotFound().finish());
+        }
+    } else {
+        return Ok(HttpResponse::NotFound().finish());
+    };
+}
 #[derive(Deserialize)]
 struct LoginForm {
     username: String,
