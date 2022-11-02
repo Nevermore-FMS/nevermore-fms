@@ -1,4 +1,4 @@
-use std::{net::IpAddr, sync::Arc};
+use std::{net::{IpAddr, SocketAddr}, sync::Arc};
 
 use tokio::sync::RwLock;
 
@@ -36,12 +36,12 @@ impl Application {
     }
 
     // Internal API -->
-    pub(super) async fn new(ds_address: IpAddr) -> anyhow::Result<Self> {
+    pub(super) async fn new(ds_address: IpAddr, web_address: SocketAddr) -> anyhow::Result<Self> {
         let field = Field::new(String::from("DFLT"), ds_address).await?;
 
         let plugin_manager = PluginManager::new(field.clone());
 
-        start_web(field.clone(), plugin_manager.clone()).await?;
+        start_web(field.clone(), plugin_manager.clone(), web_address).await?;
         
         let (indicate_running, running_signal) = async_channel::bounded(1);
 

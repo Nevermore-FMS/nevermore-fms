@@ -61,6 +61,7 @@
         <a href="/"><img class="logo" src="/static/logos/eao_bird_circle.png" width="82px" height="78px" /></a>
         <div class="container interface">
             <h1 class="header-text">Plugin Manager</h1>
+            <h2 class="header-text"> Registration Token: {{ plugin_token }}</h2>
             <!--<img class="center" src="/static/logos/monkey-banana.gif" />-->
         </div>
     </div>

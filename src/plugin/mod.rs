@@ -16,6 +16,7 @@ pub mod rpc {
 pub mod api;
 
 pub struct RawPluginManager {
+    field: Field,
     plugins: HashMap<String, Plugin>,
     plugin_registration_token: String,
 }
@@ -40,7 +41,8 @@ impl PluginManager {
                     .sample_iter(&Alphanumeric)
                     .take(24)
                     .map(char::from)
-                    .collect()
+                    .collect(),
+                field: field.clone()
             })),
         };
 
@@ -83,7 +85,9 @@ impl PluginManager {
         let plugin = Plugin::new(metadata.clone());
 
         let mut raw = self.raw.write().await;
-        raw.plugins.insert(data.id, plugin.clone());
+        raw.plugins.insert(data.id.clone(), plugin.clone());
+
+        raw.field.control_system().await.register_plugin(data.id).await;
 
         Ok(PluginRegistrationResponse { token: plugin.get_token().await })
     }
@@ -92,7 +96,9 @@ impl PluginManager {
         let plugin = Plugin::new(meta.clone());
 
         let mut raw = self.raw.write().await;
-        raw.plugins.insert(meta.id, plugin.clone());
+        raw.plugins.insert(meta.id.clone(), plugin.clone());
+
+        raw.field.control_system().await.register_plugin(meta.id).await;
 
         plugin
     }
@@ -134,6 +140,7 @@ impl PluginManager {
     pub async fn remove_plugin(&self, id: String) -> Option<Plugin> {
         let mut raw = self.raw.write().await;
         let plugin = raw.plugins.remove(&id);
+        raw.field.control_system().await.deregister_plugin(id).await;
         plugin
     }
 }

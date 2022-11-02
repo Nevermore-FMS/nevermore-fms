@@ -51,6 +51,7 @@ impl PluginApi for PluginApiImpl {
             return Err(Status::unauthenticated("Invalid token"));
         };
         let plugin = plugin.unwrap();
+        let plugin_id = plugin.get_metadata().await.id;
         let (tx, rx) = mpsc::channel::<Result<JsonRpcMessage, Status>>(4);
 
         let mut receiver = plugin.subscribe().await;
@@ -60,7 +61,11 @@ impl PluginApi for PluginApiImpl {
                 if res.is_err() {
                     break;
                 }
-                let res = tx.send(Ok(res.unwrap())).await;
+                let res = res.unwrap();
+                if res.plugin_id != plugin_id {
+                    continue;
+                }
+                let res = tx.send(Ok(res)).await;
                 if res.is_err() {
                     break;
                 }

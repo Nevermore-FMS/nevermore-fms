@@ -1,13 +1,13 @@
 use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_web::{web::{self}, App, HttpServer, cookie::Key};
 use handlebars::Handlebars;
-use std::{sync::Arc, path::Path};
+use std::{sync::Arc, path::Path, net::SocketAddr};
 
 use crate::{field::Field, plugin::PluginManager, store::create_store};
 
 pub mod routes;
 
-pub async fn start_web(field: Field, plugin_manager: PluginManager) -> anyhow::Result<()> {
+pub async fn start_web(field: Field, plugin_manager: PluginManager, web_address: SocketAddr) -> anyhow::Result<()> {
     let mut reg = Handlebars::new();
     reg.register_template_string("index.hbl", include_str!("./templates/index.hbl"))?;
     reg.register_template_string("login.hbl", include_str!("./templates/login.hbl"))?;
@@ -33,7 +33,7 @@ pub async fn start_web(field: Field, plugin_manager: PluginManager) -> anyhow::R
         .service(routes::proxy_get)
         .service(actix_files::Files::new("/static", Path::new(env!("CARGO_MANIFEST_DIR")).join("public/static")))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(web_address)?
     .run());
     Ok(())
 }
