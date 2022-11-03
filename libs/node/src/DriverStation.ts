@@ -37,16 +37,16 @@ export default class DriverStation {
      */
     async setExpectedIP(cidr: string): Promise<void> {
         let driverstationSelf = this;
-        let promise = new Promise<any>((_, reject) => {
+        let promise = new Promise<any>((resolve, reject) => {
             this.plugin.getRpcClient().updateDriverStationExpectedIP({
                 teamNumber: this.ds.teamNumber,
                 expectedIp: cidr
             }, this.plugin.generateMetadata(), (err, ds) => {
                 if (err != null) {
-                    reject(err.message);
-                    return;
+                    throw err.message;
                 }
                 driverstationSelf.ds = ds;
+                resolve(null);
             })
         });
         return promise;
@@ -66,13 +66,36 @@ export default class DriverStation {
                 mode: mode
             }, this.plugin.generateMetadata(), (err, ds) => {
                 if (err != null) {
-                    reject(err.message);
-                    return;
+                    throw err.message;
                 }
                 driverstationSelf.mode = mode;
             })
         });
         return promise;
+    }
+
+    async setEmergencyStop(emergencyStopped: boolean): Promise<void> {
+        if (emergencyStopped) {
+            let emergencyStoppedTeams = this.plugin.getField().getEmergencyStoppedTeams();
+            if (!emergencyStoppedTeams.includes(this.ds.teamNumber)) {
+                emergencyStoppedTeams.push(this.ds.teamNumber);
+                await this.plugin.getField().setTeamNumbersEmergencyStopped(emergencyStoppedTeams);
+            }
+        } else {
+            await this.plugin.getField().setTeamNumbersEmergencyStopped(this.plugin.getField().getEmergencyStoppedTeams().filter((teamNumber) => teamNumber != this.ds.teamNumber));
+        }
+    }
+
+    async setEnabled(enabled: boolean): Promise<void> {
+        if (enabled) {
+            let enabledTeams = this.plugin.getField().getEnabledTeams();
+            if (!enabledTeams.includes(this.ds.teamNumber)) {
+                enabledTeams.push(this.ds.teamNumber);
+                await this.plugin.getField().setTeamNumbersEnabled(enabledTeams);
+            }
+        } else {
+            await this.plugin.getField().setTeamNumbersEnabled(this.plugin.getField().getEnabledTeams().filter((teamNumber) => teamNumber != this.ds.teamNumber));
+        }
     }
 
     update(ds: DS) {

@@ -1,4 +1,4 @@
-import { Metadata } from '@grpc/grpc-js';
+import { Metadata, MetadataValue } from '@grpc/grpc-js';
 import DriverStation from './DriverStation';
 import { Field } from './Field';
 import { AllianceStation, DriverStation as RPCDriverStation, PluginAPIClient, PluginMetadata } from './models/plugin';
@@ -10,8 +10,7 @@ export default class Plugin {
   private meta: PluginMetadata;
   private registrationToken: string;
   private pluginToken: string = "";
-  private field: Field = new Field(this);
-  private driverstations: DriverStation[] = [];
+  private field: Field | null = null;
 
 
   constructor(registrationToken: string, meta: PluginMetadata, rpcAddress: string = '10.0.100.5:5276') {
@@ -19,7 +18,6 @@ export default class Plugin {
     this.rpcClient = new PluginAPIClient(this.rpcAddress, grpc.credentials.createInsecure());
     this.registrationToken = registrationToken;
     this.meta = meta;
-    this.forceUpdateDriverstations();
   }
 
   generateMetadata(): Metadata {
@@ -33,6 +31,9 @@ export default class Plugin {
   }
 
   getField(): Field {
+    if (this.field == null) {
+      throw "Plugin has not been registered yet";
+    }
     return this.field;
   }
 
@@ -41,95 +42,19 @@ export default class Plugin {
   }
 
   async registerWithFMS(): Promise<void> {
-    let promise = new Promise<any>((_, reject) => {
+    let promise = new Promise<any>((resolve, reject) => {
       this.rpcClient.registerPlugin({
         registrationToken: this.registrationToken,
         plugin: this.meta
       },  this.generateMetadata(), (err, res) => {
         if (err != null) {
-          reject(err.message);
-          return;
+          throw err.message;
         }
         this.pluginToken = res.token;
+        this.field = new Field(this);
+        resolve(null);
       })
     });
     return promise;
-  }
-
-  async getDriverstationByTeamNumber(teamNumber: number): Promise<DriverStation | null> {
-    for (let ds of this.driverstations) {
-      if (ds.getTeamNumber() == teamNumber) {
-        return ds;
-      }
-    }
-    return null;
-  }
-
-  async getDriverstationByAllianceStation(station: AllianceStation): Promise<DriverStation | null> {
-    for (let ds of this.driverstations) {
-      if (ds.getAllianceStation() == station) {
-        return ds;
-      }
-    }
-    return null;
-  }
-
-  private async forceUpdateDriverstations() {
-    let driverstations = await this.getDriverStations();
-    this.driverstations = this.driverstations.filter((testDS) => {
-      let out = driverstations.find((ds) => {
-        return testDS.getTeamNumber() == ds.teamNumber;
-      });
-      if (out != null) {
-        testDS.update(out);
-        return true;
-      }
-      return false;
-    });
-  }
-
-  
-  private getDriverStations(): Promise<RPCDriverStation[]> {
-    let promise = new Promise<any>((resolve, reject) => {
-      this.rpcClient.getDriverStations({},  this.generateMetadata(), (err, ds) => {
-        if (err != null) {
-          reject(err.message);
-          return;
-        }
-        resolve(ds.driverStations);
-      })
-    });
-    return promise;
-  }
-
-  private listenForUpdates() {
-    let pluginThis = this;
-    let listener = this.rpcClient.onDriverStationCreate({});
-    listener.on("data", (rpcDS: RPCDriverStation) => {
-      let out = pluginThis.driverstations.find((ds) => {
-        return rpcDS.teamNumber == ds.getTeamNumber();
-      });
-      if (out != null) {
-        out.update(rpcDS);
-      } else {
-        pluginThis.driverstations.push(new DriverStation(pluginThis, rpcDS))
-      }
-    });
-    listener.on("end", () => {
-      pluginThis.listenForUpdates();
-    });
-  }
-
-  private listenForDeletions() {
-    let pluginThis = this;
-    let listener = this.rpcClient.onDriverStationDelete({});
-    listener.on("data", (rpcDS: RPCDriverStation) => {
-      pluginThis.driverstations = pluginThis.driverstations.filter((ds) => {
-        return rpcDS.teamNumber != ds.getTeamNumber();
-      });
-    });
-    listener.on("end", () => {
-      pluginThis.listenForUpdates();
-    });
   }
 }

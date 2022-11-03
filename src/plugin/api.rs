@@ -4,6 +4,7 @@ use crate::control::{enabler, estopper};
 use crate::field::enums::{AllianceStation, Mode, TournamentLevel};
 use crate::field::{driverstation, enums, Field};
 use cidr::AnyIpCidr;
+use log::info;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
@@ -30,6 +31,7 @@ async fn get_plugin_from_request<T>(
     request: &Request<T>,
 ) -> Option<Plugin> {
     let token = request.metadata().get("x-token");
+    info!("Token: {:?}", token);
     if token.is_some() {
         let token = token.unwrap().to_str().unwrap().to_string();
         let plugin = plugin_manager.get_plugin_by_token(token).await;
@@ -154,10 +156,11 @@ impl PluginApi for PluginApiImpl {
             return Err(Status::unauthenticated("Invalid token"));
         };
         let (tx, rx) = mpsc::channel::<Result<FieldState, Status>>(4);
+        let field = self.field.clone();
 
         tokio::spawn(async move {
             loop {
-                let res = tx.send(Ok(FieldState::default())).await;
+                let res = tx.send(Ok(field.state_to_rpc().await)).await;
                 if res.is_err() {
                     break;
                 }
@@ -178,7 +181,15 @@ impl PluginApi for PluginApiImpl {
         if plugin.is_none() {
             return Err(Status::unauthenticated("Invalid token"));
         };
-        Err(Status::unknown("TODO"))
+        let (tx, rx) = mpsc::channel::<Result<FieldState, Status>>(4);
+        let field = self.field.clone();
+
+        tokio::spawn(async move {
+            field.wait_for_terminate().await;
+            let _ = tx.send(Ok(field.state_to_rpc().await)).await.ok();
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
     }
 
     async fn get_field_state(&self, request: Request<Empty>) -> Result<Response<FieldState>, Status> {

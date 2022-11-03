@@ -26,6 +26,7 @@ struct RawDriverstation {
     expected_ip: Option<AnyIpCidr>,
     active_connection: Option<DriverStationConnection>,
     confirmed_state: Option<ConfirmedState>,
+    update_signal: broadcast::Sender<rpc::DriverStation>,
 }
 
 #[derive(Clone)]

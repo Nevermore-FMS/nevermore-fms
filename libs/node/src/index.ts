@@ -4,16 +4,23 @@ import {
     DriverStationConfirmedState,
     DriverstationStatus,
     Mode,
-    AllianceStation
+    AllianceStation,
+    FieldState
 } from './models/plugin';
+import { Field, FieldEvent } from './Field';
+import DriverStation from './DriverStation';
 
 export {
     Plugin,
+    Field,
+    DriverStation,
+    FieldEvent,
 
     // Re-exported gRPC Items
     DriverStationConnection,
     DriverStationConfirmedState,
     DriverstationStatus,
     Mode,
-    AllianceStation
+    AllianceStation,
+    FieldState
 };
