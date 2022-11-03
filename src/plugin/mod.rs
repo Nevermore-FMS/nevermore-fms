@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc, Duration};
 use log::info;
 use std::{collections::HashMap, net::{SocketAddr, IpAddr}, sync::Arc};
 use tokio::sync::{RwLock, broadcast};
@@ -61,6 +62,19 @@ impl PluginManager {
                 .serve(addr)
                 .await
                 .unwrap();
+        });
+
+        let manager_clone_clone = manager.clone();
+        tokio::spawn(async move {
+            loop {
+                let plugins = manager_clone_clone.get_plugins().await;
+                for plugin in plugins {
+                    if !plugin.is_alive().await {
+                        manager_clone_clone.remove_plugin(plugin.get_metadata().await.id).await;
+                    }
+                }
+                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            }
         });
 
         manager
@@ -140,6 +154,15 @@ impl PluginManager {
         out
     }
 
+    pub async fn get_plugins(&self) -> Vec<Plugin> {
+        let raw = self.raw.read().await;
+        let mut out: Vec<Plugin> = vec![];
+        for (_, plugin) in raw.plugins.iter() {
+            out.push(plugin.clone());
+        }
+        out
+    }
+
     pub async fn remove_plugin(&self, id: String) -> Option<Plugin> {
         let mut raw = self.raw.write().await;
         let plugin = raw.plugins.remove(&id);
@@ -152,7 +175,8 @@ pub struct RawPlugin {
     metadata: PluginMetadata,
     plugin_token: String,
     proxy: Option<PluginHTTPProxy>,
-    message_channel: broadcast::Sender<JsonRpcMessage>
+    message_channel: broadcast::Sender<JsonRpcMessage>,
+    last_heartbeat: DateTime<Utc>
 }
 
 #[derive(Clone, Serialize)]
@@ -212,11 +236,24 @@ impl Plugin {
         return raw.message_channel.subscribe();
     }
 
+    pub async fn heartbeat(&self) {
+        let mut raw = self.raw.write().await;
+        raw.last_heartbeat = Utc::now();
+    }
+
+    pub async fn is_alive(&self) -> bool {
+        let raw = self.raw.read().await;
+        if Utc::now().signed_duration_since(raw.last_heartbeat) > Duration::seconds(5) {
+            return false;
+        }
+        return true;
+    }
+
     pub fn new(metadata: PluginMetadata) -> Self {
         let (tx, _) = broadcast::channel(100);
 
         Plugin {
-            raw: Arc::new(RwLock::new(RawPlugin { metadata, proxy: None, message_channel: tx, plugin_token: rand::thread_rng()
+            raw: Arc::new(RwLock::new(RawPlugin { metadata, proxy: None, last_heartbeat: Utc::now(), message_channel: tx, plugin_token: rand::thread_rng()
                 .sample_iter(&Alphanumeric)
                 .take(24)
                 .map(char::from)

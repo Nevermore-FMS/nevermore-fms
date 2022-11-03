@@ -92,6 +92,19 @@ impl PluginApi for PluginApiImpl {
         }
     }
 
+    async fn heartbeat(
+        &self,
+        request: Request<Empty>,
+    ) -> Result<Response<Empty>, Status> {
+        let plugin = get_plugin_from_request(self.plugin_manager.clone(), &request).await;
+        if plugin.is_none() {
+            return Err(Status::unauthenticated("Invalid token"));
+        };
+        let plugin = plugin.unwrap();
+        plugin.heartbeat().await;
+        Ok(Response::new(Empty::default()))
+    }
+
     async fn json_rpc_publish(
         &self,
         request: Request<JsonRpcMessage>,

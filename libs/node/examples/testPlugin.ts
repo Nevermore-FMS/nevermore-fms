@@ -1,7 +1,7 @@
 import { Plugin, FieldEvent, DriverStation, FieldState, AllianceStation, TournamentLevel } from "../src";
 
 async function main() {
-    let plugin = new Plugin("9omFFALGqiMIt25a8RxlZ8Gl", {
+    let plugin = new Plugin("rZMuJ5aDlCCNbQh5yUq0ADc5", {
         id: "test-plugin",
         name: "Test Plugin",
         authors: ["Chase MacDonnell"]
@@ -54,7 +54,6 @@ async function main() {
             console.log(res);
         });
     }
-
 }
 
 main();

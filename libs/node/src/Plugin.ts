@@ -13,6 +13,7 @@ export default class Plugin {
   private pluginToken: string = "";
   private field: Field | null = null;
   private jsonRPC: JsonRPC | null = null;
+  private heartbeatTimer: NodeJS.Timer | null = null;
 
 
   constructor(registrationToken: string, meta: PluginMetadata, rpcAddress: string = '10.0.100.5:5276') {
@@ -62,6 +63,12 @@ export default class Plugin {
         this.pluginToken = res.token;
         this.field = new Field(this);
         this.jsonRPC = new JsonRPC(this);
+        if (this.heartbeatTimer != null) {
+          this.heartbeatTimer.unref();
+        }
+        this.heartbeatTimer = setInterval(() => {
+          this.rpcClient.heartbeat({}, this.generateMetadata(), () => {});
+        }, 2500);
         resolve(null);
       })
     });

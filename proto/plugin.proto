@@ -6,6 +6,9 @@ service PluginAPI {
     // Plugin Registration Functions
     rpc RegisterPlugin(PluginRegistrationRequest) returns (PluginRegistrationResponse);
 
+    // Plugin Heartbeat
+    rpc Heartbeat(Empty) returns (Empty);
+
     // RPC Functions
 
     rpc JsonRPCPublish(JSONRpcMessage) returns (Empty);

@@ -12,9 +12,9 @@ import {
   Metadata,
   ServiceError,
   UntypedServiceImplementation,
-} from '@grpc/grpc-js';
-import Long from 'long';
-import _m0 from 'protobufjs/minimal';
+} from "@grpc/grpc-js";
+import Long from "long";
+import _m0 from "protobufjs/minimal";
 
 export enum Mode {
   TELEOP = 0,
@@ -26,16 +26,16 @@ export enum Mode {
 export function modeFromJSON(object: any): Mode {
   switch (object) {
     case 0:
-    case 'TELEOP':
+    case "TELEOP":
       return Mode.TELEOP;
     case 1:
-    case 'TEST':
+    case "TEST":
       return Mode.TEST;
     case 2:
-    case 'AUTONOMOUS':
+    case "AUTONOMOUS":
       return Mode.AUTONOMOUS;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return Mode.UNRECOGNIZED;
   }
@@ -44,14 +44,14 @@ export function modeFromJSON(object: any): Mode {
 export function modeToJSON(object: Mode): string {
   switch (object) {
     case Mode.TELEOP:
-      return 'TELEOP';
+      return "TELEOP";
     case Mode.TEST:
-      return 'TEST';
+      return "TEST";
     case Mode.AUTONOMOUS:
-      return 'AUTONOMOUS';
+      return "AUTONOMOUS";
     case Mode.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -65,16 +65,16 @@ export enum DriverstationStatus {
 export function driverstationStatusFromJSON(object: any): DriverstationStatus {
   switch (object) {
     case 0:
-    case 'GOOD':
+    case "GOOD":
       return DriverstationStatus.GOOD;
     case 1:
-    case 'BAD':
+    case "BAD":
       return DriverstationStatus.BAD;
     case 2:
-    case 'WAITING':
+    case "WAITING":
       return DriverstationStatus.WAITING;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return DriverstationStatus.UNRECOGNIZED;
   }
@@ -83,14 +83,14 @@ export function driverstationStatusFromJSON(object: any): DriverstationStatus {
 export function driverstationStatusToJSON(object: DriverstationStatus): string {
   switch (object) {
     case DriverstationStatus.GOOD:
-      return 'GOOD';
+      return "GOOD";
     case DriverstationStatus.BAD:
-      return 'BAD';
+      return "BAD";
     case DriverstationStatus.WAITING:
-      return 'WAITING';
+      return "WAITING";
     case DriverstationStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -108,28 +108,28 @@ export enum AllianceStation {
 export function allianceStationFromJSON(object: any): AllianceStation {
   switch (object) {
     case 0:
-    case 'RED1':
+    case "RED1":
       return AllianceStation.RED1;
     case 1:
-    case 'RED2':
+    case "RED2":
       return AllianceStation.RED2;
     case 2:
-    case 'RED3':
+    case "RED3":
       return AllianceStation.RED3;
     case 3:
-    case 'BLUE1':
+    case "BLUE1":
       return AllianceStation.BLUE1;
     case 4:
-    case 'BLUE2':
+    case "BLUE2":
       return AllianceStation.BLUE2;
     case 5:
-    case 'BLUE3':
+    case "BLUE3":
       return AllianceStation.BLUE3;
     case 6:
-    case 'NONE':
+    case "NONE":
       return AllianceStation.NONE;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return AllianceStation.UNRECOGNIZED;
   }
@@ -138,22 +138,22 @@ export function allianceStationFromJSON(object: any): AllianceStation {
 export function allianceStationToJSON(object: AllianceStation): string {
   switch (object) {
     case AllianceStation.RED1:
-      return 'RED1';
+      return "RED1";
     case AllianceStation.RED2:
-      return 'RED2';
+      return "RED2";
     case AllianceStation.RED3:
-      return 'RED3';
+      return "RED3";
     case AllianceStation.BLUE1:
-      return 'BLUE1';
+      return "BLUE1";
     case AllianceStation.BLUE2:
-      return 'BLUE2';
+      return "BLUE2";
     case AllianceStation.BLUE3:
-      return 'BLUE3';
+      return "BLUE3";
     case AllianceStation.NONE:
-      return 'NONE';
+      return "NONE";
     case AllianceStation.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -168,19 +168,19 @@ export enum TournamentLevel {
 export function tournamentLevelFromJSON(object: any): TournamentLevel {
   switch (object) {
     case 0:
-    case 'TESTING':
+    case "TESTING":
       return TournamentLevel.TESTING;
     case 1:
-    case 'PRACTICE':
+    case "PRACTICE":
       return TournamentLevel.PRACTICE;
     case 2:
-    case 'QUALIFICATION':
+    case "QUALIFICATION":
       return TournamentLevel.QUALIFICATION;
     case 3:
-    case 'PLAYOFF':
+    case "PLAYOFF":
       return TournamentLevel.PLAYOFF;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return TournamentLevel.UNRECOGNIZED;
   }
@@ -189,16 +189,16 @@ export function tournamentLevelFromJSON(object: any): TournamentLevel {
 export function tournamentLevelToJSON(object: TournamentLevel): string {
   switch (object) {
     case TournamentLevel.TESTING:
-      return 'TESTING';
+      return "TESTING";
     case TournamentLevel.PRACTICE:
-      return 'PRACTICE';
+      return "PRACTICE";
     case TournamentLevel.QUALIFICATION:
-      return 'QUALIFICATION';
+      return "QUALIFICATION";
     case TournamentLevel.PLAYOFF:
-      return 'PLAYOFF';
+      return "PLAYOFF";
     case TournamentLevel.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -211,13 +211,13 @@ export enum DriverStationQueryType {
 export function driverStationQueryTypeFromJSON(object: any): DriverStationQueryType {
   switch (object) {
     case 0:
-    case 'TEAMNUMBER':
+    case "TEAMNUMBER":
       return DriverStationQueryType.TEAMNUMBER;
     case 1:
-    case 'ALLIANCESTATION':
+    case "ALLIANCESTATION":
       return DriverStationQueryType.ALLIANCESTATION;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return DriverStationQueryType.UNRECOGNIZED;
   }
@@ -226,16 +226,17 @@ export function driverStationQueryTypeFromJSON(object: any): DriverStationQueryT
 export function driverStationQueryTypeToJSON(object: DriverStationQueryType): string {
   switch (object) {
     case DriverStationQueryType.TEAMNUMBER:
-      return 'TEAMNUMBER';
+      return "TEAMNUMBER";
     case DriverStationQueryType.ALLIANCESTATION:
-      return 'ALLIANCESTATION';
+      return "ALLIANCESTATION";
     case DriverStationQueryType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
-export interface Empty {}
+export interface Empty {
+}
 
 /** Plugin Registration Messages */
 export interface PluginMetadata {
@@ -436,7 +437,7 @@ export const Empty = {
 
 function createBasePluginMetadata(): PluginMetadata {
   return {
-    id: '',
+    id: "",
     name: undefined,
     description: undefined,
     readme: undefined,
@@ -449,7 +450,7 @@ function createBasePluginMetadata(): PluginMetadata {
 
 export const PluginMetadata = {
   encode(message: PluginMetadata, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.id !== '') {
+    if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
     if (message.name !== undefined) {
@@ -517,7 +518,7 @@ export const PluginMetadata = {
 
   fromJSON(object: any): PluginMetadata {
     return {
-      id: isSet(object.id) ? String(object.id) : '',
+      id: isSet(object.id) ? String(object.id) : "",
       name: isSet(object.name) ? String(object.name) : undefined,
       description: isSet(object.description) ? String(object.description) : undefined,
       readme: isSet(object.readme) ? String(object.readme) : undefined,
@@ -547,7 +548,7 @@ export const PluginMetadata = {
 
   fromPartial<I extends Exact<DeepPartial<PluginMetadata>, I>>(object: I): PluginMetadata {
     const message = createBasePluginMetadata();
-    message.id = object.id ?? '';
+    message.id = object.id ?? "";
     message.name = object.name ?? undefined;
     message.description = object.description ?? undefined;
     message.readme = object.readme ?? undefined;
@@ -560,12 +561,12 @@ export const PluginMetadata = {
 };
 
 function createBasePluginRegistrationRequest(): PluginRegistrationRequest {
-  return { registrationToken: '', plugin: undefined };
+  return { registrationToken: "", plugin: undefined };
 }
 
 export const PluginRegistrationRequest = {
   encode(message: PluginRegistrationRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.registrationToken !== '') {
+    if (message.registrationToken !== "") {
       writer.uint32(10).string(message.registrationToken);
     }
     if (message.plugin !== undefined) {
@@ -597,7 +598,7 @@ export const PluginRegistrationRequest = {
 
   fromJSON(object: any): PluginRegistrationRequest {
     return {
-      registrationToken: isSet(object.registrationToken) ? String(object.registrationToken) : '',
+      registrationToken: isSet(object.registrationToken) ? String(object.registrationToken) : "",
       plugin: isSet(object.plugin) ? PluginMetadata.fromJSON(object.plugin) : undefined,
     };
   },
@@ -611,20 +612,21 @@ export const PluginRegistrationRequest = {
 
   fromPartial<I extends Exact<DeepPartial<PluginRegistrationRequest>, I>>(object: I): PluginRegistrationRequest {
     const message = createBasePluginRegistrationRequest();
-    message.registrationToken = object.registrationToken ?? '';
-    message.plugin =
-      object.plugin !== undefined && object.plugin !== null ? PluginMetadata.fromPartial(object.plugin) : undefined;
+    message.registrationToken = object.registrationToken ?? "";
+    message.plugin = (object.plugin !== undefined && object.plugin !== null)
+      ? PluginMetadata.fromPartial(object.plugin)
+      : undefined;
     return message;
   },
 };
 
 function createBasePluginRegistrationResponse(): PluginRegistrationResponse {
-  return { token: '' };
+  return { token: "" };
 }
 
 export const PluginRegistrationResponse = {
   encode(message: PluginRegistrationResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.token !== '') {
+    if (message.token !== "") {
       writer.uint32(10).string(message.token);
     }
     return writer;
@@ -649,7 +651,7 @@ export const PluginRegistrationResponse = {
   },
 
   fromJSON(object: any): PluginRegistrationResponse {
-    return { token: isSet(object.token) ? String(object.token) : '' };
+    return { token: isSet(object.token) ? String(object.token) : "" };
   },
 
   toJSON(message: PluginRegistrationResponse): unknown {
@@ -660,21 +662,21 @@ export const PluginRegistrationResponse = {
 
   fromPartial<I extends Exact<DeepPartial<PluginRegistrationResponse>, I>>(object: I): PluginRegistrationResponse {
     const message = createBasePluginRegistrationResponse();
-    message.token = object.token ?? '';
+    message.token = object.token ?? "";
     return message;
   },
 };
 
 function createBaseJSONRpcMessage(): JSONRpcMessage {
-  return { pluginId: '', data: '' };
+  return { pluginId: "", data: "" };
 }
 
 export const JSONRpcMessage = {
   encode(message: JSONRpcMessage, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.pluginId !== '') {
+    if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
     }
-    if (message.data !== '') {
+    if (message.data !== "") {
       writer.uint32(18).string(message.data);
     }
     return writer;
@@ -703,8 +705,8 @@ export const JSONRpcMessage = {
 
   fromJSON(object: any): JSONRpcMessage {
     return {
-      pluginId: isSet(object.pluginId) ? String(object.pluginId) : '',
-      data: isSet(object.data) ? String(object.data) : '',
+      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
+      data: isSet(object.data) ? String(object.data) : "",
     };
   },
 
@@ -717,19 +719,19 @@ export const JSONRpcMessage = {
 
   fromPartial<I extends Exact<DeepPartial<JSONRpcMessage>, I>>(object: I): JSONRpcMessage {
     const message = createBaseJSONRpcMessage();
-    message.pluginId = object.pluginId ?? '';
-    message.data = object.data ?? '';
+    message.pluginId = object.pluginId ?? "";
+    message.data = object.data ?? "";
     return message;
   },
 };
 
 function createBaseFieldState(): FieldState {
-  return { eventName: '', tournamentLevel: 0, matchNumber: 0, playNumber: 0, timer: undefined };
+  return { eventName: "", tournamentLevel: 0, matchNumber: 0, playNumber: 0, timer: undefined };
 }
 
 export const FieldState = {
   encode(message: FieldState, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.eventName !== '') {
+    if (message.eventName !== "") {
       writer.uint32(10).string(message.eventName);
     }
     if (message.tournamentLevel !== 0) {
@@ -779,7 +781,7 @@ export const FieldState = {
 
   fromJSON(object: any): FieldState {
     return {
-      eventName: isSet(object.eventName) ? String(object.eventName) : '',
+      eventName: isSet(object.eventName) ? String(object.eventName) : "",
       tournamentLevel: isSet(object.tournamentLevel) ? tournamentLevelFromJSON(object.tournamentLevel) : 0,
       matchNumber: isSet(object.matchNumber) ? Number(object.matchNumber) : 0,
       playNumber: isSet(object.playNumber) ? Number(object.playNumber) : 0,
@@ -799,23 +801,24 @@ export const FieldState = {
 
   fromPartial<I extends Exact<DeepPartial<FieldState>, I>>(object: I): FieldState {
     const message = createBaseFieldState();
-    message.eventName = object.eventName ?? '';
+    message.eventName = object.eventName ?? "";
     message.tournamentLevel = object.tournamentLevel ?? 0;
     message.matchNumber = object.matchNumber ?? 0;
     message.playNumber = object.playNumber ?? 0;
-    message.timer =
-      object.timer !== undefined && object.timer !== null ? DiffTimer.fromPartial(object.timer) : undefined;
+    message.timer = (object.timer !== undefined && object.timer !== null)
+      ? DiffTimer.fromPartial(object.timer)
+      : undefined;
     return message;
   },
 };
 
 function createBaseFieldConfiguration(): FieldConfiguration {
-  return { eventName: '', tournamentLevel: 0, matchNumber: 0, playNumber: 0 };
+  return { eventName: "", tournamentLevel: 0, matchNumber: 0, playNumber: 0 };
 }
 
 export const FieldConfiguration = {
   encode(message: FieldConfiguration, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.eventName !== '') {
+    if (message.eventName !== "") {
       writer.uint32(10).string(message.eventName);
     }
     if (message.tournamentLevel !== 0) {
@@ -859,7 +862,7 @@ export const FieldConfiguration = {
 
   fromJSON(object: any): FieldConfiguration {
     return {
-      eventName: isSet(object.eventName) ? String(object.eventName) : '',
+      eventName: isSet(object.eventName) ? String(object.eventName) : "",
       tournamentLevel: isSet(object.tournamentLevel) ? tournamentLevelFromJSON(object.tournamentLevel) : 0,
       matchNumber: isSet(object.matchNumber) ? Number(object.matchNumber) : 0,
       playNumber: isSet(object.playNumber) ? Number(object.playNumber) : 0,
@@ -877,7 +880,7 @@ export const FieldConfiguration = {
 
   fromPartial<I extends Exact<DeepPartial<FieldConfiguration>, I>>(object: I): FieldConfiguration {
     const message = createBaseFieldConfiguration();
-    message.eventName = object.eventName ?? '';
+    message.eventName = object.eventName ?? "";
     message.tournamentLevel = object.tournamentLevel ?? 0;
     message.matchNumber = object.matchNumber ?? 0;
     message.playNumber = object.playNumber ?? 0;
@@ -984,7 +987,7 @@ export const DriverStations = {
   toJSON(message: DriverStations): unknown {
     const obj: any = {};
     if (message.driverStations) {
-      obj.driverStations = message.driverStations.map((e) => (e ? DriverStation.toJSON(e) : undefined));
+      obj.driverStations = message.driverStations.map((e) => e ? DriverStation.toJSON(e) : undefined);
     } else {
       obj.driverStations = [];
     }
@@ -1124,7 +1127,7 @@ export const DriverStationParams = {
 };
 
 function createBaseDriverStationUpdateExpectedIP(): DriverStationUpdateExpectedIP {
-  return { teamNumber: 0, expectedIp: '' };
+  return { teamNumber: 0, expectedIp: "" };
 }
 
 export const DriverStationUpdateExpectedIP = {
@@ -1132,7 +1135,7 @@ export const DriverStationUpdateExpectedIP = {
     if (message.teamNumber !== 0) {
       writer.uint32(8).uint32(message.teamNumber);
     }
-    if (message.expectedIp !== '') {
+    if (message.expectedIp !== "") {
       writer.uint32(18).string(message.expectedIp);
     }
     return writer;
@@ -1162,7 +1165,7 @@ export const DriverStationUpdateExpectedIP = {
   fromJSON(object: any): DriverStationUpdateExpectedIP {
     return {
       teamNumber: isSet(object.teamNumber) ? Number(object.teamNumber) : 0,
-      expectedIp: isSet(object.expectedIp) ? String(object.expectedIp) : '',
+      expectedIp: isSet(object.expectedIp) ? String(object.expectedIp) : "",
     };
   },
 
@@ -1178,7 +1181,7 @@ export const DriverStationUpdateExpectedIP = {
   ): DriverStationUpdateExpectedIP {
     const message = createBaseDriverStationUpdateExpectedIP();
     message.teamNumber = object.teamNumber ?? 0;
-    message.expectedIp = object.expectedIp ?? '';
+    message.expectedIp = object.expectedIp ?? "";
     return message;
   },
 };
@@ -1314,10 +1317,9 @@ export const DriverStation = {
     message.expectedIp !== undefined && (obj.expectedIp = message.expectedIp);
     message.connection !== undefined &&
       (obj.connection = message.connection ? DriverStationConnection.toJSON(message.connection) : undefined);
-    message.confirmedState !== undefined &&
-      (obj.confirmedState = message.confirmedState
-        ? DriverStationConfirmedState.toJSON(message.confirmedState)
-        : undefined);
+    message.confirmedState !== undefined && (obj.confirmedState = message.confirmedState
+      ? DriverStationConfirmedState.toJSON(message.confirmedState)
+      : undefined);
     return obj;
   },
 
@@ -1326,20 +1328,18 @@ export const DriverStation = {
     message.teamNumber = object.teamNumber ?? 0;
     message.allianceStation = object.allianceStation ?? 0;
     message.expectedIp = object.expectedIp ?? undefined;
-    message.connection =
-      object.connection !== undefined && object.connection !== null
-        ? DriverStationConnection.fromPartial(object.connection)
-        : undefined;
-    message.confirmedState =
-      object.confirmedState !== undefined && object.confirmedState !== null
-        ? DriverStationConfirmedState.fromPartial(object.confirmedState)
-        : undefined;
+    message.connection = (object.connection !== undefined && object.connection !== null)
+      ? DriverStationConnection.fromPartial(object.connection)
+      : undefined;
+    message.confirmedState = (object.confirmedState !== undefined && object.confirmedState !== null)
+      ? DriverStationConfirmedState.fromPartial(object.confirmedState)
+      : undefined;
     return message;
   },
 };
 
 function createBaseDriverStationConnection(): DriverStationConnection {
-  return { alive: false, ip: '', outgoingSequenceNum: 0 };
+  return { alive: false, ip: "", outgoingSequenceNum: 0 };
 }
 
 export const DriverStationConnection = {
@@ -1347,7 +1347,7 @@ export const DriverStationConnection = {
     if (message.alive === true) {
       writer.uint32(8).bool(message.alive);
     }
-    if (message.ip !== '') {
+    if (message.ip !== "") {
       writer.uint32(18).string(message.ip);
     }
     if (message.outgoingSequenceNum !== 0) {
@@ -1383,7 +1383,7 @@ export const DriverStationConnection = {
   fromJSON(object: any): DriverStationConnection {
     return {
       alive: isSet(object.alive) ? Boolean(object.alive) : false,
-      ip: isSet(object.ip) ? String(object.ip) : '',
+      ip: isSet(object.ip) ? String(object.ip) : "",
       outgoingSequenceNum: isSet(object.outgoingSequenceNum) ? Number(object.outgoingSequenceNum) : 0,
     };
   },
@@ -1399,7 +1399,7 @@ export const DriverStationConnection = {
   fromPartial<I extends Exact<DeepPartial<DriverStationConnection>, I>>(object: I): DriverStationConnection {
     const message = createBaseDriverStationConnection();
     message.alive = object.alive ?? false;
-    message.ip = object.ip ?? '';
+    message.ip = object.ip ?? "";
     message.outgoingSequenceNum = object.outgoingSequenceNum ?? 0;
     return message;
   },
@@ -1530,12 +1530,12 @@ export const DriverStationConfirmedState = {
 };
 
 function createBaseEnablerQuery(): EnablerQuery {
-  return { id: '' };
+  return { id: "" };
 }
 
 export const EnablerQuery = {
   encode(message: EnablerQuery, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.id !== '') {
+    if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
     return writer;
@@ -1560,7 +1560,7 @@ export const EnablerQuery = {
   },
 
   fromJSON(object: any): EnablerQuery {
-    return { id: isSet(object.id) ? String(object.id) : '' };
+    return { id: isSet(object.id) ? String(object.id) : "" };
   },
 
   toJSON(message: EnablerQuery): unknown {
@@ -1571,21 +1571,21 @@ export const EnablerQuery = {
 
   fromPartial<I extends Exact<DeepPartial<EnablerQuery>, I>>(object: I): EnablerQuery {
     const message = createBaseEnablerQuery();
-    message.id = object.id ?? '';
+    message.id = object.id ?? "";
     return message;
   },
 };
 
 function createBaseEnablerConfig(): EnablerConfig {
-  return { id: '', name: '', allEnabler: undefined, teamNumberEnabler: undefined, allianceStationEnabler: undefined };
+  return { id: "", name: "", allEnabler: undefined, teamNumberEnabler: undefined, allianceStationEnabler: undefined };
 }
 
 export const EnablerConfig = {
   encode(message: EnablerConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.id !== '') {
+    if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(18).string(message.name);
     }
     if (message.allEnabler !== undefined) {
@@ -1632,8 +1632,8 @@ export const EnablerConfig = {
 
   fromJSON(object: any): EnablerConfig {
     return {
-      id: isSet(object.id) ? String(object.id) : '',
-      name: isSet(object.name) ? String(object.name) : '',
+      id: isSet(object.id) ? String(object.id) : "",
+      name: isSet(object.name) ? String(object.name) : "",
       allEnabler: isSet(object.allEnabler) ? AllEnablerConfig.fromJSON(object.allEnabler) : undefined,
       teamNumberEnabler: isSet(object.teamNumberEnabler)
         ? TeamNumberEnablerConfig.fromJSON(object.teamNumberEnabler)
@@ -1650,31 +1650,27 @@ export const EnablerConfig = {
     message.name !== undefined && (obj.name = message.name);
     message.allEnabler !== undefined &&
       (obj.allEnabler = message.allEnabler ? AllEnablerConfig.toJSON(message.allEnabler) : undefined);
-    message.teamNumberEnabler !== undefined &&
-      (obj.teamNumberEnabler = message.teamNumberEnabler
-        ? TeamNumberEnablerConfig.toJSON(message.teamNumberEnabler)
-        : undefined);
-    message.allianceStationEnabler !== undefined &&
-      (obj.allianceStationEnabler = message.allianceStationEnabler
-        ? AllianceStationEnablerConfig.toJSON(message.allianceStationEnabler)
-        : undefined);
+    message.teamNumberEnabler !== undefined && (obj.teamNumberEnabler = message.teamNumberEnabler
+      ? TeamNumberEnablerConfig.toJSON(message.teamNumberEnabler)
+      : undefined);
+    message.allianceStationEnabler !== undefined && (obj.allianceStationEnabler = message.allianceStationEnabler
+      ? AllianceStationEnablerConfig.toJSON(message.allianceStationEnabler)
+      : undefined);
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<EnablerConfig>, I>>(object: I): EnablerConfig {
     const message = createBaseEnablerConfig();
-    message.id = object.id ?? '';
-    message.name = object.name ?? '';
-    message.allEnabler =
-      object.allEnabler !== undefined && object.allEnabler !== null
-        ? AllEnablerConfig.fromPartial(object.allEnabler)
-        : undefined;
-    message.teamNumberEnabler =
-      object.teamNumberEnabler !== undefined && object.teamNumberEnabler !== null
-        ? TeamNumberEnablerConfig.fromPartial(object.teamNumberEnabler)
-        : undefined;
+    message.id = object.id ?? "";
+    message.name = object.name ?? "";
+    message.allEnabler = (object.allEnabler !== undefined && object.allEnabler !== null)
+      ? AllEnablerConfig.fromPartial(object.allEnabler)
+      : undefined;
+    message.teamNumberEnabler = (object.teamNumberEnabler !== undefined && object.teamNumberEnabler !== null)
+      ? TeamNumberEnablerConfig.fromPartial(object.teamNumberEnabler)
+      : undefined;
     message.allianceStationEnabler =
-      object.allianceStationEnabler !== undefined && object.allianceStationEnabler !== null
+      (object.allianceStationEnabler !== undefined && object.allianceStationEnabler !== null)
         ? AllianceStationEnablerConfig.fromPartial(object.allianceStationEnabler)
         : undefined;
     return message;
@@ -1857,12 +1853,12 @@ export const AllianceStationEnablerConfig = {
 };
 
 function createBaseEstopperQuery(): EstopperQuery {
-  return { id: '' };
+  return { id: "" };
 }
 
 export const EstopperQuery = {
   encode(message: EstopperQuery, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.id !== '') {
+    if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
     return writer;
@@ -1887,7 +1883,7 @@ export const EstopperQuery = {
   },
 
   fromJSON(object: any): EstopperQuery {
-    return { id: isSet(object.id) ? String(object.id) : '' };
+    return { id: isSet(object.id) ? String(object.id) : "" };
   },
 
   toJSON(message: EstopperQuery): unknown {
@@ -1898,15 +1894,15 @@ export const EstopperQuery = {
 
   fromPartial<I extends Exact<DeepPartial<EstopperQuery>, I>>(object: I): EstopperQuery {
     const message = createBaseEstopperQuery();
-    message.id = object.id ?? '';
+    message.id = object.id ?? "";
     return message;
   },
 };
 
 function createBaseEstopperConfig(): EstopperConfig {
   return {
-    id: '',
-    name: '',
+    id: "",
+    name: "",
     allEstopper: undefined,
     teamNumberEstopper: undefined,
     allianceStationEstopper: undefined,
@@ -1915,10 +1911,10 @@ function createBaseEstopperConfig(): EstopperConfig {
 
 export const EstopperConfig = {
   encode(message: EstopperConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.id !== '') {
+    if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(18).string(message.name);
     }
     if (message.allEstopper !== undefined) {
@@ -1965,8 +1961,8 @@ export const EstopperConfig = {
 
   fromJSON(object: any): EstopperConfig {
     return {
-      id: isSet(object.id) ? String(object.id) : '',
-      name: isSet(object.name) ? String(object.name) : '',
+      id: isSet(object.id) ? String(object.id) : "",
+      name: isSet(object.name) ? String(object.name) : "",
       allEstopper: isSet(object.allEstopper) ? AllEstopperConfig.fromJSON(object.allEstopper) : undefined,
       teamNumberEstopper: isSet(object.teamNumberEstopper)
         ? TeamNumberEstopperConfig.fromJSON(object.teamNumberEstopper)
@@ -1983,31 +1979,27 @@ export const EstopperConfig = {
     message.name !== undefined && (obj.name = message.name);
     message.allEstopper !== undefined &&
       (obj.allEstopper = message.allEstopper ? AllEstopperConfig.toJSON(message.allEstopper) : undefined);
-    message.teamNumberEstopper !== undefined &&
-      (obj.teamNumberEstopper = message.teamNumberEstopper
-        ? TeamNumberEstopperConfig.toJSON(message.teamNumberEstopper)
-        : undefined);
-    message.allianceStationEstopper !== undefined &&
-      (obj.allianceStationEstopper = message.allianceStationEstopper
-        ? AllianceStationEstopperConfig.toJSON(message.allianceStationEstopper)
-        : undefined);
+    message.teamNumberEstopper !== undefined && (obj.teamNumberEstopper = message.teamNumberEstopper
+      ? TeamNumberEstopperConfig.toJSON(message.teamNumberEstopper)
+      : undefined);
+    message.allianceStationEstopper !== undefined && (obj.allianceStationEstopper = message.allianceStationEstopper
+      ? AllianceStationEstopperConfig.toJSON(message.allianceStationEstopper)
+      : undefined);
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<EstopperConfig>, I>>(object: I): EstopperConfig {
     const message = createBaseEstopperConfig();
-    message.id = object.id ?? '';
-    message.name = object.name ?? '';
-    message.allEstopper =
-      object.allEstopper !== undefined && object.allEstopper !== null
-        ? AllEstopperConfig.fromPartial(object.allEstopper)
-        : undefined;
-    message.teamNumberEstopper =
-      object.teamNumberEstopper !== undefined && object.teamNumberEstopper !== null
-        ? TeamNumberEstopperConfig.fromPartial(object.teamNumberEstopper)
-        : undefined;
+    message.id = object.id ?? "";
+    message.name = object.name ?? "";
+    message.allEstopper = (object.allEstopper !== undefined && object.allEstopper !== null)
+      ? AllEstopperConfig.fromPartial(object.allEstopper)
+      : undefined;
+    message.teamNumberEstopper = (object.teamNumberEstopper !== undefined && object.teamNumberEstopper !== null)
+      ? TeamNumberEstopperConfig.fromPartial(object.teamNumberEstopper)
+      : undefined;
     message.allianceStationEstopper =
-      object.allianceStationEstopper !== undefined && object.allianceStationEstopper !== null
+      (object.allianceStationEstopper !== undefined && object.allianceStationEstopper !== null)
         ? AllianceStationEstopperConfig.fromPartial(object.allianceStationEstopper)
         : undefined;
     return message;
@@ -2253,7 +2245,7 @@ export type PluginAPIService = typeof PluginAPIService;
 export const PluginAPIService = {
   /** Plugin Registration Functions */
   registerPlugin: {
-    path: '/plugin.PluginAPI/RegisterPlugin',
+    path: "/plugin.PluginAPI/RegisterPlugin",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: PluginRegistrationRequest) =>
@@ -2263,8 +2255,18 @@ export const PluginAPIService = {
       Buffer.from(PluginRegistrationResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer) => PluginRegistrationResponse.decode(value),
   },
+  /** Plugin Heartbeat */
+  heartbeat: {
+    path: "/plugin.PluginAPI/Heartbeat",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: Empty) => Buffer.from(Empty.encode(value).finish()),
+    requestDeserialize: (value: Buffer) => Empty.decode(value),
+    responseSerialize: (value: Empty) => Buffer.from(Empty.encode(value).finish()),
+    responseDeserialize: (value: Buffer) => Empty.decode(value),
+  },
   jsonRPCPublish: {
-    path: '/plugin.PluginAPI/JsonRPCPublish',
+    path: "/plugin.PluginAPI/JsonRPCPublish",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: JSONRpcMessage) => Buffer.from(JSONRpcMessage.encode(value).finish()),
@@ -2273,7 +2275,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => Empty.decode(value),
   },
   jsonRPCSubscribe: {
-    path: '/plugin.PluginAPI/JsonRPCSubscribe',
+    path: "/plugin.PluginAPI/JsonRPCSubscribe",
     requestStream: false,
     responseStream: true,
     requestSerialize: (value: Empty) => Buffer.from(Empty.encode(value).finish()),
@@ -2283,7 +2285,7 @@ export const PluginAPIService = {
   },
   /** Network Configuration Functions */
   updateDriverStationExpectedIP: {
-    path: '/plugin.PluginAPI/UpdateDriverStationExpectedIP',
+    path: "/plugin.PluginAPI/UpdateDriverStationExpectedIP",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: DriverStationUpdateExpectedIP) =>
@@ -2294,7 +2296,7 @@ export const PluginAPIService = {
   },
   /** Field Functions */
   onFieldStateUpdate: {
-    path: '/plugin.PluginAPI/OnFieldStateUpdate',
+    path: "/plugin.PluginAPI/OnFieldStateUpdate",
     requestStream: false,
     responseStream: true,
     requestSerialize: (value: Empty) => Buffer.from(Empty.encode(value).finish()),
@@ -2303,7 +2305,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => FieldState.decode(value),
   },
   onFieldTerminate: {
-    path: '/plugin.PluginAPI/OnFieldTerminate',
+    path: "/plugin.PluginAPI/OnFieldTerminate",
     requestStream: false,
     responseStream: true,
     requestSerialize: (value: Empty) => Buffer.from(Empty.encode(value).finish()),
@@ -2312,7 +2314,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => FieldState.decode(value),
   },
   getFieldState: {
-    path: '/plugin.PluginAPI/GetFieldState',
+    path: "/plugin.PluginAPI/GetFieldState",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: Empty) => Buffer.from(Empty.encode(value).finish()),
@@ -2321,7 +2323,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => FieldState.decode(value),
   },
   configureField: {
-    path: '/plugin.PluginAPI/ConfigureField',
+    path: "/plugin.PluginAPI/ConfigureField",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: FieldConfiguration) => Buffer.from(FieldConfiguration.encode(value).finish()),
@@ -2330,7 +2332,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => FieldState.decode(value),
   },
   updateFieldTimer: {
-    path: '/plugin.PluginAPI/UpdateFieldTimer',
+    path: "/plugin.PluginAPI/UpdateFieldTimer",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: FieldTimerUpdate) => Buffer.from(FieldTimerUpdate.encode(value).finish()),
@@ -2339,7 +2341,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => FieldState.decode(value),
   },
   updateEnabler: {
-    path: '/plugin.PluginAPI/UpdateEnabler',
+    path: "/plugin.PluginAPI/UpdateEnabler",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: EnablerConfig) => Buffer.from(EnablerConfig.encode(value).finish()),
@@ -2348,7 +2350,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => Empty.decode(value),
   },
   removeEnabler: {
-    path: '/plugin.PluginAPI/RemoveEnabler',
+    path: "/plugin.PluginAPI/RemoveEnabler",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: EnablerQuery) => Buffer.from(EnablerQuery.encode(value).finish()),
@@ -2357,7 +2359,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => Empty.decode(value),
   },
   updateEstopper: {
-    path: '/plugin.PluginAPI/UpdateEstopper',
+    path: "/plugin.PluginAPI/UpdateEstopper",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: EstopperConfig) => Buffer.from(EstopperConfig.encode(value).finish()),
@@ -2366,7 +2368,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => Empty.decode(value),
   },
   removeEstopper: {
-    path: '/plugin.PluginAPI/RemoveEstopper',
+    path: "/plugin.PluginAPI/RemoveEstopper",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: EstopperQuery) => Buffer.from(EstopperQuery.encode(value).finish()),
@@ -2375,7 +2377,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => Empty.decode(value),
   },
   onDriverStationCreate: {
-    path: '/plugin.PluginAPI/OnDriverStationCreate',
+    path: "/plugin.PluginAPI/OnDriverStationCreate",
     requestStream: false,
     responseStream: true,
     requestSerialize: (value: Empty) => Buffer.from(Empty.encode(value).finish()),
@@ -2384,7 +2386,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => DriverStation.decode(value),
   },
   onDriverStationDelete: {
-    path: '/plugin.PluginAPI/OnDriverStationDelete',
+    path: "/plugin.PluginAPI/OnDriverStationDelete",
     requestStream: false,
     responseStream: true,
     requestSerialize: (value: Empty) => Buffer.from(Empty.encode(value).finish()),
@@ -2393,7 +2395,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => DriverStation.decode(value),
   },
   getDriverStations: {
-    path: '/plugin.PluginAPI/GetDriverStations',
+    path: "/plugin.PluginAPI/GetDriverStations",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: Empty) => Buffer.from(Empty.encode(value).finish()),
@@ -2402,7 +2404,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => DriverStations.decode(value),
   },
   getDriverStation: {
-    path: '/plugin.PluginAPI/GetDriverStation',
+    path: "/plugin.PluginAPI/GetDriverStation",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: DriverStationQuery) => Buffer.from(DriverStationQuery.encode(value).finish()),
@@ -2411,7 +2413,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => DriverStation.decode(value),
   },
   addDriverStation: {
-    path: '/plugin.PluginAPI/AddDriverStation',
+    path: "/plugin.PluginAPI/AddDriverStation",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: DriverStationParams) => Buffer.from(DriverStationParams.encode(value).finish()),
@@ -2420,7 +2422,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => DriverStation.decode(value),
   },
   deleteDriverStation: {
-    path: '/plugin.PluginAPI/DeleteDriverStation',
+    path: "/plugin.PluginAPI/DeleteDriverStation",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: DriverStationParams) => Buffer.from(DriverStationParams.encode(value).finish()),
@@ -2429,7 +2431,7 @@ export const PluginAPIService = {
     responseDeserialize: (value: Buffer) => Empty.decode(value),
   },
   updateDriverStationMode: {
-    path: '/plugin.PluginAPI/UpdateDriverStationMode',
+    path: "/plugin.PluginAPI/UpdateDriverStationMode",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: DriverStationUpdateMode) => Buffer.from(DriverStationUpdateMode.encode(value).finish()),
@@ -2442,6 +2444,8 @@ export const PluginAPIService = {
 export interface PluginAPIServer extends UntypedServiceImplementation {
   /** Plugin Registration Functions */
   registerPlugin: handleUnaryCall<PluginRegistrationRequest, PluginRegistrationResponse>;
+  /** Plugin Heartbeat */
+  heartbeat: handleUnaryCall<Empty, Empty>;
   jsonRPCPublish: handleUnaryCall<JSONRpcMessage, Empty>;
   jsonRPCSubscribe: handleServerStreamingCall<Empty, JSONRpcMessage>;
   /** Network Configuration Functions */
@@ -2481,6 +2485,19 @@ export interface PluginAPIClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: PluginRegistrationResponse) => void,
+  ): ClientUnaryCall;
+  /** Plugin Heartbeat */
+  heartbeat(request: Empty, callback: (error: ServiceError | null, response: Empty) => void): ClientUnaryCall;
+  heartbeat(
+    request: Empty,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: Empty) => void,
+  ): ClientUnaryCall;
+  heartbeat(
+    request: Empty,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: Empty) => void,
   ): ClientUnaryCall;
   jsonRPCPublish(
     request: JSONRpcMessage,
@@ -2723,7 +2740,7 @@ export interface PluginAPIClient extends Client {
   ): ClientUnaryCall;
 }
 
-export const PluginAPIClient = makeGenericClientConstructor(PluginAPIService, 'plugin.PluginAPI') as unknown as {
+export const PluginAPIClient = makeGenericClientConstructor(PluginAPIService, "plugin.PluginAPI") as unknown as {
   new (address: string, credentials: ChannelCredentials, options?: Partial<ChannelOptions>): PluginAPIClient;
   service: typeof PluginAPIService;
 };
@@ -2732,41 +2749,35 @@ declare var self: any | undefined;
 declare var window: any | undefined;
 declare var global: any | undefined;
 var globalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
+  if (typeof globalThis !== "undefined") {
     return globalThis;
   }
-  if (typeof self !== 'undefined') {
+  if (typeof self !== "undefined") {
     return self;
   }
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     return window;
   }
-  if (typeof global !== 'undefined') {
+  if (typeof global !== "undefined") {
     return global;
   }
-  throw 'Unable to locate global object';
+  throw "Unable to locate global object";
 })();
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
+type DeepPartial<T> = T extends Builtin ? T
+  : T extends Array<infer U> ? Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-type Exact<P, I extends P> = P extends Builtin
-  ? P
+type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function longToNumber(long: Long): number {
   if (long.gt(Number.MAX_SAFE_INTEGER)) {
-    throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
+    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
   }
   return long.toNumber();
 }
