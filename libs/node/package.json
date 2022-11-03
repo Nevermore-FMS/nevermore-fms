@@ -27,6 +27,7 @@
   ],
   "dependencies": {
     "@grpc/grpc-js": "^1.7.3",
-    "eventemitter3": "^4.0.7"
+    "eventemitter3": "^4.0.7",
+    "json-rpc-2.0": "^1.4.1"
   }
 }

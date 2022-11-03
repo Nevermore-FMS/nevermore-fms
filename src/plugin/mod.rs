@@ -70,6 +70,9 @@ impl PluginManager {
         if req.plugin.is_none() {
             return Err(anyhow::anyhow!("No plugin in message!"));
         }
+        if req.registration_token != self.get_plugin_registration_token().await {
+            return Err(anyhow::anyhow!("Invalid registration token!"));
+        }
         let data = req.plugin.unwrap();
         let metadata = PluginMetadata{
             id: data.id.clone(),

@@ -32,6 +32,7 @@ struct RawField {
     driverstations: DriverStations,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
+    update_signal: broadcast::Sender<rpc::FieldState>,
     control_system: ControlSystem,
     udp_online: bool,
     tcp_online: bool,
@@ -69,7 +70,10 @@ impl Field {
     pub async fn set_event_name(&self, event_name: String) {
         let mut raw = self.raw.write().await;
         raw.event_name = event_name;
+        let update_signal = raw.update_signal.clone();
         info!("Event name set to {}", raw.event_name.clone());
+        drop(raw);
+        update_signal.send(self.state_to_rpc().await).ok();
     }
 
     pub async fn tournament_level(&self) -> TournamentLevel {
@@ -80,7 +84,10 @@ impl Field {
     pub async fn set_tournament_level(&self, tournament_level: TournamentLevel) {
         let mut raw = self.raw.write().await;
         raw.tournament_level = tournament_level;
+        let update_signal = raw.update_signal.clone();
         info!("Tournament Level set to {}", raw.tournament_level.clone());
+        drop(raw);
+        update_signal.send(self.state_to_rpc().await).ok();
     }
 
     pub async fn match_number(&self) -> u16 {
@@ -91,7 +98,10 @@ impl Field {
     pub async fn set_match_number(&self, match_number: u16) {
         let mut raw = self.raw.write().await;
         raw.match_number = match_number;
+        let update_signal = raw.update_signal.clone();
         info!("Match Number set to {}", &raw.match_number);
+        drop(raw);
+        update_signal.send(self.state_to_rpc().await).ok();
     }
 
     pub async fn play_number(&self) -> u8 {
@@ -101,8 +111,11 @@ impl Field {
 
     pub async fn set_play_number(&self, play_number: u8) {
         let mut raw = self.raw.write().await;
+        let update_signal = raw.update_signal.clone();
         raw.play_number = play_number;
         info!("Play number set to {}", &raw.play_number);
+        drop(raw);
+        update_signal.send(self.state_to_rpc().await).ok();
     }
 
     pub async fn timer(&self) -> difftimer::DiffTimer {
@@ -113,13 +126,20 @@ impl Field {
     pub async fn set_time_remaining(&self, time_left: Duration) {
         let mut raw = self.raw.write().await;
         raw.time_left = difftimer::DiffTimer::new(time_left, raw.time_left.is_running());
+        let update_signal = raw.update_signal.clone();
         info!("Timer set to {} ms", time_left.as_millis());
+        drop(raw);
+        update_signal.send(self.state_to_rpc().await).ok();
     }
 
     pub async fn start_timer(&self) {
         let mut raw = self.raw.write().await;
         raw.time_left = raw.time_left.start();
+        let update_signal = raw.update_signal.clone();
         info!("Timer started");
+        drop(raw);
+        update_signal.send(self.state_to_rpc().await).ok();
+
     }
 
     pub async fn stop_timer(&self) {
@@ -144,10 +164,17 @@ impl Field {
         }
     }
 
+    pub async fn subscribe(&self) -> broadcast::Receiver<rpc::FieldState> {
+        let raw = self.raw.read().await;
+        raw.update_signal.subscribe()
+    }
+
     // Internal API -->
 
     pub(super) async fn new(event_name: String, ds_address: IpAddr) -> anyhow::Result<Self> {
         let (terminate_sender, _) = broadcast::channel(1);
+
+        let (update_signal, _) = broadcast::channel(100);
 
         let (indicate_running, running_signal) = async_channel::bounded(1);
 
@@ -159,6 +186,7 @@ impl Field {
             time_left: difftimer::DiffTimer::new(Duration::ZERO, false),
             driverstations: DriverStations::new(None),
             terminate_signal: Some(terminate_sender),
+            update_signal,
             running_signal,
             control_system: ControlSystem::new(),
             udp_online: false,

@@ -42,6 +42,7 @@ impl DriverStation {
         alliance_station: AllianceStation,
         initial_mode: Mode
     ) -> Self {
+        let (update_signal, _) = broadcast::channel(100);
         let driverstation = RawDriverstation {
             team_number,
             alliance_station,
@@ -49,6 +50,7 @@ impl DriverStation {
             expected_ip: None,
             active_connection: None,
             confirmed_state: Option::None,
+            update_signal
         };
         let driverstation = Self {
             raw: Arc::new(RwLock::new(driverstation)),
@@ -81,6 +83,11 @@ impl DriverStation {
         raw.active_connection.clone()
     }
 
+    pub async fn subscribe(&self) -> broadcast::Receiver<rpc::DriverStation> {
+        let raw = self.raw.read().await;
+        raw.update_signal.subscribe()
+    }
+
     pub async fn to_rpc(&self) -> rpc::DriverStation {
         let raw = self.raw.read().await;
         let mut connection: Option<rpc::DriverStationConnection> = None;
@@ -103,13 +110,19 @@ impl DriverStation {
     pub async fn update_expected_ip(&self, expected_ip: AnyIpCidr) {
         let mut raw = self.raw.write().await;
         raw.expected_ip = Option::Some(expected_ip);
+        let update_signal = raw.update_signal.clone();
         info!("Expected ip of {} set to {}", raw.team_number, raw.expected_ip.unwrap());
+        drop(raw);
+        update_signal.send(self.to_rpc().await).ok();
     }
 
     pub async fn update_mode(&self, mode: Mode) {
         let mut raw = self.raw.write().await;
         raw.mode = mode;
+        let update_signal = raw.update_signal.clone();
         info!("Mode of {} set to {}", raw.team_number, raw.mode);
+        drop(raw);
+        update_signal.send(self.to_rpc().await).ok();
     }
 
     // Internal API -->
@@ -120,11 +133,17 @@ impl DriverStation {
         if raw.active_connection.is_some() {
             raw.active_connection.as_ref().unwrap().update_last_udp_packet_reception(Utc::now()).await;
         }
+        let update_signal = raw.update_signal.clone();
+        drop(raw);
+        update_signal.send(self.to_rpc().await).ok();
     }
 
     pub(super) async fn set_active_connection(&self, active_connection: Option<DriverStationConnection>) {
         let mut raw = self.raw.write().await;
         raw.active_connection = active_connection;
+        let update_signal = raw.update_signal.clone();
+        drop(raw);
+        update_signal.send(self.to_rpc().await).ok();
     }
 }
 
@@ -269,8 +288,8 @@ impl DriverStations {
 
     pub(super) fn new(field: Option<Field>) -> Self {
         let (terminate_sender, _) = broadcast::channel(1);
-        let (create_driverstation_signal, _) = broadcast::channel(1);
-        let (delete_driverstation_signal, _) = broadcast::channel(1);
+        let (create_driverstation_signal, _) = broadcast::channel(100);
+        let (delete_driverstation_signal, _) = broadcast::channel(100);
 
         let (indicate_running, running_signal) = async_channel::bounded(1);
 

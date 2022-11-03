@@ -2,6 +2,7 @@ import { Metadata, MetadataValue } from '@grpc/grpc-js';
 import DriverStation from './DriverStation';
 import { Field } from './Field';
 import { AllianceStation, DriverStation as RPCDriverStation, PluginAPIClient, PluginMetadata } from './models/plugin';
+import JsonRPC from './JsonRPC';
 const grpc = require('@grpc/grpc-js');
 
 export default class Plugin {
@@ -11,6 +12,7 @@ export default class Plugin {
   private registrationToken: string;
   private pluginToken: string = "";
   private field: Field | null = null;
+  private jsonRPC: JsonRPC | null = null;
 
 
   constructor(registrationToken: string, meta: PluginMetadata, rpcAddress: string = '10.0.100.5:5276') {
@@ -37,6 +39,13 @@ export default class Plugin {
     return this.field;
   }
 
+  getJsonRPC(): JsonRPC {
+    if (this.jsonRPC == null) {
+      throw "Plugin has not been registered yet";
+    }
+    return this.jsonRPC;
+  }
+
   generateControlID(name: string): string {
     return this.meta.id + ":" + name;
   }
@@ -52,6 +61,7 @@ export default class Plugin {
         }
         this.pluginToken = res.token;
         this.field = new Field(this);
+        this.jsonRPC = new JsonRPC(this);
         resolve(null);
       })
     });

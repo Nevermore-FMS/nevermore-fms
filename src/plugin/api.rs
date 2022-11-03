@@ -71,7 +71,6 @@ impl PluginApi for PluginApiImpl {
                 if res.is_err() {
                     break;
                 }
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             }
         });
 
@@ -156,15 +155,14 @@ impl PluginApi for PluginApiImpl {
             return Err(Status::unauthenticated("Invalid token"));
         };
         let (tx, rx) = mpsc::channel::<Result<FieldState, Status>>(4);
-        let field = self.field.clone();
+        let mut reciever = self.field.subscribe().await;
 
         tokio::spawn(async move {
             loop {
-                let res = tx.send(Ok(field.state_to_rpc().await)).await;
+                let res = tx.send(reciever.recv().await.map_err(|_| {Status::aborted("Reciever aborted")})).await;
                 if res.is_err() {
                     break;
                 }
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             }
         });
 

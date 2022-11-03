@@ -5,7 +5,8 @@ import {
     DriverstationStatus,
     Mode,
     AllianceStation,
-    FieldState
+    FieldState,
+    TournamentLevel
 } from './models/plugin';
 import { Field, FieldEvent } from './Field';
 import DriverStation from './DriverStation';
@@ -22,5 +23,6 @@ export {
     DriverstationStatus,
     Mode,
     AllianceStation,
-    FieldState
+    FieldState,
+    TournamentLevel
 };
