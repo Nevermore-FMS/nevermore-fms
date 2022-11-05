@@ -9,7 +9,7 @@ use chrono::{Datelike, Local, Timelike, DateTime, Utc};
 use log::*;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpStream, UdpSocket},
+    net::{TcpStream, UdpSocket, tcp},
     sync::{Mutex, RwLock},
 };
 
@@ -58,6 +58,7 @@ impl DriverStationConnection {
     }
 
     pub async fn kill(&self) {
+        info!("Test2: {}", std::sync::Arc::<tokio::sync::RwLock<RawDriverStationConnection>>::strong_count(&self.raw));
         let mut raw = self.raw.write().await;
         raw.alive = false;
         let mut tcp_stream = raw.tcp_stream.lock().await;
@@ -67,6 +68,9 @@ impl DriverStationConnection {
         if let Some(ds) = &raw.driverstation {
             ds.set_active_connection(None).await;
         }
+        drop(tcp_stream);
+        drop(raw);
+        info!("Test2: {}", std::sync::Arc::<tokio::sync::RwLock<RawDriverStationConnection>>::strong_count(&self.raw));
     }
 
     pub async fn to_rpc(&self) -> rpc::DriverStationConnection {
@@ -120,6 +124,9 @@ impl DriverStationConnection {
     async fn handle_tcp_stream(&self) -> anyhow::Result<()> {
         loop {
             let raw_conn = self.raw.read().await;
+            if !raw_conn.alive {
+                return Ok(());
+            };
             let tcp_stream = raw_conn.tcp_stream.clone();
             drop(raw_conn);
             let mut tcp_stream = tcp_stream.lock().await;
@@ -144,13 +151,14 @@ impl DriverStationConnection {
                         .await
                     {
                         raw_conn.driverstation = Some(ds.clone());
+                        drop(raw_conn);
                         ds.set_active_connection(Some(self.clone())).await;
                         info!("Driver station {} connected", team_number);
                     } else {
                         warn!("Received a connection from a driver station that is not in the list of known driver stations. Team Number: {}", team_number);
+                        drop(raw_conn);
                     }
 
-                    drop(raw_conn);
                     drop(tcp_stream);
                     self.send_tcp_station_info().await?;
                     self.send_tcp_event_code().await?;
@@ -190,6 +198,7 @@ impl DriverStationConnection {
                 status = DriverstationStatus::Waiting;
             }
         }
+
 
         let mut packet = Cursor::new(Vec::new());
         packet.write_u8(0x19).await?; //ID For Station Info

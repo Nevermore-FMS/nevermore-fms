@@ -422,6 +422,57 @@ impl PluginApi for PluginApiImpl {
         Ok(Response::new(ReceiverStream::new(rx)))
     }
 
+    type OnDriverStationUpdateStream = ReceiverStream<Result<DriverStation, Status>>;
+
+    async fn on_driver_station_update(
+        &self,
+        request: Request<DriverStationQuery>,
+    ) -> Result<Response<Self::OnDriverStationCreateStream>, Status> {
+        let plugin = get_plugin_from_request(self.plugin_manager.clone(), &request).await;
+        if plugin.is_none() {
+            return Err(Status::unauthenticated("Invalid token"));
+        };
+        let (tx, rx) = mpsc::channel::<Result<DriverStation, Status>>(1);
+        let ds = if request.get_ref().query_type == DriverStationQueryType::Teamnumber as i32 {
+            let ds = self
+                .field
+                .driverstations()
+                .await
+                .get_driverstation_by_team_number(request.get_ref().team_number as u16)
+                .await
+                .ok_or(Status::unavailable("Can't find driverstation"))?;
+            ds
+        } else {
+            let ds = self
+                .field
+                .driverstations()
+                .await
+                .get_driverstation_by_position(enums::AllianceStation::from_byte(
+                    request.get_ref().alliance_station as u8,
+                ))
+                .await
+                .ok_or(Status::unavailable("Can't find driverstation"))?;
+            ds
+        };
+        let mut recv = ds.subscribe().await;
+        drop(ds);
+
+        tokio::spawn(async move {
+            loop {
+                let raw = recv.recv().await;
+                if raw.is_err() {
+                    break;
+                }
+                let res = tx.send(Ok(raw.unwrap())).await;
+                if res.is_err() {
+                    break;
+                }
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
     type OnDriverStationDeleteStream = ReceiverStream<Result<DriverStation, Status>>;
 
     async fn on_driver_station_delete(

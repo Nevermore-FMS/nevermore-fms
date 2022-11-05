@@ -2385,6 +2385,15 @@ export const PluginAPIService = {
     responseSerialize: (value: DriverStation) => Buffer.from(DriverStation.encode(value).finish()),
     responseDeserialize: (value: Buffer) => DriverStation.decode(value),
   },
+  onDriverStationUpdate: {
+    path: "/plugin.PluginAPI/OnDriverStationUpdate",
+    requestStream: false,
+    responseStream: true,
+    requestSerialize: (value: DriverStationQuery) => Buffer.from(DriverStationQuery.encode(value).finish()),
+    requestDeserialize: (value: Buffer) => DriverStationQuery.decode(value),
+    responseSerialize: (value: DriverStation) => Buffer.from(DriverStation.encode(value).finish()),
+    responseDeserialize: (value: Buffer) => DriverStation.decode(value),
+  },
   onDriverStationDelete: {
     path: "/plugin.PluginAPI/OnDriverStationDelete",
     requestStream: false,
@@ -2461,6 +2470,7 @@ export interface PluginAPIServer extends UntypedServiceImplementation {
   updateEstopper: handleUnaryCall<EstopperConfig, Empty>;
   removeEstopper: handleUnaryCall<EstopperQuery, Empty>;
   onDriverStationCreate: handleServerStreamingCall<Empty, DriverStation>;
+  onDriverStationUpdate: handleServerStreamingCall<DriverStationQuery, DriverStation>;
   onDriverStationDelete: handleServerStreamingCall<Empty, DriverStation>;
   getDriverStations: handleUnaryCall<Empty, DriverStations>;
   getDriverStation: handleUnaryCall<DriverStationQuery, DriverStation>;
@@ -2654,6 +2664,15 @@ export interface PluginAPIClient extends Client {
   onDriverStationCreate(request: Empty, options?: Partial<CallOptions>): ClientReadableStream<DriverStation>;
   onDriverStationCreate(
     request: Empty,
+    metadata?: Metadata,
+    options?: Partial<CallOptions>,
+  ): ClientReadableStream<DriverStation>;
+  onDriverStationUpdate(
+    request: DriverStationQuery,
+    options?: Partial<CallOptions>,
+  ): ClientReadableStream<DriverStation>;
+  onDriverStationUpdate(
+    request: DriverStationQuery,
     metadata?: Metadata,
     options?: Partial<CallOptions>,
   ): ClientReadableStream<DriverStation>;

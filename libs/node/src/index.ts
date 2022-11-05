@@ -9,13 +9,14 @@ import {
     TournamentLevel
 } from './models/plugin';
 import { Field, FieldEvent } from './Field';
-import DriverStation from './DriverStation';
+import { DriverStation, DriverStationEvent } from './DriverStation';
 
 export {
     Plugin,
     Field,
-    DriverStation,
     FieldEvent,
+    DriverStation,
+    DriverStationEvent,
 
     // Re-exported gRPC Items
     DriverStationConnection,

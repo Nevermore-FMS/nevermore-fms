@@ -45,6 +45,8 @@ service PluginAPI {
 
     rpc OnDriverStationCreate(Empty) returns (stream DriverStation);
 
+    rpc OnDriverStationUpdate(DriverStationQuery) returns (stream DriverStation);
+
     rpc OnDriverStationDelete(Empty) returns (stream DriverStation);
 
     rpc GetDriverStations(Empty) returns (DriverStations);

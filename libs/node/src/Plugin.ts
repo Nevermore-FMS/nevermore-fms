@@ -1,5 +1,5 @@
 import { Metadata, MetadataValue } from '@grpc/grpc-js';
-import DriverStation from './DriverStation';
+import  { DriverStation } from './DriverStation';
 import { Field } from './Field';
 import { AllianceStation, DriverStation as RPCDriverStation, PluginAPIClient, PluginMetadata } from './models/plugin';
 import JsonRPC from './JsonRPC';

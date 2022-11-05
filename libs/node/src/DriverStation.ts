@@ -1,11 +1,17 @@
+import { EventEmitter } from 'eventemitter3';
 import {
     AllianceStation,
     DriverStation as DS,
     DriverStationConfirmedState,
     DriverStationConnection,
+    DriverStationQueryType,
     Mode,
 } from './models/plugin';
 import Plugin from './Plugin';
+
+enum DriverStationEvent {
+    UPDATE = "update",
+}
 
 /**
  * Represents a DriverStation that **could** be connected to the FMS.
@@ -14,14 +20,16 @@ import Plugin from './Plugin';
  * 
  * @alpha
  */
-export default class DriverStation {
+class DriverStation extends EventEmitter<DriverStationEvent, void> {
     private plugin: Plugin;
     private ds: DS;
     private mode: Mode = Mode.TELEOP;
 
     constructor(plugin: Plugin, ds: DS) {
+        super();
         this.plugin = plugin;
         this.ds = ds;
+        this.listenForDriverStationUpdate()
     }
 
     // SETTER FUNCTIONS
@@ -162,4 +170,21 @@ export default class DriverStation {
     getExpectedIP(): string | undefined {
         return this.ds.expectedIp;
     }
+
+    private listenForDriverStationUpdate() {
+        let dsThis = this;
+        let listener = this.plugin.getRpcClient().onDriverStationUpdate({ queryType: DriverStationQueryType.TEAMNUMBER, teamNumber: this.ds.teamNumber, allianceStation: this.ds.allianceStation}, this.plugin.generateMetadata());
+        listener.on("data", (driverstation: DS) => {
+            dsThis.ds = driverstation;
+            dsThis.emit(DriverStationEvent.UPDATE);
+        });
+        listener.on("end", () => {
+            dsThis.listenForDriverStationUpdate();
+        });
+    }
+}
+
+export {
+    DriverStation,
+    DriverStationEvent
 }

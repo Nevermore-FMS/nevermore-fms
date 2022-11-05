@@ -1,5 +1,5 @@
 import { EventEmitter } from "eventemitter3";
-import DriverStation from "./DriverStation";
+import { DriverStation } from "./DriverStation";
 import { AllianceStation, FieldConfiguration, FieldState, DriverStation as RPCDriverStation } from "./models/plugin";
 import Plugin from "./Plugin";
 

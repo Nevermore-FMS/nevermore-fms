@@ -140,6 +140,9 @@ impl DriverStation {
 
     pub(super) async fn set_active_connection(&self, active_connection: Option<DriverStationConnection>) {
         let mut raw = self.raw.write().await;
+        if raw.active_connection.is_some() {
+            drop(raw.active_connection.as_ref());
+        }
         raw.active_connection = active_connection;
         let update_signal = raw.update_signal.clone();
         drop(raw);
@@ -204,6 +207,10 @@ impl DriverStations {
                 new_driverstations.push(ds.clone());
             } else {
                 raw_driverstations.delete_driverstation_signal.send(ds.to_rpc().await).ok();
+                let conn = ds.active_connection().await;
+                if conn.is_some() {
+                    conn.unwrap().kill().await;
+                }
             }
         }
 

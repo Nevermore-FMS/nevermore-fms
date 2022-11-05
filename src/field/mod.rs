@@ -238,6 +238,7 @@ impl Field {
                 .context("Can't listen for UDP Messages because field has already terminated")
                 .unwrap()
                 .subscribe();
+            let driverstations = raw_field.driverstations.clone();
             drop(raw_field);
 
             let mut buf = vec![0; 1024];
@@ -247,8 +248,7 @@ impl Field {
                     result = socket.recv_from(&mut buf) => {
                         match result {
                             Ok((size, _)) => {
-                                let raw_field = self.raw.read().await;
-                                if let Err(e) = raw_field.driverstations.decode_udp_message(buf[..size].to_vec()).await {
+                                if let Err(e) = driverstations.decode_udp_message(buf[..size].to_vec()).await {
                                     if e.to_string() != "unexpected end of file" {
                                         error!("Error decoding UDP message: {}", e);
                                     }
@@ -286,6 +286,7 @@ impl Field {
                 .context("Can't listen for TCP Connections because field has already terminated")
                 .unwrap()
                 .subscribe();
+            let driverstations = raw_field.driverstations.clone();
             drop(raw_field);
 
             info!("Listening for TCP connections on {}", addr);
@@ -294,8 +295,8 @@ impl Field {
                     socket = listener.accept() => {
                         match socket {
                             Ok((stream, socket)) => {
-                                let raw_field = self.raw.read().await;
-                                if let Err(e) = raw_field.driverstations.handle_tcp_stream(stream, socket.ip()).await {
+                                info!("Here");
+                                if let Err(e) = driverstations.handle_tcp_stream(stream, socket.ip()).await {
                                     error!("Error accepting TCP stream: {}", e);
                                 }
                             },

@@ -1,7 +1,7 @@
-import { Plugin, FieldEvent, DriverStation, FieldState, AllianceStation, TournamentLevel } from "../src";
+import { Plugin, FieldEvent, DriverStation, FieldState, AllianceStation, TournamentLevel, DriverStationEvent } from "../src";
 
 async function main() {
-    let plugin = new Plugin("rZMuJ5aDlCCNbQh5yUq0ADc5", {
+    let plugin = new Plugin("HJgywCoI9e0MGiWEnzeRfaAl", {
         id: "test-plugin",
         name: "Test Plugin",
         authors: ["Chase MacDonnell"]
@@ -36,24 +36,11 @@ async function main() {
     let ds = await plugin.getField().addDriverStation(5276, AllianceStation.RED1);
     await ds.setExpectedIP("10.0.100/24");
 
-    setTimeout(async () => {
-        await plugin.getField().setFieldConfig({
-            eventName: "ROBOTICON",
-            tournamentLevel: TournamentLevel.QUALIFICATION,
-            matchNumber: 1,
-            playNumber: 1
-        })
-    }, 5000);
+    
 
-    plugin.getJsonRPC().getJsonRPCServerAndClient().addMethod("test", ({ message }: any) => {
-        return "Hello " + message;
-    });
-
-    for (let i = 0; i < 5; i++) {
-        plugin.getJsonRPC().getJsonRPCServerAndClient().request("test", { message: "World!" }, { pluginId: "test-plugin" }).then((res) => {
-            console.log(res);
-        });
-    }
+    ds.on(DriverStationEvent.UPDATE, () => {
+        console.log(ds.getConnection());
+    })
 }
 
 main();
