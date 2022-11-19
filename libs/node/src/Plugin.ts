@@ -68,7 +68,7 @@ export default class Plugin {
         }
         this.heartbeatTimer = setInterval(() => {
           this.rpcClient.heartbeat({}, this.generateMetadata(), () => {});
-        }, 2500);
+        }, 500);
         resolve(null);
       })
     });

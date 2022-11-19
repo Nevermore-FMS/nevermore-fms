@@ -295,7 +295,6 @@ impl Field {
                     socket = listener.accept() => {
                         match socket {
                             Ok((stream, socket)) => {
-                                info!("Here");
                                 if let Err(e) = driverstations.handle_tcp_stream(stream, socket.ip()).await {
                                     error!("Error accepting TCP stream: {}", e);
                                 }

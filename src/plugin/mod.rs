@@ -243,7 +243,7 @@ impl Plugin {
 
     pub async fn is_alive(&self) -> bool {
         let raw = self.raw.read().await;
-        if Utc::now().signed_duration_since(raw.last_heartbeat) > Duration::seconds(5) {
+        if Utc::now().signed_duration_since(raw.last_heartbeat) > Duration::seconds(2) {
             return false;
         }
         return true;

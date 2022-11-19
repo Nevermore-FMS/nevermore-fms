@@ -9,7 +9,7 @@ use chrono::{Datelike, Local, Timelike, DateTime, Utc};
 use log::*;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpStream, UdpSocket, tcp},
+    net::{TcpStream, UdpSocket},
     sync::{Mutex, RwLock},
 };
 
@@ -27,6 +27,7 @@ struct RawDriverStationConnection {
     /// Represents the current driver station, only if this station is expected to be connected
     alive: bool,
     tcp_stream: Arc<Mutex<TcpStream>>,
+    udp_socket: Arc<UdpSocket>,
     ip_address: IpAddr,
     udp_outgoing_sequence_num: u16,
     last_udp_packet_reception: DateTime<Utc>,
@@ -43,7 +44,7 @@ impl DriverStationConnection {
 
     pub async fn is_alive(&self) -> bool {
         let raw = self.raw.read().await;
-        if raw.alive && Utc::now().signed_duration_since(raw.last_udp_packet_reception) > chrono::Duration::seconds(2) {
+        if raw.alive && Utc::now().signed_duration_since(raw.last_udp_packet_reception) > chrono::Duration::seconds(10) {
             drop(raw);
             self.kill().await;
             return false
@@ -58,7 +59,6 @@ impl DriverStationConnection {
     }
 
     pub async fn kill(&self) {
-        info!("Test2: {}", std::sync::Arc::<tokio::sync::RwLock<RawDriverStationConnection>>::strong_count(&self.raw));
         let mut raw = self.raw.write().await;
         raw.alive = false;
         let mut tcp_stream = raw.tcp_stream.lock().await;
@@ -70,7 +70,6 @@ impl DriverStationConnection {
         }
         drop(tcp_stream);
         drop(raw);
-        info!("Test2: {}", std::sync::Arc::<tokio::sync::RwLock<RawDriverStationConnection>>::strong_count(&self.raw));
     }
 
     pub async fn to_rpc(&self) -> rpc::DriverStationConnection {
@@ -88,12 +87,13 @@ impl DriverStationConnection {
         tcp_stream: TcpStream,
         ip_address: IpAddr,
         driverstations: DriverStations,
-    ) -> Self {
+    ) -> anyhow::Result<Self> {
         let driver_station_connection = RawDriverStationConnection {
             driverstations,
             driverstation: None,
             alive: true,
             tcp_stream: Arc::new(Mutex::new(tcp_stream)),
+            udp_socket: Arc::new(UdpSocket::bind("0.0.0.0:0").await?),
             ip_address,
             udp_outgoing_sequence_num: 0,
             last_udp_packet_reception: Utc::now()
@@ -118,10 +118,10 @@ impl DriverStationConnection {
             }
         });
 
-        driver_station_connection
+        Ok(driver_station_connection)
     }
 
-    async fn handle_tcp_stream(&self) -> anyhow::Result<()> {
+    async fn handle_tcp_stream<'a>(&self) -> anyhow::Result<()> {
         loop {
             let raw_conn = self.raw.read().await;
             if !raw_conn.alive {
@@ -348,8 +348,7 @@ impl DriverStationConnection {
 
             let buffer = packet.into_inner();
 
-            let socket = UdpSocket::bind("0.0.0.0:0").await?;
-            socket
+            raw_conn.udp_socket
                 .send_to(&buffer, SocketAddr::from((raw_conn.ip_address, 1121)))
                 .await?;
         }

@@ -341,7 +341,7 @@ impl DriverStations {
             .subscribe();
         drop(raw_driverstations);
 
-        let mut interval = time::interval(Duration::from_millis(100));
+        let mut interval = time::interval(Duration::from_millis(250));
         loop {
             tokio::select! {
                 _ = interval.tick() => {

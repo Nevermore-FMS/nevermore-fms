@@ -1,7 +1,7 @@
 import { Plugin, FieldEvent, DriverStation, FieldState, AllianceStation, TournamentLevel, DriverStationEvent } from "../src";
 
 async function main() {
-    let plugin = new Plugin("HJgywCoI9e0MGiWEnzeRfaAl", {
+    let plugin = new Plugin("KL3WfOu6izeGQpPYlhje7rzy", {
         id: "test-plugin",
         name: "Test Plugin",
         authors: ["Chase MacDonnell"]
@@ -35,6 +35,7 @@ async function main() {
 
     let ds = await plugin.getField().addDriverStation(5276, AllianceStation.RED1);
     await ds.setExpectedIP("10.0.100/24");
+    await ds.setEnabled(true);
 
     
 

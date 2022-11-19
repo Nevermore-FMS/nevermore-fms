@@ -4,7 +4,6 @@ use crate::control::{enabler, estopper};
 use crate::field::enums::{AllianceStation, Mode, TournamentLevel};
 use crate::field::{driverstation, enums, Field};
 use cidr::AnyIpCidr;
-use log::info;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
@@ -31,7 +30,6 @@ async fn get_plugin_from_request<T>(
     request: &Request<T>,
 ) -> Option<Plugin> {
     let token = request.metadata().get("x-token");
-    info!("Token: {:?}", token);
     if token.is_some() {
         let token = token.unwrap().to_str().unwrap().to_string();
         let plugin = plugin_manager.get_plugin_by_token(token).await;
