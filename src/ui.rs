@@ -9,7 +9,7 @@ use std::{
 };
 use tao::{
     menu::{ContextMenu, MenuItemAttributes},
-    window::{Fullscreen, Icon}, TrayId,
+    window::{Fullscreen, Icon}, TrayId, dpi::{PhysicalSize, LogicalSize},
 };
 #[cfg(target_os = "macos")]
 use wry::application::platform::macos::{ActivationPolicy, EventLoopExtMacOS};
@@ -101,6 +101,8 @@ pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()
                 .with_window_icon(Some(window_icon.clone()))
                 .with_taskbar_icon(Some(window_icon.clone()))
                 .with_resizable(true)
+                .with_maximized(fullscreen.is_none())
+                .with_min_inner_size(LogicalSize::<f32>::from((400, 400)))
                 .with_fullscreen(fullscreen.clone());
 
             #[cfg(not(target_os = "windows"))]
@@ -108,6 +110,8 @@ pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()
                 .with_title(title)
                 .with_window_icon(Some(window_icon.clone()))
                 .with_resizable(true)
+                .with_maximized(fullscreen.is_none())
+                .with_min_inner_size(LogicalSize::<f32>::from((400, 400)))
                 .with_fullscreen(fullscreen.clone());
 
             let window = window_builder.build(event_loop)?;
@@ -138,14 +142,6 @@ pub fn create_tray(http_addr: SocketAddr, fullscreen: bool) -> anyhow::Result<()
                 // Remove webview from our hashmap
                 webviews.remove(&window_id);
             }
-            /*Event::WindowEvent {
-                event: WindowEvent::Resized(_),
-                window_id,
-                ..
-            } => {
-                // Resizing for Windows
-                webviews.get(&window_id).unwrap().resize().ok();
-            }*/
             // open a new admin window
             Event::MenuEvent { menu_id, .. } if menu_id == open_menu_id => {
                 create_window_or_focus(
@@ -219,13 +215,6 @@ pub fn create_window(
                 event: WindowEvent::CloseRequested,
                 ..
             } => *control_flow = ControlFlow::Exit,
-            /*Event::WindowEvent {
-                event: WindowEvent::Resized(_),
-                ..
-            } => {
-                // Resizing for Windows
-                webview.resize().ok();
-            }*/
             _ => (),
         }
     });

@@ -356,7 +356,9 @@ impl DriverStations {
 
     async fn tick(&self) {
         let raw_driverstations = self.raw.read().await;
-        for ds in raw_driverstations.all_driverstations.iter() {
+        let all_driverstations = raw_driverstations.all_driverstations.clone();
+        drop(raw_driverstations);
+        for ds in all_driverstations {
             if let Some(conn) = ds.active_connection().await {
                 if conn.is_alive().await {
                     if let Err(e) = conn.send_udp_message().await {

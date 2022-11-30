@@ -1,7 +1,7 @@
 import { Plugin, FieldEvent, DriverStation, FieldState, AllianceStation, TournamentLevel, DriverStationEvent } from "../src";
 
 async function main() {
-    let plugin = new Plugin("KL3WfOu6izeGQpPYlhje7rzy", {
+    let plugin = new Plugin("aOiJYdvAa97Q4vttLGYcFZBR", {
         id: "test-plugin",
         name: "Test Plugin",
         authors: ["Chase MacDonnell"]

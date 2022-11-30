@@ -37,7 +37,7 @@
         }
         
         .background {
-            background: linear-gradient(180deg, #4F5B62 12.89%, #263238 72.43%, rgba(154, 0, 7, 0.93) 120.46%);
+            background: #263238/*linear-gradient(180deg, #4F5B62 12.89%, #263238 72.43%, rgba(154, 0, 7, 0.93) 120.46%)*/;
         }
         
         .interface {

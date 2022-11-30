@@ -254,6 +254,11 @@ impl DriverStationConnection {
             packet.write_u16(raw_conn.udp_outgoing_sequence_num).await?;
             packet.write_u8(0x00).await?; //Comm Version
 
+            let driverstations = raw_conn.driverstations.clone();
+            let udp_socket = raw_conn.udp_socket.clone();
+            let ip_address = raw_conn.ip_address.clone();
+            drop(raw_conn);
+
             let mut control_byte = 0x00;
             match ds.mode().await {
                 Mode::TeleOp => control_byte |= 0x00,
@@ -261,8 +266,7 @@ impl DriverStationConnection {
                 Mode::Autonomous => control_byte |= 0x02,
             }
 
-            if raw_conn
-                .driverstations
+            if driverstations
                 .get_field()
                 .await
                 .control_system()
@@ -273,8 +277,7 @@ impl DriverStationConnection {
                 control_byte |= 0x04
             }
 
-            if raw_conn
-                .driverstations
+            if driverstations
                 .get_field()
                 .await
                 .control_system()
@@ -292,8 +295,7 @@ impl DriverStationConnection {
                 .await?; //Alliance Station
             packet
                 .write_u8(
-                    raw_conn
-                        .driverstations
+                    driverstations
                         .get_field()
                         .await
                         .tournament_level()
@@ -303,8 +305,7 @@ impl DriverStationConnection {
                 .await?; //Tournament Level
             packet
                 .write_u16(
-                    raw_conn
-                        .driverstations
+                    driverstations
                         .get_field()
                         .await
                         .match_number()
@@ -313,8 +314,7 @@ impl DriverStationConnection {
                 .await?; //Match Number
             packet
                 .write_u8(
-                    raw_conn
-                        .driverstations
+                    driverstations
                         .get_field()
                         .await
                         .play_number()
@@ -335,8 +335,7 @@ impl DriverStationConnection {
 
             packet
                 .write_u16(
-                    raw_conn
-                        .driverstations
+                    driverstations
                         .get_field()
                         .await
                         .timer()
@@ -348,8 +347,8 @@ impl DriverStationConnection {
 
             let buffer = packet.into_inner();
 
-            raw_conn.udp_socket
-                .send_to(&buffer, SocketAddr::from((raw_conn.ip_address, 1121)))
+            udp_socket
+                .send_to(&buffer, SocketAddr::from((ip_address, 1121)))
                 .await?;
         }
 

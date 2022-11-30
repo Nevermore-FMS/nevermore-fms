@@ -10,11 +10,11 @@
     <link rel="icon" type="image/x-icon" href="/static/logos/eao_bird_circle.png">
     <style>
         .background {
-            background: linear-gradient(180deg, #4F5B62 12.89%, #263238 72.43%, rgba(154, 0, 7, 0.93) 120.46%);
+            background: #263238/*linear-gradient(180deg, #4F5B62 12.89%, #263238 72.43%, rgba(154, 0, 7, 0.93) 120.46%)*/;
         }
 
         .login-container {
-            padding-top: 300px;
+            padding-top: 20vh;
             display: flex;
             margin: 0 auto;
             color: white;
@@ -33,12 +33,20 @@
         }
 
         @media screen and (max-width: 900px) {
-            .background {
-                background: linear-gradient(180deg, #4F5B62 12.89%, #263238 82.43%, rgba(154, 0, 7, 0.93) 130.46%);
-            }
 
             .login-container {
                 width: 95%;
+            }
+        }
+
+        @media screen and (max-height: 500px) {
+
+            .login-container {
+                padding-top: 8vh;
+            }
+
+            .image {
+                display: none;
             }
         }
     </style>
