@@ -1,4 +1,4 @@
-use std::{io::Cursor, net::IpAddr, sync::Arc, time::Duration};
+use std::{io::Cursor, net::IpAddr, sync::Arc, time::Duration, collections::HashMap, hash::Hash};
 
 use anyhow::{bail, Context, Ok};
 use chrono::Utc;
@@ -15,7 +15,7 @@ use crate::plugin::rpc::{self, DriverStationConfirmedState};
 
 use super::{
     connection::DriverStationConnection,
-    enums::{AllianceStation, Mode},
+    enums::{AllianceStation, Mode, VersionType, Version},
     Field,
 };
 
@@ -27,6 +27,7 @@ struct RawDriverstation {
     active_connection: Option<DriverStationConnection>,
     confirmed_state: Option<ConfirmedState>,
     update_signal: broadcast::Sender<rpc::DriverStation>,
+    versions: HashMap<VersionType, Version>
 }
 
 #[derive(Clone)]
@@ -50,7 +51,8 @@ impl DriverStation {
             expected_ip: None,
             active_connection: None,
             confirmed_state: Option::None,
-            update_signal
+            update_signal,
+            versions: HashMap::new()
         };
         let driverstation = Self {
             raw: Arc::new(RwLock::new(driverstation)),
@@ -127,9 +129,17 @@ impl DriverStation {
 
     // Internal API -->
 
-    pub(super) async fn set_confirmed_state(&self, confirmed_state: ConfirmedState) {
+    pub(super) async fn set_version(&self, version_type: VersionType, version: Version) {
         let mut raw = self.raw.write().await;
-        raw.confirmed_state = Option::Some(confirmed_state);
+        raw.versions.insert(version_type, version);
+        let update_signal = raw.update_signal.clone();
+        drop(raw);
+        update_signal.send(self.to_rpc().await).ok();
+    }
+
+    pub(super) async fn set_confirmed_state(&self, confirmed_state: Option<ConfirmedState>) {
+        let mut raw = self.raw.write().await;
+        raw.confirmed_state = confirmed_state;
         if raw.active_connection.is_some() {
             raw.active_connection.as_ref().unwrap().update_last_udp_packet_reception(Utc::now()).await;
         }
@@ -405,7 +415,7 @@ impl DriverStations {
         };
 
         if let Some(ds) = self.get_driverstation_by_team_number(team_number).await {
-            ds.set_confirmed_state(confirmed_state).await;
+            ds.set_confirmed_state(Some(confirmed_state)).await;
         } else {
             warn!("Received a packet from a driver station that is not in the list of known driver stations. Team Number: {}", team_number);
         }

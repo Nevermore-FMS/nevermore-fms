@@ -1,7 +1,7 @@
 import { Plugin, FieldEvent, DriverStation, FieldState, AllianceStation, TournamentLevel, DriverStationEvent } from "../src";
 
 async function main() {
-    let plugin = new Plugin("aOiJYdvAa97Q4vttLGYcFZBR", {
+    let plugin = new Plugin("LJzBuhVsGr7nPILaWCV9Gq9A", {
         id: "test-plugin",
         name: "Test Plugin",
         authors: ["Chase MacDonnell"]
@@ -14,9 +14,6 @@ async function main() {
     } catch (e) {
         return;
     }
-
-    console.log(plugin.generateMetadata());
-
     console.log("Registered!");
 
     await plugin.getField().removeDriverStation(5276, AllianceStation.RED1);

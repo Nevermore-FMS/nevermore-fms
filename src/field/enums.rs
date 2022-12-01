@@ -1,5 +1,7 @@
 use std::fmt;
 
+use chrono::Duration;
+
 // Represents the Mode of a DriverStation. These values correspond to the values you can
 /// get from WPILib and can set on the Driverstation when directly connected.
 #[derive(Clone, Copy)]
@@ -175,4 +177,44 @@ impl fmt::Display for TournamentLevel {
             TournamentLevel::Test => write!(f, "Test"),
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct Version {
+    pub status: String,
+    pub version: String
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
+pub enum VersionType {
+    WPILib,
+    RoboRIO,
+    DS,
+    PDP,
+    PCM,
+    CANJag,
+    CANTalon,
+    ThirdParty
+}
+
+impl VersionType {
+    pub fn from_byte(integer: u8) -> VersionType {
+        match integer {
+            0x00 => VersionType::WPILib,
+            0x01 => VersionType::RoboRIO,
+            0x02 => VersionType::DS,
+            0x03 => VersionType::PDP,
+            0x04 => VersionType::PCM,
+            0x05 => VersionType::CANJag,
+            0x06 => VersionType::CANJag,
+            0x07 => VersionType::ThirdParty,
+            _ => VersionType::WPILib
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct LogData {
+    pub status: String,
+    pub version: String
 }

@@ -17,7 +17,7 @@ use crate::plugin::rpc;
 
 use super::{
     driverstation::{DriverStation, DriverStations},
-    enums::{AllianceStation, DriverstationStatus, Mode},
+    enums::{AllianceStation, DriverstationStatus, Mode, VersionType, Version},
 };
 
 struct RawDriverStationConnection {
@@ -44,7 +44,7 @@ impl DriverStationConnection {
 
     pub async fn is_alive(&self) -> bool {
         let raw = self.raw.read().await;
-        if raw.alive && Utc::now().signed_duration_since(raw.last_udp_packet_reception) > chrono::Duration::seconds(10) {
+        if raw.alive && Utc::now().signed_duration_since(raw.last_udp_packet_reception) > chrono::Duration::seconds(2) {
             drop(raw);
             self.kill().await;
             return false
@@ -61,12 +61,13 @@ impl DriverStationConnection {
     pub async fn kill(&self) {
         let mut raw = self.raw.write().await;
         raw.alive = false;
+        if let Some(ds) = &raw.driverstation {
+            ds.set_active_connection(None).await;
+            ds.set_confirmed_state(None).await;
+        }
         let mut tcp_stream = raw.tcp_stream.lock().await;
         if let Err(e) = tcp_stream.shutdown().await {
             error!("Failed to shutdown TCP stream: {}", e);
-        }
-        if let Some(ds) = &raw.driverstation {
-            ds.set_active_connection(None).await;
         }
         drop(tcp_stream);
         drop(raw);
@@ -163,11 +164,46 @@ impl DriverStationConnection {
                     self.send_tcp_station_info().await?;
                     self.send_tcp_event_code().await?;
                 },
-                0x2 | 0x16 | 0x1d | 0x17 => {/* Intentionall omitted */}
+                0x00 | 0x01 | 0x02 | 0x03 | 0x04 | 0x05 | 0x06 | 0x07 => {
+                    let mut version_unparsed = String::new();
+                    reader.read_to_string(&mut version_unparsed).await?;
+                    let split: Vec<&str> = version_unparsed.split(">").collect();
+                    let (status, version) = if split.len() > 1 {
+                        (split[0].trim_start_matches("<").to_string(), split[1].to_string())
+                    } else {
+                        (String::new(), String::new())
+                    };
+                    
+                    let version_type = VersionType::from_byte(id);
+                    let version = Version{
+                        status,
+                        version
+                    };
+
+                    let raw_conn = self.raw.read().await;
+                    let ds = raw_conn.driverstation.clone();
+                    drop(raw_conn);
+                    if ds.is_some() {
+                        ds.unwrap().set_version(version_type, version).await;
+                    }
+                }
+                0x17 => {
+                    let count = reader.read_u32().await?;
+                    let timestamp = reader.read_u64().await?;
+                    reader.read_u64().await?;
+                    let mut data = String::new();
+                    reader.read_u32().await?;
+                    reader.read_to_string(&mut data).await?;
+                    println!("{} {} {}", count, timestamp, data);
+                }
+                0x16 => {
+
+                }
+                0x1d => {/* Keep-Alive Packet, doesn't need a reply */}
                 unknown_id => {
                     warn!(
-                        "Received a TCP packet from a driverstation with an unknown id {:#x}",
-                        unknown_id
+                        "Received a TCP packet from a driverstation with an unknown id {:#x} and size {}",
+                        unknown_id, packet_length
                     );
                 }
             }
