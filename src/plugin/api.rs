@@ -17,7 +17,7 @@ use super::rpc::{
     DriverStation, DriverStationParams, DriverStationQuery, DriverStationQueryType,
     DriverStationUpdateExpectedIp, DriverStationUpdateMode, DriverStations, Empty, EnablerConfig,
     EnablerQuery, EstopperConfig, EstopperQuery, FieldConfiguration, FieldState, FieldTimerUpdate,
-    JsonRpcMessage, PluginRegistrationRequest, PluginRegistrationResponse,
+    JsonRpcMessage, PluginRegistrationRequest, PluginRegistrationResponse, LogMessages,
 };
 
 pub struct PluginApiImpl {
@@ -550,6 +550,41 @@ impl PluginApi for PluginApiImpl {
                 .await
                 .ok_or(Status::unavailable("Can't find driverstation"))?;
             Ok(Response::new(ds.to_rpc().await))
+        }
+    }
+
+    async fn get_driver_station_logs(
+        &self,
+        request: Request<DriverStationQuery>,
+    ) -> Result<Response<LogMessages>, Status> {
+        let plugin = get_plugin_from_request(self.plugin_manager.clone(), &request).await;
+        if plugin.is_none() {
+            return Err(Status::unauthenticated("Invalid token"));
+        };
+        if request.get_ref().query_type == DriverStationQueryType::Teamnumber as i32 {
+            let ds = self
+                .field
+                .driverstations()
+                .await
+                .get_driverstation_by_team_number(request.get_ref().team_number as u16)
+                .await
+                .ok_or(Status::unavailable("Can't find driverstation"))?;
+            Ok(Response::new(LogMessages{
+                messages: ds.log_messages().await
+            }))
+        } else {
+            let ds = self
+                .field
+                .driverstations()
+                .await
+                .get_driverstation_by_position(enums::AllianceStation::from_byte(
+                    request.get_ref().alliance_station as u8,
+                ))
+                .await
+                .ok_or(Status::unavailable("Can't find driverstation"))?;
+            Ok(Response::new(LogMessages{
+                messages: ds.log_messages().await
+            }))
         }
     }
 

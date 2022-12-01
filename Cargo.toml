@@ -36,6 +36,7 @@ awc = "3.0.1"
 wry =  { version = "0.21.1", features = ["file-drop", "objc-exception", "protocol", "tray"]}
 tao = "0.14.0"
 image = "0.24.4"
+uuid = "1.2.2"
 
 # User Storage
 jfs = "0.7.1"

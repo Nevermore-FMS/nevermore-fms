@@ -315,6 +315,32 @@ export interface DriverStation {
   expectedIp?: string | undefined;
   connection?: DriverStationConnection | undefined;
   confirmedState?: DriverStationConfirmedState | undefined;
+  logData?: LogData | undefined;
+}
+
+export interface LogData {
+  tripTime: number;
+  lostPackets: number;
+  brownout: boolean;
+  watchdog: boolean;
+  dsTeleop: boolean;
+  dsAuto: boolean;
+  dsDisable: boolean;
+  robotTeleop: boolean;
+  robotAuto: boolean;
+  robotDisable: boolean;
+  canUtilization: number;
+  signal: number;
+  bandwidth: number;
+}
+
+export interface LogMessages {
+  messages: LogMessage[];
+}
+
+export interface LogMessage {
+  timestamp: number;
+  message: string;
 }
 
 export interface DriverStationConnection {
@@ -1245,7 +1271,14 @@ export const DriverStationUpdateMode = {
 };
 
 function createBaseDriverStation(): DriverStation {
-  return { teamNumber: 0, allianceStation: 0, expectedIp: undefined, connection: undefined, confirmedState: undefined };
+  return {
+    teamNumber: 0,
+    allianceStation: 0,
+    expectedIp: undefined,
+    connection: undefined,
+    confirmedState: undefined,
+    logData: undefined,
+  };
 }
 
 export const DriverStation = {
@@ -1264,6 +1297,9 @@ export const DriverStation = {
     }
     if (message.confirmedState !== undefined) {
       DriverStationConfirmedState.encode(message.confirmedState, writer.uint32(42).fork()).ldelim();
+    }
+    if (message.logData !== undefined) {
+      LogData.encode(message.logData, writer.uint32(50).fork()).ldelim();
     }
     return writer;
   },
@@ -1290,6 +1326,9 @@ export const DriverStation = {
         case 5:
           message.confirmedState = DriverStationConfirmedState.decode(reader, reader.uint32());
           break;
+        case 6:
+          message.logData = LogData.decode(reader, reader.uint32());
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -1307,6 +1346,7 @@ export const DriverStation = {
       confirmedState: isSet(object.confirmedState)
         ? DriverStationConfirmedState.fromJSON(object.confirmedState)
         : undefined,
+      logData: isSet(object.logData) ? LogData.fromJSON(object.logData) : undefined,
     };
   },
 
@@ -1320,6 +1360,7 @@ export const DriverStation = {
     message.confirmedState !== undefined && (obj.confirmedState = message.confirmedState
       ? DriverStationConfirmedState.toJSON(message.confirmedState)
       : undefined);
+    message.logData !== undefined && (obj.logData = message.logData ? LogData.toJSON(message.logData) : undefined);
     return obj;
   },
 
@@ -1334,6 +1375,289 @@ export const DriverStation = {
     message.confirmedState = (object.confirmedState !== undefined && object.confirmedState !== null)
       ? DriverStationConfirmedState.fromPartial(object.confirmedState)
       : undefined;
+    message.logData = (object.logData !== undefined && object.logData !== null)
+      ? LogData.fromPartial(object.logData)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseLogData(): LogData {
+  return {
+    tripTime: 0,
+    lostPackets: 0,
+    brownout: false,
+    watchdog: false,
+    dsTeleop: false,
+    dsAuto: false,
+    dsDisable: false,
+    robotTeleop: false,
+    robotAuto: false,
+    robotDisable: false,
+    canUtilization: 0,
+    signal: 0,
+    bandwidth: 0,
+  };
+}
+
+export const LogData = {
+  encode(message: LogData, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.tripTime !== 0) {
+      writer.uint32(8).uint32(message.tripTime);
+    }
+    if (message.lostPackets !== 0) {
+      writer.uint32(16).uint32(message.lostPackets);
+    }
+    if (message.brownout === true) {
+      writer.uint32(24).bool(message.brownout);
+    }
+    if (message.watchdog === true) {
+      writer.uint32(32).bool(message.watchdog);
+    }
+    if (message.dsTeleop === true) {
+      writer.uint32(40).bool(message.dsTeleop);
+    }
+    if (message.dsAuto === true) {
+      writer.uint32(48).bool(message.dsAuto);
+    }
+    if (message.dsDisable === true) {
+      writer.uint32(56).bool(message.dsDisable);
+    }
+    if (message.robotTeleop === true) {
+      writer.uint32(64).bool(message.robotTeleop);
+    }
+    if (message.robotAuto === true) {
+      writer.uint32(72).bool(message.robotAuto);
+    }
+    if (message.robotDisable === true) {
+      writer.uint32(80).bool(message.robotDisable);
+    }
+    if (message.canUtilization !== 0) {
+      writer.uint32(88).uint32(message.canUtilization);
+    }
+    if (message.signal !== 0) {
+      writer.uint32(96).uint32(message.signal);
+    }
+    if (message.bandwidth !== 0) {
+      writer.uint32(109).float(message.bandwidth);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): LogData {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseLogData();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.tripTime = reader.uint32();
+          break;
+        case 2:
+          message.lostPackets = reader.uint32();
+          break;
+        case 3:
+          message.brownout = reader.bool();
+          break;
+        case 4:
+          message.watchdog = reader.bool();
+          break;
+        case 5:
+          message.dsTeleop = reader.bool();
+          break;
+        case 6:
+          message.dsAuto = reader.bool();
+          break;
+        case 7:
+          message.dsDisable = reader.bool();
+          break;
+        case 8:
+          message.robotTeleop = reader.bool();
+          break;
+        case 9:
+          message.robotAuto = reader.bool();
+          break;
+        case 10:
+          message.robotDisable = reader.bool();
+          break;
+        case 11:
+          message.canUtilization = reader.uint32();
+          break;
+        case 12:
+          message.signal = reader.uint32();
+          break;
+        case 13:
+          message.bandwidth = reader.float();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): LogData {
+    return {
+      tripTime: isSet(object.tripTime) ? Number(object.tripTime) : 0,
+      lostPackets: isSet(object.lostPackets) ? Number(object.lostPackets) : 0,
+      brownout: isSet(object.brownout) ? Boolean(object.brownout) : false,
+      watchdog: isSet(object.watchdog) ? Boolean(object.watchdog) : false,
+      dsTeleop: isSet(object.dsTeleop) ? Boolean(object.dsTeleop) : false,
+      dsAuto: isSet(object.dsAuto) ? Boolean(object.dsAuto) : false,
+      dsDisable: isSet(object.dsDisable) ? Boolean(object.dsDisable) : false,
+      robotTeleop: isSet(object.robotTeleop) ? Boolean(object.robotTeleop) : false,
+      robotAuto: isSet(object.robotAuto) ? Boolean(object.robotAuto) : false,
+      robotDisable: isSet(object.robotDisable) ? Boolean(object.robotDisable) : false,
+      canUtilization: isSet(object.canUtilization) ? Number(object.canUtilization) : 0,
+      signal: isSet(object.signal) ? Number(object.signal) : 0,
+      bandwidth: isSet(object.bandwidth) ? Number(object.bandwidth) : 0,
+    };
+  },
+
+  toJSON(message: LogData): unknown {
+    const obj: any = {};
+    message.tripTime !== undefined && (obj.tripTime = Math.round(message.tripTime));
+    message.lostPackets !== undefined && (obj.lostPackets = Math.round(message.lostPackets));
+    message.brownout !== undefined && (obj.brownout = message.brownout);
+    message.watchdog !== undefined && (obj.watchdog = message.watchdog);
+    message.dsTeleop !== undefined && (obj.dsTeleop = message.dsTeleop);
+    message.dsAuto !== undefined && (obj.dsAuto = message.dsAuto);
+    message.dsDisable !== undefined && (obj.dsDisable = message.dsDisable);
+    message.robotTeleop !== undefined && (obj.robotTeleop = message.robotTeleop);
+    message.robotAuto !== undefined && (obj.robotAuto = message.robotAuto);
+    message.robotDisable !== undefined && (obj.robotDisable = message.robotDisable);
+    message.canUtilization !== undefined && (obj.canUtilization = Math.round(message.canUtilization));
+    message.signal !== undefined && (obj.signal = Math.round(message.signal));
+    message.bandwidth !== undefined && (obj.bandwidth = message.bandwidth);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<LogData>, I>>(object: I): LogData {
+    const message = createBaseLogData();
+    message.tripTime = object.tripTime ?? 0;
+    message.lostPackets = object.lostPackets ?? 0;
+    message.brownout = object.brownout ?? false;
+    message.watchdog = object.watchdog ?? false;
+    message.dsTeleop = object.dsTeleop ?? false;
+    message.dsAuto = object.dsAuto ?? false;
+    message.dsDisable = object.dsDisable ?? false;
+    message.robotTeleop = object.robotTeleop ?? false;
+    message.robotAuto = object.robotAuto ?? false;
+    message.robotDisable = object.robotDisable ?? false;
+    message.canUtilization = object.canUtilization ?? 0;
+    message.signal = object.signal ?? 0;
+    message.bandwidth = object.bandwidth ?? 0;
+    return message;
+  },
+};
+
+function createBaseLogMessages(): LogMessages {
+  return { messages: [] };
+}
+
+export const LogMessages = {
+  encode(message: LogMessages, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.messages) {
+      LogMessage.encode(v!, writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): LogMessages {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseLogMessages();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.messages.push(LogMessage.decode(reader, reader.uint32()));
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): LogMessages {
+    return { messages: Array.isArray(object?.messages) ? object.messages.map((e: any) => LogMessage.fromJSON(e)) : [] };
+  },
+
+  toJSON(message: LogMessages): unknown {
+    const obj: any = {};
+    if (message.messages) {
+      obj.messages = message.messages.map((e) => e ? LogMessage.toJSON(e) : undefined);
+    } else {
+      obj.messages = [];
+    }
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<LogMessages>, I>>(object: I): LogMessages {
+    const message = createBaseLogMessages();
+    message.messages = object.messages?.map((e) => LogMessage.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseLogMessage(): LogMessage {
+  return { timestamp: 0, message: "" };
+}
+
+export const LogMessage = {
+  encode(message: LogMessage, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.timestamp !== 0) {
+      writer.uint32(8).uint64(message.timestamp);
+    }
+    if (message.message !== "") {
+      writer.uint32(18).string(message.message);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): LogMessage {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseLogMessage();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.timestamp = longToNumber(reader.uint64() as Long);
+          break;
+        case 2:
+          message.message = reader.string();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): LogMessage {
+    return {
+      timestamp: isSet(object.timestamp) ? Number(object.timestamp) : 0,
+      message: isSet(object.message) ? String(object.message) : "",
+    };
+  },
+
+  toJSON(message: LogMessage): unknown {
+    const obj: any = {};
+    message.timestamp !== undefined && (obj.timestamp = Math.round(message.timestamp));
+    message.message !== undefined && (obj.message = message.message);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<LogMessage>, I>>(object: I): LogMessage {
+    const message = createBaseLogMessage();
+    message.timestamp = object.timestamp ?? 0;
+    message.message = object.message ?? "";
     return message;
   },
 };
@@ -2421,6 +2745,15 @@ export const PluginAPIService = {
     responseSerialize: (value: DriverStation) => Buffer.from(DriverStation.encode(value).finish()),
     responseDeserialize: (value: Buffer) => DriverStation.decode(value),
   },
+  getDriverStationLogs: {
+    path: "/plugin.PluginAPI/GetDriverStationLogs",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: DriverStationQuery) => Buffer.from(DriverStationQuery.encode(value).finish()),
+    requestDeserialize: (value: Buffer) => DriverStationQuery.decode(value),
+    responseSerialize: (value: LogMessages) => Buffer.from(LogMessages.encode(value).finish()),
+    responseDeserialize: (value: Buffer) => LogMessages.decode(value),
+  },
   addDriverStation: {
     path: "/plugin.PluginAPI/AddDriverStation",
     requestStream: false,
@@ -2474,6 +2807,7 @@ export interface PluginAPIServer extends UntypedServiceImplementation {
   onDriverStationDelete: handleServerStreamingCall<Empty, DriverStation>;
   getDriverStations: handleUnaryCall<Empty, DriverStations>;
   getDriverStation: handleUnaryCall<DriverStationQuery, DriverStation>;
+  getDriverStationLogs: handleUnaryCall<DriverStationQuery, LogMessages>;
   addDriverStation: handleUnaryCall<DriverStationParams, DriverStation>;
   deleteDriverStation: handleUnaryCall<DriverStationParams, Empty>;
   updateDriverStationMode: handleUnaryCall<DriverStationUpdateMode, Empty>;
@@ -2711,6 +3045,21 @@ export interface PluginAPIClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DriverStation) => void,
+  ): ClientUnaryCall;
+  getDriverStationLogs(
+    request: DriverStationQuery,
+    callback: (error: ServiceError | null, response: LogMessages) => void,
+  ): ClientUnaryCall;
+  getDriverStationLogs(
+    request: DriverStationQuery,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: LogMessages) => void,
+  ): ClientUnaryCall;
+  getDriverStationLogs(
+    request: DriverStationQuery,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: LogMessages) => void,
   ): ClientUnaryCall;
   addDriverStation(
     request: DriverStationParams,

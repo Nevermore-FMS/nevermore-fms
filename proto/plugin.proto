@@ -53,6 +53,8 @@ service PluginAPI {
 
     rpc GetDriverStation(DriverStationQuery) returns (DriverStation);
 
+    rpc GetDriverStationLogs(DriverStationQuery) returns (LogMessages);
+
     rpc AddDriverStation(DriverStationParams) returns (DriverStation);
 
     rpc DeleteDriverStation(DriverStationParams) returns (Empty);
@@ -181,6 +183,32 @@ message DriverStation {
     optional string expected_ip = 3;
     optional DriverStationConnection connection = 4;
     optional DriverStationConfirmedState confirmed_state = 5;
+    optional LogData log_data = 6;
+}
+
+message LogData {
+    uint32 trip_time = 1;
+    uint32 lost_packets = 2;
+    bool brownout = 3;
+    bool watchdog = 4;
+    bool ds_teleop = 5;
+    bool ds_auto = 6;
+    bool ds_disable = 7;
+    bool robot_teleop = 8;
+    bool robot_auto = 9;
+    bool robot_disable = 10;
+    uint32 can_utilization = 11;
+    uint32 signal = 12;
+    float bandwidth = 13;
+}
+
+message LogMessages {
+    repeated LogMessage messages = 1;
+}
+
+message LogMessage {
+    uint64 timestamp = 1;
+    string message = 2;
 }
 
 message DriverStationConnection {

@@ -1,4 +1,4 @@
-use std::{io::Cursor, net::IpAddr, sync::Arc, time::Duration, collections::HashMap, hash::Hash};
+use std::{io::Cursor, net::IpAddr, sync::Arc, time::Duration, collections::HashMap};
 
 use anyhow::{bail, Context, Ok};
 use chrono::Utc;
@@ -11,11 +11,11 @@ use tokio::{
     time,
 };
 
-use crate::plugin::rpc::{self, DriverStationConfirmedState};
+use crate::plugin::rpc::{self, DriverStationConfirmedState, LogMessage};
 
 use super::{
     connection::DriverStationConnection,
-    enums::{AllianceStation, Mode, VersionType, Version},
+    enums::{AllianceStation, Mode, VersionType, Version, LogData},
     Field,
 };
 
@@ -26,8 +26,10 @@ struct RawDriverstation {
     expected_ip: Option<AnyIpCidr>,
     active_connection: Option<DriverStationConnection>,
     confirmed_state: Option<ConfirmedState>,
+    log_data: Option<LogData>,
     update_signal: broadcast::Sender<rpc::DriverStation>,
-    versions: HashMap<VersionType, Version>
+    versions: HashMap<VersionType, Version>,
+    log_messages: Vec<LogMessage>
 }
 
 #[derive(Clone)]
@@ -50,9 +52,11 @@ impl DriverStation {
             mode: initial_mode,
             expected_ip: None,
             active_connection: None,
-            confirmed_state: Option::None,
+            confirmed_state: None,
+            log_data: None,
             update_signal,
-            versions: HashMap::new()
+            versions: HashMap::new(),
+            log_messages: Vec::new()
         };
         let driverstation = Self {
             raw: Arc::new(RwLock::new(driverstation)),
@@ -85,6 +89,11 @@ impl DriverStation {
         raw.active_connection.clone()
     }
 
+    pub async fn log_messages(&self) -> Vec<LogMessage> {
+        let raw = self.raw.read().await;
+        raw.log_messages.clone()
+    }
+
     pub async fn subscribe(&self) -> broadcast::Receiver<rpc::DriverStation> {
         let raw = self.raw.read().await;
         raw.update_signal.subscribe()
@@ -98,12 +107,19 @@ impl DriverStation {
             connection = Some(raw.active_connection.clone().unwrap().to_rpc().await)
         }
 
+        let log_data = if raw.log_data.is_some() {
+            Some(raw.log_data.as_ref().unwrap().to_rpc())
+        } else {
+            None
+        };
+
         rpc::DriverStation{
             team_number: raw.team_number as u32,
             alliance_station: raw.alliance_station.to_byte() as i32,
             expected_ip: raw.expected_ip.map(|x| x.to_string()),
             connection,
             confirmed_state: raw.confirmed_state.map(|x| x.to_rpc()),
+            log_data
         }
 
         //TODO Do in api.rs
@@ -135,6 +151,24 @@ impl DriverStation {
         let update_signal = raw.update_signal.clone();
         drop(raw);
         update_signal.send(self.to_rpc().await).ok();
+    }
+
+    pub(super) async fn set_log_data(&self, log_data: Option<LogData>) {
+        let mut raw = self.raw.write().await;
+        raw.log_data = log_data;
+        let update_signal = raw.update_signal.clone();
+        drop(raw);
+        update_signal.send(self.to_rpc().await).ok();
+
+    }
+
+    pub(super) async fn add_log_message(&self, log_message: LogMessage) {
+        let mut raw = self.raw.write().await;
+        raw.log_messages.push(log_message);
+        let update_signal = raw.update_signal.clone();
+        drop(raw);
+        update_signal.send(self.to_rpc().await).ok();
+
     }
 
     pub(super) async fn set_confirmed_state(&self, confirmed_state: Option<ConfirmedState>) {
@@ -205,18 +239,22 @@ impl DriverStations {
         raw_driverstations.create_driverstation_signal.send(driverstation.to_rpc().await).ok();
         info!("Added driverstation {} to {}", driverstation.team_number().await, driverstation.alliance_station().await);
 
+
         Ok(())
     }
 
     pub async fn delete_driverstation(&mut self, team_number: u16) -> anyhow::Result<()> {
-        let mut raw_driverstations = self.raw.write().await;
+        let raw_driverstations = self.raw.read().await;
+        let all_driverstations = raw_driverstations.all_driverstations.clone();
+        let delete_driverstation_signal = raw_driverstations.delete_driverstation_signal.clone();
+        drop(raw_driverstations);
         let mut new_driverstations: Vec<DriverStation> = Vec::new();
 
-        for ds in raw_driverstations.all_driverstations.iter() {
+        for ds in all_driverstations.iter() {
             if ds.team_number().await != team_number {
                 new_driverstations.push(ds.clone());
             } else {
-                raw_driverstations.delete_driverstation_signal.send(ds.to_rpc().await).ok();
+                delete_driverstation_signal.send(ds.to_rpc().await).ok();
                 let conn = ds.active_connection().await;
                 if conn.is_some() {
                     conn.unwrap().kill().await;
@@ -224,7 +262,9 @@ impl DriverStations {
             }
         }
 
+        let mut raw_driverstations = self.raw.write().await;
         raw_driverstations.all_driverstations = new_driverstations;
+        drop(raw_driverstations);
         info!("Deleted driverstation {}", team_number);
 
         Ok(())
@@ -235,7 +275,9 @@ impl DriverStations {
         team_number: u16,
     ) -> Option<DriverStation> {
         let raw_driverstations = self.raw.read().await;
-        for ds in raw_driverstations.all_driverstations.iter() {
+        let all_driverstations = raw_driverstations.all_driverstations.clone();
+        drop(raw_driverstations);
+        for ds in all_driverstations.iter() {
             if ds.team_number().await == team_number {
                 return Some(ds.clone());
             }
@@ -248,7 +290,9 @@ impl DriverStations {
         alliance_station: AllianceStation,
     ) -> Option<DriverStation> {
         let raw_driverstations = self.raw.read().await;
-        for ds in raw_driverstations.all_driverstations.iter() {
+        let all_driverstations = raw_driverstations.all_driverstations.clone();
+        drop(raw_driverstations);
+        for ds in all_driverstations.iter() {
             if ds.alliance_station().await == alliance_station {
                 return Some(ds.clone());
             }
@@ -260,8 +304,10 @@ impl DriverStations {
         &self
     ) -> rpc::DriverStations {
         let raw_driverstations = self.raw.read().await;
+        let all_driverstations = raw_driverstations.all_driverstations.clone();
+        drop(raw_driverstations);
         let mut driver_stations: Vec<rpc::DriverStation> = Vec::new();
-        for ds in raw_driverstations.all_driverstations.iter() {
+        for ds in all_driverstations.iter() {
             driver_stations.push(ds.to_rpc().await);
         }
 

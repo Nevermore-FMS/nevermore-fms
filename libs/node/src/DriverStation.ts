@@ -5,6 +5,8 @@ import {
     DriverStationConfirmedState,
     DriverStationConnection,
     DriverStationQueryType,
+    LogData,
+    LogMessage,
     Mode,
 } from './models/plugin';
 import Plugin from './Plugin';
@@ -160,15 +162,41 @@ class DriverStation extends EventEmitter<DriverStationEvent, void> {
     }
 
     /**
+     * Returns the latest LogData for the DriverStation
+     * 
+     * @returns The latest LogData for the DS or undefined if none has been recieved yet.
+     */
+     getLogData(): LogData | undefined {
+        return this.ds.logData;
+    }
+
+    /**
      * The expected CIDR of the DriverStation, or undefined if not defined.
      * 
      * If you are not familiar with Classless Inter-Domain Routing, be sure to read up on it:
      * https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing
      * 
-     * @returns The expected CIDR of the DriverStation, or undefined if not defined. (Ex: "10.52.76/24")
+     * @returns The expected CIDR of the DriverStation, or undefined if not defined. (Ex: "10.52.76/24" for FRC Team 5276)
      */
     getExpectedIP(): string | undefined {
         return this.ds.expectedIp;
+    }
+
+    /**
+     * Request all logs for a specific DriverStation from the FMS.
+     * 
+     * @returns A list of LogMessage, contains all Logs recieved from the DriverStation
+     */
+    async getLogs(): Promise<LogMessage[]> {
+        let promise = new Promise<any>((resolve, reject) => {
+            this.plugin.getRpcClient().getDriverStationLogs({ queryType: DriverStationQueryType.TEAMNUMBER, teamNumber: this.ds.teamNumber, allianceStation: this.ds.allianceStation }, this.plugin.generateMetadata(), (err, msgs) => {
+                if (err != null) {
+                    throw err.message;
+                }
+                resolve(msgs.messages);
+            })
+        });
+        return promise;
     }
 
     private listenForDriverStationUpdate() {

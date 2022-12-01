@@ -9,7 +9,7 @@ use std::{
 };
 use tao::{
     menu::{ContextMenu, MenuItemAttributes},
-    window::{Fullscreen, Icon}, TrayId, dpi::{PhysicalSize, LogicalSize},
+    window::{Fullscreen, Icon}, TrayId, dpi::LogicalSize,
 };
 #[cfg(target_os = "macos")]
 use wry::application::platform::macos::{ActivationPolicy, EventLoopExtMacOS};

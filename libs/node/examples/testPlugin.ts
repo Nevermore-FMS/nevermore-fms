@@ -1,7 +1,7 @@
 import { Plugin, FieldEvent, DriverStation, FieldState, AllianceStation, TournamentLevel, DriverStationEvent } from "../src";
 
 async function main() {
-    let plugin = new Plugin("LJzBuhVsGr7nPILaWCV9Gq9A", {
+    let plugin = new Plugin("Vze5JFyHCMb0BbTkKUUFB6Wh", {
         id: "test-plugin",
         name: "Test Plugin",
         authors: ["Chase MacDonnell"]
@@ -34,7 +34,7 @@ async function main() {
     await ds.setExpectedIP("10.0.100/24");
     await ds.setEnabled(true);
 
-    
+    console.log("Here");
 
     ds.on(DriverStationEvent.UPDATE, () => {
         console.log(ds.getConnection());
