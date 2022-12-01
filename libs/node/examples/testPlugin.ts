@@ -1,7 +1,7 @@
 import { Plugin, FieldEvent, DriverStation, FieldState, AllianceStation, TournamentLevel, DriverStationEvent } from "../src";
 
 async function main() {
-    let plugin = new Plugin("Vze5JFyHCMb0BbTkKUUFB6Wh", {
+    let plugin = new Plugin("htJMS8kfqnyFEDPqsrCxuHgM", {
         id: "test-plugin",
         name: "Test Plugin",
         authors: ["Chase MacDonnell"]
@@ -37,7 +37,7 @@ async function main() {
     console.log("Here");
 
     ds.on(DriverStationEvent.UPDATE, () => {
-        console.log(ds.getConnection());
+        console.log(ds.getVersionData());
     })
 }
 

@@ -8,6 +8,7 @@ import {
     LogData,
     LogMessage,
     Mode,
+    Version,
 } from './models/plugin';
 import Plugin from './Plugin';
 
@@ -168,6 +169,15 @@ class DriverStation extends EventEmitter<DriverStationEvent, void> {
      */
      getLogData(): LogData | undefined {
         return this.ds.logData;
+    }
+
+    /**
+     * Returns the version data for the DriverStation
+     * 
+     * @returns An array of all version data gathered by the FMS.
+     */
+     getVersionData(): Version[] {
+        return this.ds.versions;
     }
 
     /**

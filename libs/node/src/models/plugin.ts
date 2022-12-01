@@ -235,6 +235,75 @@ export function driverStationQueryTypeToJSON(object: DriverStationQueryType): st
   }
 }
 
+export enum VersionType {
+  WPILib = 0,
+  RoboRIO = 1,
+  DS = 2,
+  PDP = 3,
+  PCM = 4,
+  CANJag = 5,
+  CANTalon = 6,
+  ThirdParty = 7,
+  UNRECOGNIZED = -1,
+}
+
+export function versionTypeFromJSON(object: any): VersionType {
+  switch (object) {
+    case 0:
+    case "WPILib":
+      return VersionType.WPILib;
+    case 1:
+    case "RoboRIO":
+      return VersionType.RoboRIO;
+    case 2:
+    case "DS":
+      return VersionType.DS;
+    case 3:
+    case "PDP":
+      return VersionType.PDP;
+    case 4:
+    case "PCM":
+      return VersionType.PCM;
+    case 5:
+    case "CANJag":
+      return VersionType.CANJag;
+    case 6:
+    case "CANTalon":
+      return VersionType.CANTalon;
+    case 7:
+    case "ThirdParty":
+      return VersionType.ThirdParty;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return VersionType.UNRECOGNIZED;
+  }
+}
+
+export function versionTypeToJSON(object: VersionType): string {
+  switch (object) {
+    case VersionType.WPILib:
+      return "WPILib";
+    case VersionType.RoboRIO:
+      return "RoboRIO";
+    case VersionType.DS:
+      return "DS";
+    case VersionType.PDP:
+      return "PDP";
+    case VersionType.PCM:
+      return "PCM";
+    case VersionType.CANJag:
+      return "CANJag";
+    case VersionType.CANTalon:
+      return "CANTalon";
+    case VersionType.ThirdParty:
+      return "ThirdParty";
+    case VersionType.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export interface Empty {
 }
 
@@ -316,6 +385,13 @@ export interface DriverStation {
   connection?: DriverStationConnection | undefined;
   confirmedState?: DriverStationConfirmedState | undefined;
   logData?: LogData | undefined;
+  versions: Version[];
+}
+
+export interface Version {
+  type: VersionType;
+  status: string;
+  version: string;
 }
 
 export interface LogData {
@@ -1278,6 +1354,7 @@ function createBaseDriverStation(): DriverStation {
     connection: undefined,
     confirmedState: undefined,
     logData: undefined,
+    versions: [],
   };
 }
 
@@ -1300,6 +1377,9 @@ export const DriverStation = {
     }
     if (message.logData !== undefined) {
       LogData.encode(message.logData, writer.uint32(50).fork()).ldelim();
+    }
+    for (const v of message.versions) {
+      Version.encode(v!, writer.uint32(58).fork()).ldelim();
     }
     return writer;
   },
@@ -1329,6 +1409,9 @@ export const DriverStation = {
         case 6:
           message.logData = LogData.decode(reader, reader.uint32());
           break;
+        case 7:
+          message.versions.push(Version.decode(reader, reader.uint32()));
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -1347,6 +1430,7 @@ export const DriverStation = {
         ? DriverStationConfirmedState.fromJSON(object.confirmedState)
         : undefined,
       logData: isSet(object.logData) ? LogData.fromJSON(object.logData) : undefined,
+      versions: Array.isArray(object?.versions) ? object.versions.map((e: any) => Version.fromJSON(e)) : [],
     };
   },
 
@@ -1361,6 +1445,11 @@ export const DriverStation = {
       ? DriverStationConfirmedState.toJSON(message.confirmedState)
       : undefined);
     message.logData !== undefined && (obj.logData = message.logData ? LogData.toJSON(message.logData) : undefined);
+    if (message.versions) {
+      obj.versions = message.versions.map((e) => e ? Version.toJSON(e) : undefined);
+    } else {
+      obj.versions = [];
+    }
     return obj;
   },
 
@@ -1378,6 +1467,74 @@ export const DriverStation = {
     message.logData = (object.logData !== undefined && object.logData !== null)
       ? LogData.fromPartial(object.logData)
       : undefined;
+    message.versions = object.versions?.map((e) => Version.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseVersion(): Version {
+  return { type: 0, status: "", version: "" };
+}
+
+export const Version = {
+  encode(message: Version, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.type !== 0) {
+      writer.uint32(8).int32(message.type);
+    }
+    if (message.status !== "") {
+      writer.uint32(18).string(message.status);
+    }
+    if (message.version !== "") {
+      writer.uint32(26).string(message.version);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Version {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseVersion();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.type = reader.int32() as any;
+          break;
+        case 2:
+          message.status = reader.string();
+          break;
+        case 3:
+          message.version = reader.string();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Version {
+    return {
+      type: isSet(object.type) ? versionTypeFromJSON(object.type) : 0,
+      status: isSet(object.status) ? String(object.status) : "",
+      version: isSet(object.version) ? String(object.version) : "",
+    };
+  },
+
+  toJSON(message: Version): unknown {
+    const obj: any = {};
+    message.type !== undefined && (obj.type = versionTypeToJSON(message.type));
+    message.status !== undefined && (obj.status = message.status);
+    message.version !== undefined && (obj.version = message.version);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Version>, I>>(object: I): Version {
+    const message = createBaseVersion();
+    message.type = object.type ?? 0;
+    message.status = object.status ?? "";
+    message.version = object.version ?? "";
     return message;
   },
 };
