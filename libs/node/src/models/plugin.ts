@@ -235,75 +235,6 @@ export function driverStationQueryTypeToJSON(object: DriverStationQueryType): st
   }
 }
 
-export enum VersionType {
-  WPILib = 0,
-  RoboRIO = 1,
-  DS = 2,
-  PDP = 3,
-  PCM = 4,
-  CANJag = 5,
-  CANTalon = 6,
-  ThirdParty = 7,
-  UNRECOGNIZED = -1,
-}
-
-export function versionTypeFromJSON(object: any): VersionType {
-  switch (object) {
-    case 0:
-    case "WPILib":
-      return VersionType.WPILib;
-    case 1:
-    case "RoboRIO":
-      return VersionType.RoboRIO;
-    case 2:
-    case "DS":
-      return VersionType.DS;
-    case 3:
-    case "PDP":
-      return VersionType.PDP;
-    case 4:
-    case "PCM":
-      return VersionType.PCM;
-    case 5:
-    case "CANJag":
-      return VersionType.CANJag;
-    case 6:
-    case "CANTalon":
-      return VersionType.CANTalon;
-    case 7:
-    case "ThirdParty":
-      return VersionType.ThirdParty;
-    case -1:
-    case "UNRECOGNIZED":
-    default:
-      return VersionType.UNRECOGNIZED;
-  }
-}
-
-export function versionTypeToJSON(object: VersionType): string {
-  switch (object) {
-    case VersionType.WPILib:
-      return "WPILib";
-    case VersionType.RoboRIO:
-      return "RoboRIO";
-    case VersionType.DS:
-      return "DS";
-    case VersionType.PDP:
-      return "PDP";
-    case VersionType.PCM:
-      return "PCM";
-    case VersionType.CANJag:
-      return "CANJag";
-    case VersionType.CANTalon:
-      return "CANTalon";
-    case VersionType.ThirdParty:
-      return "ThirdParty";
-    case VersionType.UNRECOGNIZED:
-    default:
-      return "UNRECOGNIZED";
-  }
-}
-
 export interface Empty {
 }
 
@@ -389,8 +320,7 @@ export interface DriverStation {
 }
 
 export interface Version {
-  type: VersionType;
-  status: string;
+  type: string;
   version: string;
 }
 
@@ -1473,19 +1403,16 @@ export const DriverStation = {
 };
 
 function createBaseVersion(): Version {
-  return { type: 0, status: "", version: "" };
+  return { type: "", version: "" };
 }
 
 export const Version = {
   encode(message: Version, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.type !== 0) {
-      writer.uint32(8).int32(message.type);
-    }
-    if (message.status !== "") {
-      writer.uint32(18).string(message.status);
+    if (message.type !== "") {
+      writer.uint32(10).string(message.type);
     }
     if (message.version !== "") {
-      writer.uint32(26).string(message.version);
+      writer.uint32(18).string(message.version);
     }
     return writer;
   },
@@ -1498,12 +1425,9 @@ export const Version = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.type = reader.int32() as any;
+          message.type = reader.string();
           break;
         case 2:
-          message.status = reader.string();
-          break;
-        case 3:
           message.version = reader.string();
           break;
         default:
@@ -1516,24 +1440,21 @@ export const Version = {
 
   fromJSON(object: any): Version {
     return {
-      type: isSet(object.type) ? versionTypeFromJSON(object.type) : 0,
-      status: isSet(object.status) ? String(object.status) : "",
+      type: isSet(object.type) ? String(object.type) : "",
       version: isSet(object.version) ? String(object.version) : "",
     };
   },
 
   toJSON(message: Version): unknown {
     const obj: any = {};
-    message.type !== undefined && (obj.type = versionTypeToJSON(message.type));
-    message.status !== undefined && (obj.status = message.status);
+    message.type !== undefined && (obj.type = message.type);
     message.version !== undefined && (obj.version = message.version);
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<Version>, I>>(object: I): Version {
     const message = createBaseVersion();
-    message.type = object.type ?? 0;
-    message.status = object.status ?? "";
+    message.type = object.type ?? "";
     message.version = object.version ?? "";
     return message;
   },

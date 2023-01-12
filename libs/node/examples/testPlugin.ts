@@ -1,7 +1,7 @@
 import { Plugin, FieldEvent, DriverStation, FieldState, AllianceStation, TournamentLevel, DriverStationEvent } from "../src";
 
 async function main() {
-    let plugin = new Plugin("htJMS8kfqnyFEDPqsrCxuHgM", {
+    let plugin = new Plugin("SpV2QCHlTG5v15U2cFLJEK0Q", {
         id: "test-plugin",
         name: "Test Plugin",
         authors: ["Chase MacDonnell"]
@@ -35,10 +35,14 @@ async function main() {
     await ds.setEnabled(true);
 
     console.log("Here");
-
-    ds.on(DriverStationEvent.UPDATE, () => {
-        console.log(ds.getVersionData());
-    })
+    setTimeout(async () => {
+        await plugin.getField().setFieldConfig({
+            eventName: "Hello",
+            tournamentLevel: TournamentLevel.TESTING,
+            matchNumber: 0,
+            playNumber: 0
+        })
+    }, 3000)
 }
 
 main();

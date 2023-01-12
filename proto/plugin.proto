@@ -184,6 +184,12 @@ message DriverStation {
     optional DriverStationConnection connection = 4;
     optional DriverStationConfirmedState confirmed_state = 5;
     optional LogData log_data = 6;
+    repeated Version versions = 7;
+}
+
+message Version {
+    string type = 1;
+    string version = 2;
 }
 
 message LogData {

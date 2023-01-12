@@ -8,7 +8,6 @@ import {
     FieldState,
     TournamentLevel,
     Version,
-    VersionType,
     LogData,
     LogMessage
 } from './models/plugin';
@@ -31,7 +30,6 @@ export {
     FieldState,
     TournamentLevel,
     Version,
-    VersionType,
     LogData,
     LogMessage
 };

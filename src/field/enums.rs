@@ -206,9 +206,24 @@ impl VersionType {
             0x03 => VersionType::PDP,
             0x04 => VersionType::PCM,
             0x05 => VersionType::CANJag,
-            0x06 => VersionType::CANJag,
+            0x06 => VersionType::CANTalon,
             0x07 => VersionType::ThirdParty,
             _ => VersionType::WPILib
+        }
+    }
+}
+
+impl fmt::Display for VersionType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            VersionType::WPILib => write!(f, "WPILib"),
+            VersionType::RoboRIO => write!(f, "RoboRIO"),
+            VersionType::DS => write!(f, "DS"),
+            VersionType::PDP => write!(f, "PDP"),
+            VersionType::PCM => write!(f, "PCM"),
+            VersionType::CANJag => write!(f, "CANJag"),
+            VersionType::CANTalon => write!(f, "CANTalon"),
+            VersionType::ThirdParty => write!(f, "ThirdParty")
         }
     }
 }

@@ -11,7 +11,7 @@ use tokio::{
     time,
 };
 
-use crate::plugin::rpc::{self, DriverStationConfirmedState, LogMessage};
+use crate::plugin::rpc::{self, DriverStationConfirmedState, LogMessage, Version as RPCVersion};
 
 use super::{
     connection::DriverStationConnection,
@@ -112,6 +112,13 @@ impl DriverStation {
         } else {
             None
         };
+        let mut versions: Vec<RPCVersion> = Vec::new();
+        for (vtype, version) in raw.versions.clone() {
+            versions.push(RPCVersion{
+                r#type: format!("{}", vtype),
+                version: version.version
+            });
+        }
 
         rpc::DriverStation{
             team_number: raw.team_number as u32,
@@ -119,7 +126,8 @@ impl DriverStation {
             expected_ip: raw.expected_ip.map(|x| x.to_string()),
             connection,
             confirmed_state: raw.confirmed_state.map(|x| x.to_rpc()),
-            log_data
+            log_data,
+            versions
         }
 
         //TODO Do in api.rs
