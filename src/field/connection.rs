@@ -1,6 +1,6 @@
 use std::{
     convert::TryInto,
-    io::{Cursor, BufRead},
+    io::Cursor,
     net::{IpAddr, SocketAddr},
     sync::Arc,
 };
@@ -8,16 +8,15 @@ use std::{
 use chrono::{Datelike, Local, Timelike, DateTime, Utc};
 use log::*;
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt, AsyncBufReadExt},
+    io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpStream, UdpSocket, tcp::{OwnedReadHalf, OwnedWriteHalf}},
-    sync::{Mutex, RwLock},
+    sync::RwLock,
 };
 
-use crate::plugin::rpc::{self, LogMessage};
 
 use super::{
     driverstation::{DriverStation, DriverStations},
-    enums::{AllianceStation, DriverstationStatus, Mode, VersionType, Version, LogData},
+    enums::{AllianceStation, DriverstationStatus, Mode, VersionType, Version, LogData}, types::LogMessage,
 };
 
 struct RawDriverStationConnection {
@@ -75,16 +74,6 @@ impl DriverStationConnection {
             error!("Failed to shutdown TCP stream: {}", e);
         }
         drop(raw);
-    }
-
-    pub async fn to_rpc(&self) -> rpc::DriverStationConnection {
-        let raw = self.raw.read().await;
-
-        rpc::DriverStationConnection{
-            alive: raw.alive,
-            ip: raw.ip_address.to_string(),
-            outgoing_sequence_num: raw.udp_outgoing_sequence_num as u32,
-        }
     }
 
     // Internal API -->
@@ -360,24 +349,12 @@ impl DriverStationConnection {
                 Mode::Autonomous => control_byte |= 0x02,
             }
 
-            if driverstations
-                .get_field()
-                .await
-                .control_system()
-                .await
-                .is_ds_enabled(ds.clone())
-                .await
+            if ds.enabled().await
             {
                 control_byte |= 0x04
             }
 
-            if driverstations
-                .get_field()
-                .await
-                .control_system()
-                .await
-                .is_ds_estopped(ds.clone())
-                .await
+            if ds.e_stopped().await
             {
                 control_byte |= 0x80
             }

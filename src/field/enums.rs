@@ -1,7 +1,5 @@
 use std::fmt;
 
-use crate::plugin::rpc;
-
 // Represents the Mode of a DriverStation. These values correspond to the values you can
 /// get from WPILib and can set on the Driverstation when directly connected.
 #[derive(Clone, Copy)]
@@ -243,24 +241,4 @@ pub struct LogData {
     pub can_utilization: u8,
     pub signal: u8,
     pub bandwidth: f32
-}
-
-impl LogData {
-    pub fn to_rpc(&self) -> rpc::LogData {
-        rpc::LogData{
-            trip_time: self.trip_time as u32,
-            lost_packets: self.lost_packets as u32,
-            brownout: self.brownout,
-            watchdog: self.watchdog,
-            ds_teleop: self.ds_teleop,
-            ds_auto: self.ds_auto,
-            ds_disable: self.ds_disable,
-            robot_teleop: self.robot_teleop,
-            robot_auto: self.robot_auto,
-            robot_disable: self.robot_disable,
-            can_utilization: self.can_utilization as u32,
-            signal: self.signal as u32,
-            bandwidth: self.bandwidth
-        }
-    }
 }

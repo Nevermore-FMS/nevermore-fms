@@ -1,46 +1,24 @@
-cargo-features = ["edition2021"]
-
 [package]
 name = "nevermore-fms"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Edgar Allan Ohms 5276"]
-edition = "2018"
+edition = "2021"
 
 
 [dependencies]
-tokio = { version = "1.16.1", features = ["full"] }
-actix-web = "4"
-actix-files = "0.6.2"
-actix-web-lab = "0.18.5"
-actix-session = { version = "0.7.2", features = ["cookie-session"]}
-handlebars = "4.3.0"
-serde = "1.0.145"
-serde_derive = "1.0.145"
-serde_json = "1.0"
-async-channel = "1.6.1"
-clap = { version = "3.0.14", features = ["derive", "env"] }
-anyhow = "1.0"
-log = "0.4"
-pretty_env_logger = "0.4"
-cidr = "0.2.1"
-chrono = "0.4.19"
-async-trait = "0.1.52"
-tonic = "0.8.1"
-prost = "0.11"
-rand = "0.8.5"
-tokio-stream = { version = "0.1.8", features = ["sync"] }
-bmrng = "0.5.2"
-tonic-async-interceptor = "0.1.0"
-lazy_static = "1.4.0"
-awc = "3.0.1"
-wry =  { version = "0.21.1", features = ["file-drop", "objc-exception", "protocol", "tray"]}
-tao = "0.14.0"
-image = "0.24.4"
-uuid = "1.2.2"
+# Framework
+ractor = "0.8"
+tokio = { version = "1.29.1", features = ["full"] }
 
-# User Storage
-jfs = "0.7.1"
-rust-argon2 = "1.0"
+# CLI
+clap = { version = "4.3.19", features = ["derive", "env"] }
+log = "0.4.19"
+pretty_env_logger = "0.5.0"
 
-[build-dependencies]
-tonic-build = "0.8.1"
+# Utils
+anyhow = "1.0.72"
+async-trait = "0.1.72"
+chrono = "0.4.26"
+uuid = { version = "1.4.1", features = ["v4", "fast-rng"] }
+async-channel = "1.9.0"
+cidr = "0.2.2"

@@ -1,5 +1,4 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use crate::plugin::rpc;
+use std::time::{Duration, SystemTime};
 
 /// DiffTimer is a way to represent the game time remaining in a way that can easily be synced
 /// between different displaying devices provided they all use NTP.
@@ -59,23 +58,4 @@ impl DiffTimer {
             time_remaining: self.current_time_remaining()
         }
     }
-
-    pub fn from_rpc(rpc_difftimer: rpc::DiffTimer) -> DiffTimer {
-        let mut started_at: Option<SystemTime> = None;
-        if rpc_difftimer.started_at > 0 {
-            started_at = Some(UNIX_EPOCH + Duration::from_millis(rpc_difftimer.started_at));
-        }
-        DiffTimer { 
-            started_at, 
-            time_remaining: Duration::from_millis(rpc_difftimer.time_remaining) 
-        }
-    }
-
-    pub fn to_rpc(&self) -> rpc::DiffTimer {
-        rpc::DiffTimer {
-            started_at: self.started_at.map_or(0, |t| t.duration_since(UNIX_EPOCH).unwrap().as_millis()) as u64,
-            time_remaining: self.time_remaining.as_millis() as u64
-        }
-    }
-
 }

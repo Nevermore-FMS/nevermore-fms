@@ -11,23 +11,22 @@ use tokio::{
     time,
 };
 
-use crate::plugin::rpc::{self, DriverStationConfirmedState, LogMessage, Version as RPCVersion};
-
 use super::{
     connection::DriverStationConnection,
     enums::{AllianceStation, Mode, VersionType, Version, LogData},
-    Field,
+    Field, types::LogMessage,
 };
 
 struct RawDriverstation {
     team_number: u16,
     alliance_station: AllianceStation,
     mode: Mode,
+    enabled: bool,
+    e_stopped: bool,
     expected_ip: Option<AnyIpCidr>,
     active_connection: Option<DriverStationConnection>,
     confirmed_state: Option<ConfirmedState>,
     log_data: Option<LogData>,
-    update_signal: broadcast::Sender<rpc::DriverStation>,
     versions: HashMap<VersionType, Version>,
     log_messages: Vec<LogMessage>
 }
@@ -45,16 +44,16 @@ impl DriverStation {
         alliance_station: AllianceStation,
         initial_mode: Mode
     ) -> Self {
-        let (update_signal, _) = broadcast::channel(100);
         let driverstation = RawDriverstation {
             team_number,
             alliance_station,
             mode: initial_mode,
+            enabled: false,
+            e_stopped: false,
             expected_ip: None,
             active_connection: None,
             confirmed_state: None,
             log_data: None,
-            update_signal,
             versions: HashMap::new(),
             log_messages: Vec::new()
         };
@@ -79,6 +78,26 @@ impl DriverStation {
         raw.mode
     }
 
+    pub async fn enabled(&self) -> bool {
+        let raw = self.raw.read().await;
+        raw.enabled
+    }
+
+    pub async fn set_enabled(&self, enabled: bool) {
+        let mut raw = self.raw.write().await;
+        raw.enabled = enabled
+    }
+
+    pub async fn e_stopped(&self) -> bool {
+        let raw = self.raw.read().await;
+        raw.e_stopped
+    }
+
+    pub async fn set_e_stopped(&self, e_stopped: bool) {
+        let mut raw = self.raw.write().await;
+        raw.e_stopped = e_stopped
+    }
+
     pub async fn expected_ip(&self) -> Option<AnyIpCidr> {
         let raw = self.raw.read().await;
         raw.expected_ip
@@ -94,61 +113,16 @@ impl DriverStation {
         raw.log_messages.clone()
     }
 
-    pub async fn subscribe(&self) -> broadcast::Receiver<rpc::DriverStation> {
-        let raw = self.raw.read().await;
-        raw.update_signal.subscribe()
-    }
-
-    pub async fn to_rpc(&self) -> rpc::DriverStation {
-        let raw = self.raw.read().await;
-        let mut connection: Option<rpc::DriverStationConnection> = None;
-
-        if raw.active_connection.is_some() {
-            connection = Some(raw.active_connection.clone().unwrap().to_rpc().await)
-        }
-
-        let log_data = if raw.log_data.is_some() {
-            Some(raw.log_data.as_ref().unwrap().to_rpc())
-        } else {
-            None
-        };
-        let mut versions: Vec<RPCVersion> = Vec::new();
-        for (vtype, version) in raw.versions.clone() {
-            versions.push(RPCVersion{
-                r#type: format!("{}", vtype),
-                version: version.version
-            });
-        }
-
-        rpc::DriverStation{
-            team_number: raw.team_number as u32,
-            alliance_station: raw.alliance_station.to_byte() as i32,
-            expected_ip: raw.expected_ip.map(|x| x.to_string()),
-            connection,
-            confirmed_state: raw.confirmed_state.map(|x| x.to_rpc()),
-            log_data,
-            versions
-        }
-
-        //TODO Do in api.rs
-    }
-
     pub async fn update_expected_ip(&self, expected_ip: AnyIpCidr) {
         let mut raw = self.raw.write().await;
         raw.expected_ip = Option::Some(expected_ip);
-        let update_signal = raw.update_signal.clone();
         info!("Expected ip of {} set to {}", raw.team_number, raw.expected_ip.unwrap());
-        drop(raw);
-        update_signal.send(self.to_rpc().await).ok();
     }
 
     pub async fn update_mode(&self, mode: Mode) {
         let mut raw = self.raw.write().await;
         raw.mode = mode;
-        let update_signal = raw.update_signal.clone();
         info!("Mode of {} set to {}", raw.team_number, raw.mode);
-        drop(raw);
-        update_signal.send(self.to_rpc().await).ok();
     }
 
     // Internal API -->
@@ -156,27 +130,16 @@ impl DriverStation {
     pub(super) async fn set_version(&self, version_type: VersionType, version: Version) {
         let mut raw = self.raw.write().await;
         raw.versions.insert(version_type, version);
-        let update_signal = raw.update_signal.clone();
-        drop(raw);
-        update_signal.send(self.to_rpc().await).ok();
     }
 
     pub(super) async fn set_log_data(&self, log_data: Option<LogData>) {
         let mut raw = self.raw.write().await;
         raw.log_data = log_data;
-        let update_signal = raw.update_signal.clone();
-        drop(raw);
-        update_signal.send(self.to_rpc().await).ok();
-
     }
 
     pub(super) async fn add_log_message(&self, log_message: LogMessage) {
         let mut raw = self.raw.write().await;
         raw.log_messages.push(log_message);
-        let update_signal = raw.update_signal.clone();
-        drop(raw);
-        update_signal.send(self.to_rpc().await).ok();
-
     }
 
     pub(super) async fn set_confirmed_state(&self, confirmed_state: Option<ConfirmedState>) {
@@ -185,9 +148,6 @@ impl DriverStation {
         if raw.active_connection.is_some() {
             raw.active_connection.as_ref().unwrap().update_last_udp_packet_reception(Utc::now()).await;
         }
-        let update_signal = raw.update_signal.clone();
-        drop(raw);
-        update_signal.send(self.to_rpc().await).ok();
     }
 
     pub(super) async fn set_active_connection(&self, active_connection: Option<DriverStationConnection>) {
@@ -196,9 +156,6 @@ impl DriverStation {
             drop(raw.active_connection.as_ref());
         }
         raw.active_connection = active_connection;
-        let update_signal = raw.update_signal.clone();
-        drop(raw);
-        update_signal.send(self.to_rpc().await).ok();
     }
 }
 
@@ -208,8 +165,6 @@ pub struct RawDriverStations {
     all_driverstations: Vec<DriverStation>,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
-    create_driverstation_signal: broadcast::Sender<rpc::DriverStation>,
-    delete_driverstation_signal: broadcast::Sender<rpc::DriverStation>,
 }
 
 #[derive(Clone)]
@@ -244,7 +199,6 @@ impl DriverStations {
         let mut raw_driverstations = self.raw.write().await;
         raw_driverstations.all_driverstations.push(driverstation.clone());
 
-        raw_driverstations.create_driverstation_signal.send(driverstation.to_rpc().await).ok();
         info!("Added driverstation {} to {}", driverstation.team_number().await, driverstation.alliance_station().await);
 
 
@@ -254,7 +208,6 @@ impl DriverStations {
     pub async fn delete_driverstation(&mut self, team_number: u16) -> anyhow::Result<()> {
         let raw_driverstations = self.raw.read().await;
         let all_driverstations = raw_driverstations.all_driverstations.clone();
-        let delete_driverstation_signal = raw_driverstations.delete_driverstation_signal.clone();
         drop(raw_driverstations);
         let mut new_driverstations: Vec<DriverStation> = Vec::new();
 
@@ -262,7 +215,6 @@ impl DriverStations {
             if ds.team_number().await != team_number {
                 new_driverstations.push(ds.clone());
             } else {
-                delete_driverstation_signal.send(ds.to_rpc().await).ok();
                 let conn = ds.active_connection().await;
                 if conn.is_some() {
                     conn.unwrap().kill().await;
@@ -272,7 +224,6 @@ impl DriverStations {
 
         let mut raw_driverstations = self.raw.write().await;
         raw_driverstations.all_driverstations = new_driverstations;
-        drop(raw_driverstations);
         info!("Deleted driverstation {}", team_number);
 
         Ok(())
@@ -308,22 +259,6 @@ impl DriverStations {
         return None;
     }
 
-    pub async fn get_driverstations_rpc(
-        &self
-    ) -> rpc::DriverStations {
-        let raw_driverstations = self.raw.read().await;
-        let all_driverstations = raw_driverstations.all_driverstations.clone();
-        drop(raw_driverstations);
-        let mut driver_stations: Vec<rpc::DriverStation> = Vec::new();
-        for ds in all_driverstations.iter() {
-            driver_stations.push(ds.to_rpc().await);
-        }
-
-        rpc::DriverStations{
-            driver_stations
-        } //TODO Do in api.rs
-    }
-
     pub async fn get_field(&self) -> Field {
         let raw_driverstations = self.raw.read().await;
         if let Some(field) = raw_driverstations.field.clone() {
@@ -345,22 +280,10 @@ impl DriverStations {
         let _ = running_signal.recv().await;
     }
 
-    pub async fn create_driverstation_receiver(&self) -> broadcast::Receiver<rpc::DriverStation> {
-        let raw_driverstations = self.raw.read().await;
-        raw_driverstations.create_driverstation_signal.subscribe()
-    }
-
-    pub async fn delete_driverstation_receiver(&self) -> broadcast::Receiver<rpc::DriverStation> {
-        let raw_driverstations = self.raw.read().await;
-        raw_driverstations.delete_driverstation_signal.subscribe()
-    }
-
     // Internal API -->
 
     pub(super) fn new(field: Option<Field>) -> Self {
         let (terminate_sender, _) = broadcast::channel(1);
-        let (create_driverstation_signal, _) = broadcast::channel(100);
-        let (delete_driverstation_signal, _) = broadcast::channel(100);
 
         let (indicate_running, running_signal) = async_channel::bounded(1);
 
@@ -368,10 +291,7 @@ impl DriverStations {
             field,
             all_driverstations: Vec::new(),
             terminate_signal: Some(terminate_sender),
-            running_signal,
-            create_driverstation_signal,
-            delete_driverstation_signal
-
+            running_signal
         };
         let driverstations = Self {
             raw: Arc::new(RwLock::new(driverstations)),
@@ -501,19 +421,4 @@ pub struct ConfirmedState {
     pub mode: Mode,
     pub team_number: u16,
     pub battery_voltage: f32,
-}
-
-impl ConfirmedState {
-    pub fn to_rpc(&self) -> DriverStationConfirmedState {
-        DriverStationConfirmedState{
-            is_emergency_stopped: self.is_emergency_stopped,
-            robot_communications_active: self.robot_communications_active,
-            can_ping_radio: self.can_ping_radio,
-            can_ping_rio: self.can_ping_rio,
-            is_enabled: self.is_enabled,
-            mode: self.mode.to_byte() as i32,
-            team_number: self.team_number as u32,
-            battery_voltage: self.battery_voltage,
-        }
-    }
 }
