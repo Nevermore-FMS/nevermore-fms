@@ -1,0 +1,212 @@
+type Query {
+    # Field
+    fieldState: FieldState!
+    fieldFaults: [FieldFault!]!
+
+    # DriverStations
+    driverStations: [DriverStation!]!
+    driverStation(teamNumber: Int, allianceStation: AllianceStation) DriverStation!
+
+    # Users
+    me: User!
+    users: [User!]!
+
+    # General Data Controls
+    currentMatch: Match
+    scheduledMatchBlocks: [ScheduledMatchBlock!]!
+}
+
+type Mutation {
+    # Field
+    createFault(reason: String): FieldFault!
+    removeFault(id: ID!): FieldFault
+    setField(field: FieldStateInput!): FieldState!
+
+    # DriverStation
+    # The following function will create a DS if it doesn't exist.
+    setDS(teamNumber: Int, allianceStation: AllianceStation, driverstation: DriverStationInput!) DriverStation!
+    # The following two will error if the DS doesn't exist.
+    setDSEnabled(teamNumber: Int, allianceStation: AllianceStation, enabled: Boolean!): DriverStation!
+    setDSEStopped(teamNumber: Int, allianceStation: AllianceStation, eStopped: Boolean!): DriverStation!
+    removeDS(teamNumber: Int, allianceStation: AllianceStation): DriverStation!
+
+    # Users
+    signIn(username: String!, password: String!): User!
+    signOut: User!
+
+    # Game Controls (Universal to each game)
+    startMatch: Boolean!
+    stopMatch: Boolean!
+    pauseMatch: Boolean!
+    unPauseMatch: Boolean!
+    commitMatch: Boolean!
+    discardMatch: Boolean!
+
+    # General Data Controls
+    setCurrentMatch(id: ID): Match
+
+    # Scheduled Match Block
+    createScheduledMatchBlock(scheduledMatchBlock: ScheduledMatchBlockInput!): ScheduledMatchBlock!
+    updateScheduledMatchBlock(id: ID!, scheduledMatchBlock: ScheduledMatchBlockInput!): ScheduledMatchBlock!
+    deleteScheduledMatchBlock(id: ID!): ScheduledMatchBlock!
+
+    # Scheduled Match
+    createScheduledMatch(scheduledMatch: ScheduledMatchInput!): ScheduledMatch!
+    updateScheduledMatch(id: ID!, scheduledMatch: ScheduledMatchInput!): ScheduledMatch!
+    deleteScheduledMatch(id: ID!): ScheduledMatch!
+
+    # Match
+    createMatch(match: MatchInput!): Match!
+    updateMatch(id: ID!, match: MatchInput!): Match!
+    deleteMatch(id: ID!): Match!
+}
+
+# General Data
+type ScheduledMatchBlock {
+    id: ID!
+    name: String!
+    notes: String!
+    scheduledStartTime: String!
+    scheduledMatches: [ScheduledMatch!]!
+}
+
+input ScheduledMatchBlockInput {
+    name: String!
+    notes: String!
+    scheduledStartTime: String!
+}
+
+type ScheduledMatch {
+    id: ID!
+    matchNumber: Int!
+    scheduledMatchBlock: ScheduledMatchBlock!
+    matches: [Match!]!
+    red1: Int
+    red2: Int
+    red3: Int
+    blue1: Int
+    blue2: Int
+    blue3: Int
+    scheduledStartTime: String!
+    notes: String!
+}
+
+input ScheduledMatchInput {
+    matchNumber: Int!
+    scheduledMatchBlock: ID!
+    red1: Int
+    red2: Int
+    red3: Int
+    blue1: Int
+    blue2: Int
+    blue3: Int
+    scheduledStartTime: String!
+    notes: String!
+}
+
+type Match {
+    id: ID!
+    scheduledMatch: ScheduledMatch!
+    playNumber: Int!
+    redScore: Int!
+    blueScore: Int!
+    done: Boolean!
+    success: Boolean!
+    customMatchState: String! # A JSON string with the match state.
+}
+
+input Match {
+    scheduledMatch: ID!
+    playNumber: Int!
+    done: Boolean!
+    success: Boolean!
+}
+
+type User {
+    id: ID!
+    name: String!
+    username: String!
+}
+
+type FieldFault {
+    id: ID!
+    reason: String!
+}
+
+type FieldState {
+    eventName: String!
+    tournamentLevel: TournamentLevel!
+    matchNumber: Int!
+    playNumber: Int!
+    timeLeft: difftimer::DiffTimer # You said you wanted to change this so lmk what it should look like.
+    udpOnline: Boolean!
+    tcpOnline: Boolean!
+}
+
+input FieldStateInput {
+    eventName: String!
+    tournamentLevel: TournamentLevel!
+    matchNumber: Int!
+    playNumber: Int!
+}
+
+type DriverStation {
+    teamNumber: Int!
+    allianceStation: AllianceStation!
+    mode: Mode!
+    enabled: Boolean!
+    eStopped: Boolean!
+    expectedIp: String
+    activeConnection: DriverStationConnection
+    confirmedState: DriverStationConfirmedState
+    logData: DriverStationLogData
+    versions: [DriverStationVersion!]!
+    logMessages: [String!]!
+}
+
+input DriverStationInput {
+    teamNumber: Int!
+    allianceStation: AllianceStation!
+    mode: Mode!
+    expectedIp: String
+}
+
+type DriverStationVersion {
+    versionType: VersionType!
+    version: Version!
+}
+
+type DriverStationLogData {
+    tripTime: Int!
+    lostPackets: Int!
+    brownout: Boolean!
+    watchdog: Boolean!
+    dsTeleop: Boolean!
+    dsAuto: Boolean!
+    dsDisable: Boolean!
+    robotTeleop: Boolean!
+    robotAuto: Boolean!
+    robotDisable: Boolean!
+    canUtilization: Int!
+    signal: Int!
+    bandwidth: Float!
+}
+
+type DriverStationConnection {
+    id: ID!
+    online: Boolean!
+    ipAddress: String!
+    sequenceNumber: Int!
+    lastPacketReceivedAt: String!
+}
+
+type DriverStationConfirmedState {
+    isEmergencyStopped: Boolean!
+    robotCommunicationsActive: Boolean!
+    canPingRadio: Boolean!
+    canPingRio: Boolean!
+    isEnabled: Boolean!
+    mode: Mode!
+    teamNumber: Int!
+    batteryVoltage: Float!
+}

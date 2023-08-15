@@ -6,13 +6,17 @@ extern crate async_trait;
 
 pub mod field;
 pub mod difftimer;
+pub mod graph;
+pub mod game;
 
 use clap::{Parser, ValueEnum};
 use log::*;
 use std::{
     env,
-    net::{IpAddr, SocketAddr},
+    net::{IpAddr, SocketAddr, Ipv4Addr},
 };
+
+use crate::field::Field;
 
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -48,7 +52,8 @@ struct Cli {
     fullscreen: bool,
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     pretty_env_logger::formatted_timed_builder()
         .filter_level(log::LevelFilter::Info)
         .parse_filters(&env::var("NEVERMORE_LOG").unwrap_or(String::from("info")))
@@ -60,7 +65,9 @@ fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    
+    let field = Field::new("nvmre".to_string(), IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))).await?;
+
+    graph::start_server().await;
 
     return Ok(());
 }
