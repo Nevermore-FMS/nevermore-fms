@@ -5,7 +5,7 @@ type Query {
 
     # DriverStations
     driverStations: [DriverStation!]!
-    driverStation(teamNumber: Int, allianceStation: AllianceStation) DriverStation!
+    driverStation(teamNumber: Int, allianceStation: AllianceStation): DriverStation!
 
     # Users
     me: User!
@@ -24,7 +24,7 @@ type Mutation {
 
     # DriverStation
     # The following function will create a DS if it doesn't exist.
-    setDS(teamNumber: Int, allianceStation: AllianceStation, driverstation: DriverStationInput!) DriverStation!
+    setDS(teamNumber: Int, allianceStation: AllianceStation, driverstation: DriverStationInput!): DriverStation!
     # The following two will error if the DS doesn't exist.
     setDSEnabled(teamNumber: Int, allianceStation: AllianceStation, enabled: Boolean!): DriverStation!
     setDSEStopped(teamNumber: Int, allianceStation: AllianceStation, eStopped: Boolean!): DriverStation!
@@ -115,7 +115,7 @@ type Match {
     customMatchState: String! # A JSON string with the match state.
 }
 
-input Match {
+input MatchInput {
     scheduledMatch: ID!
     playNumber: Int!
     done: Boolean!
@@ -138,7 +138,7 @@ type FieldState {
     tournamentLevel: TournamentLevel!
     matchNumber: Int!
     playNumber: Int!
-    timeLeft: difftimer::DiffTimer # You said you wanted to change this so lmk what it should look like.
+    timeLeft: DiffTimer # You said you wanted to change this so lmk what it should look like.
     udpOnline: Boolean!
     tcpOnline: Boolean!
 }
@@ -209,4 +209,55 @@ type DriverStationConfirmedState {
     mode: Mode!
     teamNumber: Int!
     batteryVoltage: Float!
+}
+
+type DiffTimer {
+    startedAt: Int,
+    timeRemaining: Float!,
+}
+
+type Version {
+    status: String!
+    version: String!
+}
+
+enum AllianceStation {
+    Red1
+    Red2
+    Red3
+    Blue1
+    Blue2
+    Blue3
+}
+
+enum TournamentLevel {
+    Test
+    Practice
+    Qualification
+    Playoff
+}
+
+enum Mode {
+    TeleOp
+    Test
+    Autonomous
+}
+
+enum VersionType {
+    WPILib,
+    RoboRIO,
+    DS,
+    PDP,
+    PCM,
+    CANJag,
+    CANTalon,
+    ThirdParty
+}
+
+input MatchInput {
+    todo: String!
+}
+
+input ScheduledMatchInput {
+    todo: String!
 }

@@ -131,14 +131,14 @@ impl Field {
 
     // Internal API -->
 
-    pub(super) async fn new(event_name: String, ds_address: IpAddr) -> anyhow::Result<Self> {
+    pub(super) async fn new(ds_address: IpAddr) -> anyhow::Result<Self> {
         let (terminate_sender, _) = broadcast::channel(1);
 
 
         let (indicate_running, running_signal) = async_channel::bounded(1);
 
         let field = RawField {
-            event_name,
+            event_name: "nvmre".to_string(),
             tournament_level: TournamentLevel::Test,
             match_number: 0,
             play_number: 0,

@@ -65,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    let field = Field::new("nvmre".to_string(), IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))).await?;
+    let field = Field::new(cli.ds_address).await?;
 
     graph::start_server().await;
 
