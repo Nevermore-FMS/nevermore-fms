@@ -1,263 +1,508 @@
 type Query {
-    # Field
-    fieldState: FieldState!
-    fieldFaults: [FieldFault!]!
+  fieldState: FieldState
 
-    # DriverStations
-    driverStations: [DriverStation!]!
-    driverStation(teamNumber: Int, allianceStation: AllianceStation): DriverStation!
+  driverStations: [DriverStation!]
+  driverStation(
+    teamNumber: Int
+    allianceStation: AllianceStation
+  ): DriverStation
 
-    # Users
-    me: User!
-    users: [User!]!
+  me: User!
+  users: [User!]
 
-    # General Data Controls
-    currentMatch: Match
-    scheduledMatchBlocks: [ScheduledMatchBlock!]!
+  currentMatch: Match
+  currentSchedule: Schedule
+  schedules: [Schedule!]
 }
 
 type Mutation {
-    # Field
-    createFault(reason: String): FieldFault!
-    removeFault(id: ID!): FieldFault
-    setField(field: FieldStateInput!): FieldState!
+  fireFMSFault(code: String!, reason: String!): FMSFault
+  clearFMSFault(id: ID!): Boolean!
+  fireFMSWarning(code: String!, reason: String!): FMSWarning
+  clearFMSWarning(id: ID!): Boolean!
 
-    # DriverStation
-    # The following function will create a DS if it doesn't exist.
-    setDS(teamNumber: Int, allianceStation: AllianceStation, driverstation: DriverStationInput!): DriverStation!
-    # The following two will error if the DS doesn't exist.
-    setDSEnabled(teamNumber: Int, allianceStation: AllianceStation, enabled: Boolean!): DriverStation!
-    setDSEStopped(teamNumber: Int, allianceStation: AllianceStation, eStopped: Boolean!): DriverStation!
-    removeDS(teamNumber: Int, allianceStation: AllianceStation): DriverStation!
+  setDS(newDriverStations: [NewDsInput!]): [DriverStation]
+  setDSEnabled(
+    teamNumber: Int
+    allianceStation: AllianceStation
+    enabled: Boolean!
+  ): DriverStation
+  setDSEStopped(
+    teamNumber: Int
+    allianceStation: AllianceStation
+    eStopped: Boolean!
+  ): DriverStation
+  removeDS(teamNumber: Int, allianceStation: AllianceStation): DriverStation
+  clearAllDS: Boolean
 
-    # Users
-    signIn(username: String!, password: String!): User!
-    signOut: User!
+  signIn(username: String!, password: String!): Token
+  signOut: Boolean!
 
-    # Game Controls (Universal to each game)
-    startMatch: Boolean!
-    stopMatch: Boolean!
-    pauseMatch: Boolean!
-    unPauseMatch: Boolean!
-    commitMatch: Boolean!
-    discardMatch: Boolean!
+  startMatch: Boolean!
+  stopMatch: Boolean!
+  pauseMatch: Boolean!
+  unPauseMatch: Boolean!
+  commitMatch: Boolean!
+  discardMatch: Boolean!
 
-    # General Data Controls
-    setCurrentMatch(id: ID): Match
+  setCurrentMatch(id: ID): Match
 
-    # Scheduled Match Block
-    createScheduledMatchBlock(scheduledMatchBlock: ScheduledMatchBlockInput!): ScheduledMatchBlock!
-    updateScheduledMatchBlock(id: ID!, scheduledMatchBlock: ScheduledMatchBlockInput!): ScheduledMatchBlock!
-    deleteScheduledMatchBlock(id: ID!): ScheduledMatchBlock!
-
-    # Scheduled Match
-    createScheduledMatch(scheduledMatch: ScheduledMatchInput!): ScheduledMatch!
-    updateScheduledMatch(id: ID!, scheduledMatch: ScheduledMatchInput!): ScheduledMatch!
-    deleteScheduledMatch(id: ID!): ScheduledMatch!
-
-    # Match
-    createMatch(match: MatchInput!): Match!
-    updateMatch(id: ID!, match: MatchInput!): Match!
-    deleteMatch(id: ID!): Match!
+  createSchedule(newSchedule: ScheduleInput!): Schedule
+  updateSchedule(id: ID!, newSchedule: ScheduleInput!): Schedule
+  deleteSchedule(id: ID!): Boolean!
 }
 
-# General Data
-type ScheduledMatchBlock {
-    id: ID!
-    name: String!
-    notes: String!
-    scheduledStartTime: String!
-    scheduledMatches: [ScheduledMatch!]!
-}
-
-input ScheduledMatchBlockInput {
-    name: String!
-    notes: String!
-    scheduledStartTime: String!
-}
-
-type ScheduledMatch {
-    id: ID!
-    matchNumber: Int!
-    scheduledMatchBlock: ScheduledMatchBlock!
-    matches: [Match!]!
-    red1: Int
-    red2: Int
-    red3: Int
-    blue1: Int
-    blue2: Int
-    blue3: Int
-    scheduledStartTime: String!
-    notes: String!
-}
-
-input ScheduledMatchInput {
-    matchNumber: Int!
-    scheduledMatchBlock: ID!
-    red1: Int
-    red2: Int
-    red3: Int
-    blue1: Int
-    blue2: Int
-    blue3: Int
-    scheduledStartTime: String!
-    notes: String!
-}
-
-type Match {
-    id: ID!
-    scheduledMatch: ScheduledMatch!
-    playNumber: Int!
-    redScore: Int!
-    blueScore: Int!
-    done: Boolean!
-    success: Boolean!
-    customMatchState: String! # A JSON string with the match state.
-}
-
-input MatchInput {
-    scheduledMatch: ID!
-    playNumber: Int!
-    done: Boolean!
-    success: Boolean!
-}
-
-type User {
-    id: ID!
-    name: String!
-    username: String!
-}
-
-type FieldFault {
-    id: ID!
-    reason: String!
-}
+scalar IpCidr
+scalar IpAddr
 
 type FieldState {
-    eventName: String!
-    tournamentLevel: TournamentLevel!
-    matchNumber: Int!
-    playNumber: Int!
-    timeLeft: DiffTimer # You said you wanted to change this so lmk what it should look like.
-    udpOnline: Boolean!
-    tcpOnline: Boolean!
-}
-
-input FieldStateInput {
-    eventName: String!
-    tournamentLevel: TournamentLevel!
-    matchNumber: Int!
-    playNumber: Int!
-}
-
-type DriverStation {
-    teamNumber: Int!
-    allianceStation: AllianceStation!
-    mode: Mode!
-    enabled: Boolean!
-    eStopped: Boolean!
-    expectedIp: String
-    activeConnection: DriverStationConnection
-    confirmedState: DriverStationConfirmedState
-    logData: DriverStationLogData
-    versions: [DriverStationVersion!]!
-    logMessages: [String!]!
-}
-
-input DriverStationInput {
-    teamNumber: Int!
-    allianceStation: AllianceStation!
-    mode: Mode!
-    expectedIp: String
-}
-
-type DriverStationVersion {
-    versionType: VersionType!
-    version: Version!
-}
-
-type DriverStationLogData {
-    tripTime: Int!
-    lostPackets: Int!
-    brownout: Boolean!
-    watchdog: Boolean!
-    dsTeleop: Boolean!
-    dsAuto: Boolean!
-    dsDisable: Boolean!
-    robotTeleop: Boolean!
-    robotAuto: Boolean!
-    robotDisable: Boolean!
-    canUtilization: Int!
-    signal: Int!
-    bandwidth: Float!
-}
-
-type DriverStationConnection {
-    id: ID!
-    online: Boolean!
-    ipAddress: String!
-    sequenceNumber: Int!
-    lastPacketReceivedAt: String!
-}
-
-type DriverStationConfirmedState {
-    isEmergencyStopped: Boolean!
-    robotCommunicationsActive: Boolean!
-    canPingRadio: Boolean!
-    canPingRio: Boolean!
-    isEnabled: Boolean!
-    mode: Mode!
-    teamNumber: Int!
-    batteryVoltage: Float!
-}
-
-type DiffTimer {
-    startedAt: Int,
-    timeRemaining: Float!,
-}
-
-type Version {
-    status: String!
-    version: String!
-}
-
-enum AllianceStation {
-    Red1
-    Red2
-    Red3
-    Blue1
-    Blue2
-    Blue3
+  eventName: String!
+  tournamentLevel: TournamentLevel!
+  matchNumber: Int!
+  playNumber: Int!
+  timeLeft: DiffTimer
+  udpOnline: Boolean!
+  tcpOnline: Boolean!
+  activeFMSFaults: [FMSFault!]
+  activeFMSWarnings: [FMSWarning!]
 }
 
 enum TournamentLevel {
-    Test
-    Practice
-    Qualification
-    Playoff
+  Test
+  Practice
+  Qualification
+  Playoff
 }
 
-enum Mode {
-    TeleOp
-    Test
-    Autonomous
+type DiffTimer {
+  startedAt: Int
+  timeRemaining: Float!
+}
+
+type FMSFault {
+  id: ID!
+  code: String!
+  name: String!
+  reason: String!
+}
+
+type FMSWarning {
+  id: ID!
+  code: String!
+  name: String!
+  reason: String!
+}
+
+type DriverStation {
+  teamNumber: Int!
+  allianceStation: AllianceStation!
+  mode: Mode!
+  enabled: Boolean!
+  eStopped: Boolean!
+  expectedIp: IpCidr
+  activeConnection: DriverStationConnection
+  confirmedState: DriverStationConfirmedState
+  logData: DriverStationLogData
+  versions: [DriverStationVersion!]!
+  logMessages: [String!]
+}
+
+type DriverStationConnection {
+  id: ID!
+  online: Boolean!
+  ipAddress: IpAddr!
+  sequenceNumber: Int!
+  lastPacketReceivedAt: String!
+}
+
+type DriverStationConfirmedState {
+  isEmergencyStopped: Boolean!
+  robotCommunicationsActive: Boolean!
+  canPingRadio: Boolean!
+  canPingRio: Boolean!
+  isEnabled: Boolean!
+  mode: Mode!
+  teamNumber: Int!
+  batteryVoltage: Float!
+}
+
+type DriverStationLogData {
+  tripTime: Int!
+  lostPackets: Int!
+  brownout: Boolean!
+  watchdog: Boolean!
+  dsTeleop: Boolean!
+  dsAuto: Boolean!
+  dsDisable: Boolean!
+  robotTeleop: Boolean!
+  robotAuto: Boolean!
+  robotDisable: Boolean!
+  canUtilization: Int!
+  signal: Int!
+  bandwidth: Float!
+}
+
+type DriverStationVersion {
+  versionType: VersionType!
+  version: Version!
+}
+
+type User {
+  id: ID!
+  name: String!
+  username: String!
 }
 
 enum VersionType {
-    WPILib,
-    RoboRIO,
-    DS,
-    PDP,
-    PCM,
-    CANJag,
-    CANTalon,
-    ThirdParty
+  WPILib
+  RoboRIO
+  DS
+  PDP
+  PCM
+  CANJag
+  CANTalon
+  ThirdParty
 }
 
-input MatchInput {
-    todo: String!
+type Version {
+  status: String!
+  versionString: String!
 }
 
-input ScheduledMatchInput {
-    todo: String!
+enum AllianceStation {
+  Red1
+  Red2
+  Red3
+  Blue1
+  Blue2
+  Blue3
+}
+
+enum Mode {
+  TeleOp
+  Test
+  Autonomous
+}
+
+interface Match {
+  id: ID!
+  scheduledMatch: ScheduledMatch!
+  playNumber: Int!
+  redScore: Int!
+  blueScore: Int!
+  done: Boolean!
+  success: Boolean!
+}
+
+type Match2023 implements Match {
+  id: ID!
+  scheduledMatch: ScheduledMatch!
+  playNumber: Int!
+  redScore: Int!
+  blueScore: Int!
+  done: Boolean!
+  success: Boolean!
+  # Include extra fields for 2023 game scoring
+}
+
+type ScheduledMatch {
+  id: ID!
+  matchNumber: Int!
+  fromSchedule: Schedule!
+  matches: [Match!]!
+  red1: Int
+  red2: Int
+  red3: Int
+  blue1: Int
+  blue2: Int
+  blue3: Int
+  scheduledStartTime: Int!
+  notes: String
+}
+
+type Schedule {
+  id: ID!
+  name: String!
+  notes: String
+  scheduledStartTime: Int!
+  tournamentLevel: TournamentLevel!
+  scheduledMatches: [ScheduledMatch!]!
+}
+
+input DriverStationInput {
+  teamNumber: Int!
+  allianceStation: AllianceStation!
+  expectedIp: IpCidr
+}
+
+type Token {
+  expiresAt: Int!
+  scope: [String!]!
+  tokenValue: String!
+}
+
+input ScheduleInput {
+  name: String!
+  notes: String!
+  blocks: [ScheduleBlocksInput!]!
+}
+
+input ScheduleBlocksInput {
+  startTime: Int!
+  cycleTime: Int!
+  numMatches: Int!
+}
+type Query {
+  fieldState: FieldState
+
+  driverStations: [DriverStation!]
+  driverStation(
+    teamNumber: Int
+    allianceStation: AllianceStation
+  ): DriverStation
+
+  me: User!
+  users: [User!]
+
+  currentMatch: Match
+  currentSchedule: Schedule
+  schedules: [Schedule!]
+}
+
+type Mutation {
+  fireFMSFault(code: String!, reason: String!): FMSFault
+  clearFMSFault(id: ID!): Boolean!
+  fireFMSWarning(code: String!, reason: String!): FMSWarning
+  clearFMSWarning(id: ID!): Boolean!
+
+  setDS(newDriverStations: [NewDsInput!]): [DriverStation]
+  setDSEnabled(
+    teamNumber: Int
+    allianceStation: AllianceStation
+    enabled: Boolean!
+  ): DriverStation
+  setDSEStopped(
+    teamNumber: Int
+    allianceStation: AllianceStation
+    eStopped: Boolean!
+  ): DriverStation
+  removeDS(teamNumber: Int, allianceStation: AllianceStation): DriverStation
+  clearAllDS: Boolean
+
+  signIn(username: String!, password: String!): Token
+  signOut: Boolean!
+
+  startMatch: Boolean!
+  stopMatch: Boolean!
+  pauseMatch: Boolean!
+  unPauseMatch: Boolean!
+  commitMatch: Boolean!
+  discardMatch: Boolean!
+
+  setCurrentMatch(id: ID): Match
+
+  createSchedule(newSchedule: ScheduleInput!): Schedule
+  updateSchedule(id: ID!, newSchedule: ScheduleInput!): Schedule
+  deleteSchedule(id: ID!): Boolean!
+}
+
+scalar IpCidr
+scalar IpAddr
+
+type FieldState {
+  eventName: String!
+  tournamentLevel: TournamentLevel!
+  matchNumber: Int!
+  playNumber: Int!
+  timeLeft: DiffTimer
+  udpOnline: Boolean!
+  tcpOnline: Boolean!
+  activeFMSFaults: [FMSFault!]
+  activeFMSWarnings: [FMSWarning!]
+}
+
+enum TournamentLevel {
+  Test
+  Practice
+  Qualification
+  Playoff
+}
+
+type DiffTimer {
+  startedAt: Int
+  timeRemaining: Float!
+}
+
+type FMSFault {
+  id: ID!
+  code: String!
+  name: String!
+  reason: String!
+}
+
+type FMSWarning {
+  id: ID!
+  code: String!
+  name: String!
+  reason: String!
+}
+
+type DriverStation {
+  teamNumber: Int!
+  allianceStation: AllianceStation!
+  mode: Mode!
+  enabled: Boolean!
+  eStopped: Boolean!
+  expectedIp: IpCidr
+  activeConnection: DriverStationConnection
+  confirmedState: DriverStationConfirmedState
+  logData: DriverStationLogData
+  versions: [DriverStationVersion!]!
+  logMessages: [String!]
+}
+
+type DriverStationConnection {
+  id: ID!
+  online: Boolean!
+  ipAddress: IpAddr!
+  sequenceNumber: Int!
+  lastPacketReceivedAt: String!
+}
+
+type DriverStationConfirmedState {
+  isEmergencyStopped: Boolean!
+  robotCommunicationsActive: Boolean!
+  canPingRadio: Boolean!
+  canPingRio: Boolean!
+  isEnabled: Boolean!
+  mode: Mode!
+  teamNumber: Int!
+  batteryVoltage: Float!
+}
+
+type DriverStationLogData {
+  tripTime: Int!
+  lostPackets: Int!
+  brownout: Boolean!
+  watchdog: Boolean!
+  dsTeleop: Boolean!
+  dsAuto: Boolean!
+  dsDisable: Boolean!
+  robotTeleop: Boolean!
+  robotAuto: Boolean!
+  robotDisable: Boolean!
+  canUtilization: Int!
+  signal: Int!
+  bandwidth: Float!
+}
+
+type DriverStationVersion {
+  versionType: VersionType!
+  version: Version!
+}
+
+type User {
+  id: ID!
+  name: String!
+  username: String!
+}
+
+enum VersionType {
+  WPILib
+  RoboRIO
+  DS
+  PDP
+  PCM
+  CANJag
+  CANTalon
+  ThirdParty
+}
+
+type Version {
+  status: String!
+  versionString: String!
+}
+
+enum AllianceStation {
+  Red1
+  Red2
+  Red3
+  Blue1
+  Blue2
+  Blue3
+}
+
+enum Mode {
+  TeleOp
+  Test
+  Autonomous
+}
+
+interface Match {
+  id: ID!
+  scheduledMatch: ScheduledMatch!
+  playNumber: Int!
+  redScore: Int!
+  blueScore: Int!
+  done: Boolean!
+  success: Boolean!
+}
+
+type Match2023 implements Match {
+  id: ID!
+  scheduledMatch: ScheduledMatch!
+  playNumber: Int!
+  redScore: Int!
+  blueScore: Int!
+  done: Boolean!
+  success: Boolean!
+  # Include extra fields for 2023 game scoring
+}
+
+type ScheduledMatch {
+  id: ID!
+  matchNumber: Int!
+  fromSchedule: Schedule!
+  matches: [Match!]!
+  red1: Int
+  red2: Int
+  red3: Int
+  blue1: Int
+  blue2: Int
+  blue3: Int
+  scheduledStartTime: Int!
+  notes: String
+}
+
+type Schedule {
+  id: ID!
+  name: String!
+  notes: String
+  scheduledStartTime: Int!
+  tournamentLevel: TournamentLevel!
+  scheduledMatches: [ScheduledMatch!]!
+}
+
+input DriverStationInput {
+  teamNumber: Int!
+  allianceStation: AllianceStation!
+  expectedIp: IpCidr
+}
+
+type Token {
+  expiresAt: Int!
+  scope: [String!]!
+  tokenValue: String!
+}
+
+input ScheduleInput {
+  name: String!
+  notes: String!
+  blocks: [ScheduleBlocksInput!]!
+}
+
+input ScheduleBlocksInput {
+  startTime: Int!
+  cycleTime: Int!
+  numMatches: Int!
 }
