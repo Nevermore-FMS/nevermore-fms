@@ -1,7 +1,6 @@
 pub mod connection;
 pub mod driverstation;
 pub mod enums;
-pub mod types;
 
 use std::{
     net::{IpAddr, SocketAddr},
@@ -31,6 +30,7 @@ struct RawField {
     play_number: u8,
     time_left: difftimer::DiffTimer,
     driverstations: DriverStations,
+    is_safe: bool,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
     udp_online: bool,
@@ -129,6 +129,16 @@ impl Field {
         info!("Timer stopped");
     }
 
+    pub async fn is_safe(&self) -> bool {
+        let raw = self.raw.read().await;
+        raw.is_safe
+    }
+
+    pub async fn set_is_safe(&self, is_safe: bool) {
+        let mut raw = self.raw.write().await;
+        raw.is_safe = is_safe;
+    }
+
     // Internal API -->
 
     pub(super) async fn new(ds_address: IpAddr) -> anyhow::Result<Self> {
@@ -144,6 +154,7 @@ impl Field {
             play_number: 0,
             time_left: difftimer::DiffTimer::new(Duration::ZERO, false),
             driverstations: DriverStations::new(None),
+            is_safe: true,
             terminate_signal: Some(terminate_sender),
             running_signal,
             udp_online: false,
@@ -177,7 +188,7 @@ impl Field {
     }
 
     async fn listen_for_udp_messages(&self, addr: SocketAddr) -> anyhow::Result<()> {
-        loop {
+        loop { //Retry Loop
             let mut raw_field = self.raw.write().await;
             let socket = UdpSocket::bind(addr).await.context(bind_err(addr));
             if socket.is_err() {
@@ -217,7 +228,7 @@ impl Field {
                         }
                     }
                     _ = term_rx.recv() => {
-                        info!("Closing the UDP listener.");
+                        info!("Closing the UDP listener because the field has terminated.");
                         return Ok(());
                     }
                 }
@@ -226,7 +237,7 @@ impl Field {
     }
 
     async fn listen_for_tcp_connections(&self, addr: SocketAddr) -> anyhow::Result<()> {
-        loop {
+        loop { //Retry Loop
             let mut raw_field = self.raw.write().await;
             let listener = TcpListener::bind(addr).await.context(bind_err(addr));
             if listener.is_err() {
@@ -262,7 +273,7 @@ impl Field {
                         }
                     }
                     _ = term_rx.recv() => {
-                        info!("Closing the TCP listener.");
+                        info!("Closing the TCP listener because the field has terminated.");
                         return Ok(());
                     }
                 }

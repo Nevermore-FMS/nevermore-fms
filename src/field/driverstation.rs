@@ -1,4 +1,4 @@
-use std::{io::Cursor, net::IpAddr, sync::Arc, time::Duration, collections::HashMap};
+use std::{collections::HashMap, io::Cursor, net::IpAddr, sync::Arc, time::Duration};
 
 use anyhow::{bail, Context, Ok};
 use chrono::Utc;
@@ -13,54 +13,34 @@ use tokio::{
 
 use super::{
     connection::DriverStationConnection,
-    enums::{AllianceStation, Mode, VersionType, Version, LogData},
-    Field, types::LogMessage,
+    enums::{AllianceStation, Mode, Version, VersionType},
+    Field,
 };
 
-struct RawDriverstation {
+struct RawDriverStation {
+    parent: DriverStations,
     team_number: u16,
     alliance_station: AllianceStation,
     mode: Mode,
-    enabled: bool,
-    e_stopped: bool,
     expected_ip: Option<AnyIpCidr>,
     active_connection: Option<DriverStationConnection>,
     confirmed_state: Option<ConfirmedState>,
     log_data: Option<LogData>,
     versions: HashMap<VersionType, Version>,
-    log_messages: Vec<LogMessage>
+    log_messages: Vec<LogMessage>,
 }
 
 #[derive(Clone)]
 pub struct DriverStation {
-    raw: Arc<RwLock<RawDriverstation>>,
+    raw: Arc<RwLock<RawDriverStation>>,
 }
 
 impl DriverStation {
     // Public API -->
 
-    pub fn new(
-        team_number: u16,
-        alliance_station: AllianceStation,
-        initial_mode: Mode
-    ) -> Self {
-        let driverstation = RawDriverstation {
-            team_number,
-            alliance_station,
-            mode: initial_mode,
-            enabled: false,
-            e_stopped: false,
-            expected_ip: None,
-            active_connection: None,
-            confirmed_state: None,
-            log_data: None,
-            versions: HashMap::new(),
-            log_messages: Vec::new()
-        };
-        let driverstation = Self {
-            raw: Arc::new(RwLock::new(driverstation)),
-        };
-        driverstation
+    pub async fn parent(&self) -> DriverStations {
+        let raw = self.raw.read().await;
+        raw.parent.clone()
     }
 
     pub async fn team_number(&self) -> u16 {
@@ -76,26 +56,6 @@ impl DriverStation {
     pub async fn mode(&self) -> Mode {
         let raw = self.raw.read().await;
         raw.mode
-    }
-
-    pub async fn enabled(&self) -> bool {
-        let raw = self.raw.read().await;
-        raw.enabled
-    }
-
-    pub async fn set_enabled(&self, enabled: bool) {
-        let mut raw = self.raw.write().await;
-        raw.enabled = enabled
-    }
-
-    pub async fn e_stopped(&self) -> bool {
-        let raw = self.raw.read().await;
-        raw.e_stopped
-    }
-
-    pub async fn set_e_stopped(&self, e_stopped: bool) {
-        let mut raw = self.raw.write().await;
-        raw.e_stopped = e_stopped
     }
 
     pub async fn expected_ip(&self) -> Option<AnyIpCidr> {
@@ -116,7 +76,11 @@ impl DriverStation {
     pub async fn update_expected_ip(&self, expected_ip: AnyIpCidr) {
         let mut raw = self.raw.write().await;
         raw.expected_ip = Option::Some(expected_ip);
-        info!("Expected ip of {} set to {}", raw.team_number, raw.expected_ip.unwrap());
+        info!(
+            "Expected ip of {} set to {}",
+            raw.team_number,
+            raw.expected_ip.unwrap()
+        );
     }
 
     pub async fn update_mode(&self, mode: Mode) {
@@ -126,6 +90,30 @@ impl DriverStation {
     }
 
     // Internal API -->
+
+    fn new(
+        parent: DriverStations,
+        team_number: u16,
+        alliance_station: AllianceStation,
+        initial_mode: Mode, //TODO Fix
+    ) -> Self {
+        let driverstation = RawDriverStation {
+            parent,
+            team_number,
+            alliance_station,
+            mode: initial_mode,
+            expected_ip: None,
+            active_connection: None,
+            confirmed_state: None,
+            log_data: None,
+            versions: HashMap::new(),
+            log_messages: Vec::new(),
+        };
+        let driverstation = Self {
+            raw: Arc::new(RwLock::new(driverstation)),
+        };
+        driverstation
+    }
 
     pub(super) async fn set_version(&self, version_type: VersionType, version: Version) {
         let mut raw = self.raw.write().await;
@@ -146,15 +134,19 @@ impl DriverStation {
         let mut raw = self.raw.write().await;
         raw.confirmed_state = confirmed_state;
         if raw.active_connection.is_some() {
-            raw.active_connection.as_ref().unwrap().update_last_udp_packet_reception(Utc::now()).await;
+            raw.active_connection
+                .as_ref()
+                .unwrap()
+                .update_last_udp_packet_reception(Utc::now())
+                .await;
         }
     }
 
-    pub(super) async fn set_active_connection(&self, active_connection: Option<DriverStationConnection>) {
+    pub(super) async fn set_active_connection(
+        &self,
+        active_connection: Option<DriverStationConnection>,
+    ) {
         let mut raw = self.raw.write().await;
-        if raw.active_connection.is_some() {
-            drop(raw.active_connection.as_ref());
-        }
         raw.active_connection = active_connection;
     }
 }
@@ -175,32 +167,44 @@ pub struct DriverStations {
 impl DriverStations {
     // Public API -->
 
-    pub async fn add_driverstation(&mut self, driverstation: DriverStation) -> anyhow::Result<()> {
+    pub async fn add_driverstation(
+        &mut self,
+        team_number: u16,
+        alliance_station: AllianceStation,
+        initial_mode: Mode, //TODO Fix
+    ) -> anyhow::Result<()> {
         if let Some(_) = self
-            .get_driverstation_by_team_number(driverstation.team_number().await)
+            .get_driverstation_by_team_number(team_number)
             .await
         {
             bail!(
                 "Driverstation with team number {} already exists",
-                driverstation.team_number().await
+                team_number
             );
         }
 
         if let Some(_) = self
-            .get_driverstation_by_position(driverstation.alliance_station().await)
+            .get_driverstation_by_position(alliance_station)
             .await
         {
             bail!(
                 "Driverstation already exists in alliance station {:?}",
-                driverstation.alliance_station().await
+                alliance_station
             );
         }
 
+        let driverstation = DriverStation::new(self.clone(), team_number, alliance_station, initial_mode);
+
         let mut raw_driverstations = self.raw.write().await;
-        raw_driverstations.all_driverstations.push(driverstation.clone());
+        raw_driverstations
+            .all_driverstations
+            .push(driverstation.clone());
 
-        info!("Added driverstation {} to {}", driverstation.team_number().await, driverstation.alliance_station().await);
-
+        info!(
+            "Added driverstation {} to {}",
+            driverstation.team_number().await,
+            driverstation.alliance_station().await
+        );
 
         Ok(())
     }
@@ -291,7 +295,7 @@ impl DriverStations {
             field,
             all_driverstations: Vec::new(),
             terminate_signal: Some(terminate_sender),
-            running_signal
+            running_signal,
         };
         let driverstations = Self {
             raw: Arc::new(RwLock::new(driverstations)),
@@ -405,7 +409,7 @@ impl DriverStations {
         tokio::spawn(DriverStationConnection::new(
             tcp_stream,
             ip_address,
-            self.clone(),
+            self.get_field().await,
         ));
         Ok(())
     }
@@ -421,4 +425,27 @@ pub struct ConfirmedState {
     pub mode: Mode,
     pub team_number: u16,
     pub battery_voltage: f32,
+}
+
+#[derive(Clone, Debug)]
+pub struct LogMessage {
+    pub timestamp: u64,
+    pub message: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct LogData {
+    pub trip_time: u8,
+    pub lost_packets: u8,
+    pub brownout: bool,
+    pub watchdog: bool,
+    pub ds_teleop: bool,
+    pub ds_auto: bool,
+    pub ds_disable: bool,
+    pub robot_teleop: bool,
+    pub robot_auto: bool,
+    pub robot_disable: bool,
+    pub can_utilization: u8,
+    pub signal: u8,
+    pub bandwidth: f32,
 }

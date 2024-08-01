@@ -13,7 +13,7 @@ use clap::{Parser, ValueEnum};
 use log::*;
 use std::{
     env,
-    net::{IpAddr, SocketAddr, Ipv4Addr},
+    net::{IpAddr, SocketAddr},
 };
 
 use crate::field::Field;
@@ -66,8 +66,11 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     let field = Field::new(cli.ds_address).await?;
+    field.driverstations().await.add_driverstation(5276, field::enums::AllianceStation::Blue1, field::enums::Mode::TeleOp).await;
+    field.driverstations().await.get_driverstation_by_team_number(5276).await.unwrap().update_expected_ip("0.0.0.0/0".parse().unwrap()).await;
+    field.wait_for_terminate().await; //TODO Remove
 
-    graph::start_server().await;
+    //graph::start_server().await;
 
     return Ok(());
 }

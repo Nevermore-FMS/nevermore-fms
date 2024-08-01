@@ -1,12 +1,15 @@
 use std::time::{Duration, SystemTime};
 
-/// DiffTimer is a way to represent the game time remaining in a way that can easily be synced
-/// between different displaying devices provided they all use NTP.
+/// DiffTimer is a way to represent the game time remaining in a way that 
+/// can easily be synced between different displaying devices provided 
+/// they all use NTP.
 ///
-/// If started_at is None, then the timer is currently frozen and time_remaining represents the time that should be displayed
+/// If started_at is None, then the timer is currently frozen and 
+/// time_remaining represents the time that should be displayed
 ///
-/// If started_at is Some, then the timer is currently running and time_remaining represents the time
-/// that the clock had at the time specified by started_at.
+/// If started_at is Some, then the timer is currently running and 
+/// time_remaining represents the time that the clock had at the time 
+/// specified by started_at.
 
 #[derive(Clone)]
 pub struct DiffTimer {

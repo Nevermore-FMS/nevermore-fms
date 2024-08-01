@@ -225,20 +225,3 @@ impl fmt::Display for VersionType {
         }
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct LogData {
-    pub trip_time: u8,
-    pub lost_packets: u8,
-    pub brownout: bool,
-    pub watchdog: bool,
-    pub ds_teleop: bool,
-    pub ds_auto: bool,
-    pub ds_disable: bool,
-    pub robot_teleop: bool,
-    pub robot_auto: bool,
-    pub robot_disable: bool,
-    pub can_utilization: u8,
-    pub signal: u8,
-    pub bandwidth: f32
-}
