@@ -19,7 +19,7 @@ use tokio::{
 };
 
 
-use crate::difftimer;
+use crate::{alarms::FMSAlarmHandler, difftimer};
 
 use self::{driverstation::DriverStations, enums::TournamentLevel};
 
@@ -29,7 +29,9 @@ struct RawField {
     match_number: u16,
     play_number: u8,
     time_left: difftimer::DiffTimer,
+    ds_mode: enums::Mode,
     driverstations: DriverStations,
+    alarm_handler: FMSAlarmHandler,
     is_safe: bool,
     terminate_signal: Option<broadcast::Sender<()>>,
     running_signal: async_channel::Receiver<()>,
@@ -59,6 +61,11 @@ impl Field {
     pub async fn driverstations(&self) -> DriverStations {
         let raw = self.raw.read().await;
         raw.driverstations.clone()
+    }
+
+    pub async fn alarm_handler(&self) -> FMSAlarmHandler {
+        let raw = self.raw.read().await;
+        raw.alarm_handler.clone()
     }
 
     pub async fn event_name(&self) -> String {
@@ -129,6 +136,17 @@ impl Field {
         info!("Timer stopped");
     }
 
+    pub async fn ds_mode(&self) -> enums::Mode {
+        let raw: tokio::sync::RwLockReadGuard<RawField> = self.raw.read().await;
+        raw.ds_mode
+    }
+
+    pub async fn set_ds_mode(&self, ds_mode: enums::Mode) {
+        let mut raw = self.raw.write().await;
+        raw.ds_mode = ds_mode;
+        info!("DS Mode set to {}", ds_mode);
+    }
+
     pub async fn is_safe(&self) -> bool {
         let raw = self.raw.read().await;
         raw.is_safe
@@ -137,6 +155,7 @@ impl Field {
     pub async fn set_is_safe(&self, is_safe: bool) {
         let mut raw = self.raw.write().await;
         raw.is_safe = is_safe;
+        info!("Field safe flag set to {}", is_safe);
     }
 
     // Internal API -->
@@ -153,7 +172,9 @@ impl Field {
             match_number: 0,
             play_number: 0,
             time_left: difftimer::DiffTimer::new(Duration::ZERO, false),
+            ds_mode: enums::Mode::Autonomous,
             driverstations: DriverStations::new(None),
+            alarm_handler: FMSAlarmHandler::new(),
             is_safe: true,
             terminate_signal: Some(terminate_sender),
             running_signal,
@@ -283,5 +304,5 @@ impl Field {
 }
 
 fn bind_err(addr: SocketAddr) -> String {
-    format!("Coult not bind to {}. This computer may not have an interface with that address. To change the ds address, use the --ds-address option. Attempting bind again in 15 seconds.", addr)
+    format!("Coult not bind to {}. The host device may not have an interface with that address. To change the ds address, use the --ds-address option. Attempting bind again in 15 seconds.", addr)
 }

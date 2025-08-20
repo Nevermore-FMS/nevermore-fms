@@ -21,7 +21,7 @@ struct RawDriverStation {
     parent: DriverStations,
     team_number: u16,
     alliance_station: AllianceStation,
-    mode: Mode,
+    enabled: bool,
     expected_ip: Option<AnyIpCidr>,
     active_connection: Option<DriverStationConnection>,
     confirmed_state: Option<ConfirmedState>,
@@ -53,9 +53,9 @@ impl DriverStation {
         raw.alliance_station
     }
 
-    pub async fn mode(&self) -> Mode {
+    pub async fn enabled(&self) -> bool {
         let raw = self.raw.read().await;
-        raw.mode
+        raw.enabled
     }
 
     pub async fn expected_ip(&self) -> Option<AnyIpCidr> {
@@ -83,25 +83,18 @@ impl DriverStation {
         );
     }
 
-    pub async fn update_mode(&self, mode: Mode) {
-        let mut raw = self.raw.write().await;
-        raw.mode = mode;
-        info!("Mode of {} set to {}", raw.team_number, raw.mode);
-    }
-
     // Internal API -->
 
     fn new(
         parent: DriverStations,
         team_number: u16,
         alliance_station: AllianceStation,
-        initial_mode: Mode, //TODO Fix
     ) -> Self {
         let driverstation = RawDriverStation {
             parent,
             team_number,
             alliance_station,
-            mode: initial_mode,
+            enabled: false,
             expected_ip: None,
             active_connection: None,
             confirmed_state: None,
@@ -171,7 +164,6 @@ impl DriverStations {
         &mut self,
         team_number: u16,
         alliance_station: AllianceStation,
-        initial_mode: Mode, //TODO Fix
     ) -> anyhow::Result<()> {
         if let Some(_) = self
             .get_driverstation_by_team_number(team_number)
@@ -193,7 +185,7 @@ impl DriverStations {
             );
         }
 
-        let driverstation = DriverStation::new(self.clone(), team_number, alliance_station, initial_mode);
+        let driverstation = DriverStation::new(self.clone(), team_number, alliance_station);
 
         let mut raw_driverstations = self.raw.write().await;
         raw_driverstations

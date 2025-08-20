@@ -16,6 +16,8 @@ use tokio::{
     sync::RwLock,
 };
 
+use crate::alarms::FMSAlarmType;
+
 use super::{
     driverstation::{DriverStation, LogData, LogMessage},
     enums::{AllianceStation, DriverstationStatus, Mode, Version, VersionType},
@@ -349,6 +351,8 @@ impl DriverStationConnection {
         let mut raw_conn = self.raw.write().await;
 
         if let Some(ds) = raw_conn.parent.clone() {
+            let alarm_target = format!("fms.field.driverstations.{}", ds.alliance_station().await.to_string());
+            let alarm_target = alarm_target.as_str();
             if raw_conn.udp_outgoing_sequence_num >= u16::max_value() {
                 raw_conn.udp_outgoing_sequence_num = 0;
             } else {
@@ -360,25 +364,37 @@ impl DriverStationConnection {
             packet.write_u8(0x00).await?; //Comm Version
 
             let driverstations = raw_conn.field.driverstations().await;
+            let field = driverstations.get_field().await;
             let udp_socket = raw_conn.udp_socket.clone();
             let ip_address = raw_conn.ip_address.clone();
             drop(raw_conn);
 
             let mut control_byte = 0x00;
-            match ds.mode().await {
+            match field.ds_mode().await {
                 Mode::TeleOp => control_byte |= 0x00,
                 Mode::Test => control_byte |= 0x01,
                 Mode::Autonomous => control_byte |= 0x02,
             }
 
-            //TODO Fix
-            //if ds.enabled().await {
-            //    control_byte |= 0x04
-            //}
+            if ds.enabled().await {
+                if field.is_safe().await {
+                    let _ = field.alarm_handler().await.throw_alarm(
+                        FMSAlarmType::FAULT, 
+                        "FIELD_SAFE_MISMATCH", 
+                        "Driver Station is set to ENABLED but field SAFE flag was set. Invalid state.", 
+                        "fms.field.driverstations", 
+                        "fms.field", 
+                        false
+                    ).await;
+                } else {
+                    control_byte |= 0x04
+                }
+                
+            }
 
-            //if ds.e_stopped().await {
-            //    control_byte |= 0x80
-            //}
+            if field.alarm_handler().await.is_target_faulted(alarm_target).await {
+                control_byte |= 0x80
+            }
 
             packet.write_u8(control_byte).await?;
             packet.write_u8(0x00).await?; //Request Byte
