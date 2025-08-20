@@ -6,11 +6,13 @@ use tokio::sync::RwLock;
 
 pub mod targets;
 
+/// FMSAlarmType indicates how the alarm will be displayed
+/// The Fault type will also activate the associated System Stop for the target_scope (LStop or EStop)
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum FMSAlarmType {
-    INFO,
-    WARNING,
-    FAULT,
+    Info,
+    Warning,
+    Fault
 }
 
 #[derive(Clone)]
@@ -22,7 +24,8 @@ pub struct FMSAlarm {
     source_id: String,
     target_scope: String,
     timestamp: u64,
-    released: bool
+    released: bool,
+    auto_clear: bool
 }
 
 pub struct RawFMSAlarmHandler {
@@ -45,7 +48,8 @@ impl FMSAlarmHandler {
         description: &str,
         source_id: &str,
         target_scope: &str,
-        require_release: bool
+        require_release: bool,
+        auto_clear: bool
     ) -> anyhow::Result<()> {
         let mut raw = self.raw.write().await;
 
@@ -53,6 +57,10 @@ impl FMSAlarmHandler {
             if active_alarm.code == code {
                 bail!("Alarm with code {} is already active", code);
             }
+        }
+
+        if !require_release && auto_clear {
+            bail!("Cannot set flag auto_clear if release is not required");
         }
 
         let new_alarm = FMSAlarm {
@@ -63,7 +71,8 @@ impl FMSAlarmHandler {
             description: description.to_string(),
             source_id: source_id.to_string(),
             target_scope: target_scope.to_string(),
-            released: !require_release
+            released: !require_release,
+            auto_clear
         };
 
         raw.active_alarms.push(new_alarm);
@@ -77,6 +86,11 @@ impl FMSAlarmHandler {
         for active_alarm in raw.active_alarms.iter_mut() {
             if active_alarm.code == code {
                 active_alarm.released = true;
+                if active_alarm.auto_clear {
+                    let code = active_alarm.code.clone();
+                    drop(raw);
+                    let _ = self.clear_alarm(code.as_str()).await;
+                }
                 return Ok(())
             }
         }
@@ -99,7 +113,7 @@ impl FMSAlarmHandler {
     pub async fn is_target_faulted(&self, target: &str) -> bool {
         let raw = self.raw.write().await;
         for active_alarm in raw.active_alarms.clone() {
-            if active_alarm.alarm_type == FMSAlarmType::FAULT && is_target_in_scope(&active_alarm.target_scope, target) {
+            if active_alarm.alarm_type == FMSAlarmType::Fault && is_target_in_scope(&active_alarm.target_scope, target) {
                 return true
             }
         }

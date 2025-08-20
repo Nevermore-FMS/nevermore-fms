@@ -11,6 +11,8 @@ use tokio::{
     time,
 };
 
+use crate::{alarms::FMSAlarmType, field};
+
 use super::{
     connection::DriverStationConnection,
     enums::{AllianceStation, Mode, Version, VersionType},
@@ -25,7 +27,7 @@ struct RawDriverStation {
     expected_ip: Option<AnyIpCidr>,
     active_connection: Option<DriverStationConnection>,
     confirmed_state: Option<ConfirmedState>,
-    log_data: Option<LogData>,
+    log_data: Vec<LogData>,
     versions: HashMap<VersionType, Version>,
     log_messages: Vec<LogMessage>,
 }
@@ -41,6 +43,11 @@ impl DriverStation {
     pub async fn parent(&self) -> DriverStations {
         let raw = self.raw.read().await;
         raw.parent.clone()
+    }
+
+    pub async fn alarm_target(&self) -> String {
+        let alarm_target = format!("fms.field.driverstations.{}", self.alliance_station().await.to_string());
+        return alarm_target;
     }
 
     pub async fn team_number(&self) -> u16 {
@@ -98,7 +105,7 @@ impl DriverStation {
             expected_ip: None,
             active_connection: None,
             confirmed_state: None,
-            log_data: None,
+            log_data: Vec::new(),
             versions: HashMap::new(),
             log_messages: Vec::new(),
         };
@@ -113,9 +120,9 @@ impl DriverStation {
         raw.versions.insert(version_type, version);
     }
 
-    pub(super) async fn set_log_data(&self, log_data: Option<LogData>) {
+    pub(super) async fn record_log_data(&self, log_data: LogData) {
         let mut raw = self.raw.write().await;
-        raw.log_data = log_data;
+        raw.log_data.push(log_data);
     }
 
     pub(super) async fn add_log_message(&self, log_message: LogMessage) {
@@ -141,6 +148,34 @@ impl DriverStation {
     ) {
         let mut raw = self.raw.write().await;
         raw.active_connection = active_connection;
+    }
+
+    pub(super) async fn set_enabled(
+        &self,
+        enabled: bool,
+    ) {
+        let mut raw = self.raw.write().await;
+        raw.enabled = enabled;
+    }
+
+    async fn tick(&self) {
+            // Respond to active faults
+            if self.parent().await.get_field().await.alarm_handler().await.is_target_faulted(self.alarm_target().await.as_str()).await {
+                self.set_enabled(false).await;
+            }
+
+            // Fire UDP Messages
+            if let Some(conn) = self.active_connection().await {
+                if conn.is_alive().await {
+                    if let Err(e) = conn.send_udp_message().await {
+                        error!(
+                            "Error sending udp message to driver station{}: {}",
+                            self.team_number().await,
+                            e
+                        );
+                    };
+                }
+            }
     }
 }
 
@@ -337,19 +372,24 @@ impl DriverStations {
     async fn tick(&self) {
         let raw_driverstations = self.raw.read().await;
         let all_driverstations = raw_driverstations.all_driverstations.clone();
+        let field = self.get_field().await;
         drop(raw_driverstations);
         for ds in all_driverstations {
-            if let Some(conn) = ds.active_connection().await {
-                if conn.is_alive().await {
-                    if let Err(e) = conn.send_udp_message().await {
-                        error!(
-                            "Error sending udp message to driver station{}: {}",
-                            ds.team_number().await,
-                            e
-                        );
-                    };
-                }
+
+            // Throw conditional faults
+            if ds.enabled().await && field.is_safe().await {
+                let _ = field.alarm_handler().await.throw_alarm(
+                    FMSAlarmType::Fault, 
+                    "FIELD_SAFE_MISMATCH", 
+                    "Driver Station is set to ENABLED but field SAFE flag was set. Invalid state.", 
+                    "fms.field.driverstations", 
+                    "fms.field", 
+                    true,
+                    false
+                ).await;
             }
+
+            ds.tick().await;
         }
     }
 
@@ -427,8 +467,10 @@ pub struct LogMessage {
 
 #[derive(Clone, Debug)]
 pub struct LogData {
+    pub timestamp: u64,
     pub trip_time: u8,
     pub lost_packets: u8,
+    pub voltage: f32,
     pub brownout: bool,
     pub watchdog: bool,
     pub ds_teleop: bool,

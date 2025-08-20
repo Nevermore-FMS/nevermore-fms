@@ -180,20 +180,20 @@ interface Match {
   redScore: Int!
   blueScore: Int!
   startedAtTimestamp: Int!
-  done: Boolean!
-  success: Boolean!
+  completed: Boolean!
+  completedSuccessfully: Boolean!
 }
 
-type Match2023 implements Match {
+type Match2025 implements Match {
   id: ID!
   scheduledMatch: ScheduledMatch!
   playNumber: Int!
   redScore: Int!
   blueScore: Int!
   startedAtTimestamp: Int!
-  done: Boolean!
-  success: Boolean!
-  # Include extra fields for 2023 game scoring
+  completed: Boolean!
+  completedSuccessfully: Boolean!
+  # Include extra fields for 2025 game scoring
 }
 
 type ScheduledMatch {

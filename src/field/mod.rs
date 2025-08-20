@@ -5,7 +5,7 @@ pub mod enums;
 use std::{
     net::{IpAddr, SocketAddr},
     sync::Arc,
-    time::Duration
+    time::Duration,
 };
 
 use anyhow::Context;
@@ -16,8 +16,8 @@ use tokio::{
         broadcast::{self},
         RwLock,
     },
+    time,
 };
-
 
 use crate::{alarms::FMSAlarmHandler, difftimer};
 
@@ -66,6 +66,10 @@ impl Field {
     pub async fn alarm_handler(&self) -> FMSAlarmHandler {
         let raw = self.raw.read().await;
         raw.alarm_handler.clone()
+    }
+
+    pub async fn alarm_target(&self) -> String {
+        return format!("fms.field");
     }
 
     pub async fn event_name(&self) -> String {
@@ -125,15 +129,23 @@ impl Field {
 
     pub async fn start_timer(&self) {
         let mut raw = self.raw.write().await;
-        raw.time_left = raw.time_left.start();
-        info!("Timer started");
-
+        if !raw.time_left.is_running() {
+            raw.time_left = raw.time_left.start();
+            info!("Timer started");
+        }
     }
 
     pub async fn stop_timer(&self) {
         let mut raw = self.raw.write().await;
-        raw.time_left = raw.time_left.stop();
-        info!("Timer stopped");
+        if raw.time_left.is_running() {
+            raw.time_left = raw.time_left.stop();
+            info!("Timer stopped");
+        }
+    }
+
+    pub async fn match_abort(&self) {
+        self.stop_timer().await
+        //TODO Other actions related to match abort
     }
 
     pub async fn ds_mode(&self) -> enums::Mode {
@@ -162,7 +174,6 @@ impl Field {
 
     pub(super) async fn new(ds_address: IpAddr) -> anyhow::Result<Self> {
         let (terminate_sender, _) = broadcast::channel(1);
-
 
         let (indicate_running, running_signal) = async_channel::bounded(1);
 
@@ -196,9 +207,10 @@ impl Field {
         let tcp_address = SocketAddr::new(ds_address, 1750);
         let async_field = field.clone();
         tokio::spawn(async move {
-            let (udp_result, tcp_result) = tokio::join!(
+            let (udp_result, tcp_result, _) = tokio::join!(
                 async_field.listen_for_udp_messages(udp_address),
-                async_field.listen_for_tcp_connections(tcp_address)
+                async_field.listen_for_tcp_connections(tcp_address),
+                async_field.tick_loop()
             );
             udp_result.unwrap();
             tcp_result.unwrap();
@@ -209,7 +221,8 @@ impl Field {
     }
 
     async fn listen_for_udp_messages(&self, addr: SocketAddr) -> anyhow::Result<()> {
-        loop { //Retry Loop
+        loop {
+            //Retry Loop
             let mut raw_field = self.raw.write().await;
             let socket = UdpSocket::bind(addr).await.context(bind_err(addr));
             if socket.is_err() {
@@ -258,7 +271,8 @@ impl Field {
     }
 
     async fn listen_for_tcp_connections(&self, addr: SocketAddr) -> anyhow::Result<()> {
-        loop { //Retry Loop
+        loop {
+            //Retry Loop
             let mut raw_field = self.raw.write().await;
             let listener = TcpListener::bind(addr).await.context(bind_err(addr));
             if listener.is_err() {
@@ -299,6 +313,41 @@ impl Field {
                     }
                 }
             }
+        }
+    }
+
+    async fn tick_loop(&self) {
+        let raw_field = self.raw.write().await;
+        let mut term_rx = raw_field
+            .terminate_signal
+            .as_ref()
+            .context("Can't start the field tick loop because field has already terminated")
+            .unwrap()
+            .subscribe();
+        drop(raw_field);
+
+        let mut interval = time::interval(Duration::from_millis(250));
+        loop {
+            tokio::select! {
+                _ = interval.tick() => {
+                    self.tick().await;
+                },
+                _ = term_rx.recv() => {
+                    return
+                }
+            }
+        }
+    }
+
+    async fn tick(&self) {
+        // Respond to active faults
+        if self
+            .alarm_handler()
+            .await
+            .is_target_faulted(self.alarm_target().await.as_str())
+            .await
+        {
+            self.match_abort().await
         }
     }
 }

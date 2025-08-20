@@ -147,7 +147,8 @@ impl DriverStationConnection {
             let id = reader.read_u8().await?;
 
             match id {
-                0x18 => { // Team Number packet
+                0x18 => {
+                    // Team Number packet
                     let team_number = reader.read_u16().await?;
                     let mut raw_conn = self.raw.write().await;
                     if let Some(ds) = raw_conn
@@ -171,6 +172,7 @@ impl DriverStationConnection {
                 }
                 0x00 | 0x01 | 0x02 | 0x03 | 0x04 | 0x05 | 0x06 | 0x07 => {
                     // Version Codes
+                    //TODO Maybe use regex?
                     let mut version_unparsed = String::new();
                     reader.read_to_string(&mut version_unparsed).await.ok();
                     let split: Vec<&str> = version_unparsed.split(">").collect();
@@ -216,11 +218,14 @@ impl DriverStationConnection {
                 }
                 0x16 => {
                     // Log Data Packet
+                    let timestamp = Utc::now().timestamp() as u64;
+
                     let trip_time = reader.read_u8().await? / 2;
                     let lost_packets = reader.read_u8().await?;
 
-                    // This packet technically includes Robot Battery Voltage, but ConfirmedState already returns this.
-                    reader.read_u16().await?;
+                    let voltage_byte = reader.read_u16().await?;
+                    let voltage =
+                        (voltage_byte >> 8 & 0xff) as f32 + ((voltage_byte & 0xff) as f32 / 256.0);
 
                     let status_byte = reader.read_u8().await?;
                     let brownout = (status_byte >> 7 & 0x01) == 1;
@@ -241,9 +246,11 @@ impl DriverStationConnection {
                     drop(raw_conn);
                     if ds.is_some() {
                         ds.unwrap()
-                            .set_log_data(Some(LogData {
+                            .record_log_data(LogData {
+                                timestamp,
                                 trip_time,
                                 lost_packets,
+                                voltage,
                                 brownout,
                                 watchdog,
                                 ds_teleop,
@@ -255,7 +262,7 @@ impl DriverStationConnection {
                                 can_utilization,
                                 signal,
                                 bandwidth,
-                            }))
+                            })
                             .await;
                     }
                 }
@@ -351,8 +358,6 @@ impl DriverStationConnection {
         let mut raw_conn = self.raw.write().await;
 
         if let Some(ds) = raw_conn.parent.clone() {
-            let alarm_target = format!("fms.field.driverstations.{}", ds.alliance_station().await.to_string());
-            let alarm_target = alarm_target.as_str();
             if raw_conn.udp_outgoing_sequence_num >= u16::max_value() {
                 raw_conn.udp_outgoing_sequence_num = 0;
             } else {
@@ -377,22 +382,11 @@ impl DriverStationConnection {
             }
 
             if ds.enabled().await {
-                if field.is_safe().await {
-                    let _ = field.alarm_handler().await.throw_alarm(
-                        FMSAlarmType::FAULT, 
-                        "FIELD_SAFE_MISMATCH", 
-                        "Driver Station is set to ENABLED but field SAFE flag was set. Invalid state.", 
-                        "fms.field.driverstations", 
-                        "fms.field", 
-                        false
-                    ).await;
-                } else {
-                    control_byte |= 0x04
-                }
-                
+                control_byte |= 0x04
             }
 
-            if field.alarm_handler().await.is_target_faulted(alarm_target).await {
+            if field.alarm_handler().await.is_target_faulted(field.alarm_target().await.as_str()).await {
+                // EStop DS if field is faulted
                 control_byte |= 0x80
             }
 
