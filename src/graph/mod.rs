@@ -1,26 +1,14 @@
-use async_graphql::{EmptyMutation, EmptySubscription, Schema, http::GraphiQLSource};
+use async_graphql::{EmptyMutation, EmptySubscription, Schema};
 use async_graphql_poem::GraphQL;
-use log::info;
-use poem::{Server, Route, listener::TcpListener, get, IntoResponse, handler, web::Html};
+
+use crate::{field::Field, graph::query::Query};
 
 pub mod query;
 pub mod types;
 
-#[handler]
-async fn graphiql() -> impl IntoResponse {
-    Html(GraphiQLSource::build().endpoint("/").finish())
-}
-
-
-pub async fn start_server() {
-    let schema = Schema::build(query::Query, EmptyMutation, EmptySubscription)
-    .finish();
-
-    let app = Route::new().at("/", get(graphiql).post(GraphQL::new(schema)));
-
-    info!("GraphQL server started on port 8000"); //TODO make whole web
-    Server::new(TcpListener::bind("0.0.0.0:8000"))
-        .run(app)
-        .await
-        .unwrap();
+pub fn provide_graphql(field: Field) -> GraphQL<Schema<Query, EmptyMutation, EmptySubscription>> {
+    let schema = Schema::build(Query, EmptyMutation, EmptySubscription)
+        .data(field)
+        .finish();
+    GraphQL::new(schema)
 }

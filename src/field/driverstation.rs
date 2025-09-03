@@ -11,7 +11,7 @@ use tokio::{
     time,
 };
 
-use crate::{alarms::FMSAlarmType, field};
+use crate::{alarms::FMSAlarmType};
 
 use super::{
     connection::DriverStationConnection,
@@ -199,7 +199,7 @@ impl DriverStations {
         &mut self,
         team_number: u16,
         alliance_station: AllianceStation,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<DriverStation> {
         if let Some(_) = self
             .get_driverstation_by_team_number(team_number)
             .await
@@ -233,7 +233,7 @@ impl DriverStations {
             driverstation.alliance_station().await
         );
 
-        Ok(())
+        Ok(driverstation)
     }
 
     pub async fn delete_driverstation(&mut self, team_number: u16) -> anyhow::Result<()> {

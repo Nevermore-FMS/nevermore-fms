@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 /// DiffTimer is a way to represent the game time remaining in a way that 
 /// can easily be synced between different displaying devices provided 
-/// they all use NTP.
+/// they all use a synced time source.
 ///
 /// If started_at is None, then the timer is currently frozen and 
 /// time_remaining represents the time that should be displayed

@@ -105,7 +105,8 @@ impl FMSAlarmHandler {
         if !raw.active_alarms.get(idx).unwrap().released {
             return Ok(false)
         }
-        raw.active_alarms.remove(idx);
+        let alarm = raw.active_alarms.remove(idx);
+        raw.historic_alarms.push(alarm);
 
         Ok(true)
     }

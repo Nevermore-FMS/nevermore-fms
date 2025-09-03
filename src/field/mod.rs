@@ -58,6 +58,16 @@ impl Field {
         let _ = running_signal.recv().await;
     }
 
+    pub async fn udp_online(&self) -> bool {
+        let raw = self.raw.read().await;
+        raw.udp_online
+    }
+
+    pub async fn tcp_online(&self) -> bool {
+        let raw = self.raw.read().await;
+        raw.tcp_online
+    }
+
     pub async fn driverstations(&self) -> DriverStations {
         let raw = self.raw.read().await;
         raw.driverstations.clone()
@@ -180,8 +190,8 @@ impl Field {
         let field = RawField {
             event_name: "nvmre".to_string(),
             tournament_level: TournamentLevel::Test,
-            match_number: 0,
-            play_number: 0,
+            match_number: 1,
+            play_number: 1,
             time_left: difftimer::DiffTimer::new(Duration::ZERO, false),
             ds_mode: enums::Mode::Autonomous,
             driverstations: DriverStations::new(None),
@@ -224,7 +234,7 @@ impl Field {
         loop {
             //Retry Loop
             let mut raw_field = self.raw.write().await;
-            let socket = UdpSocket::bind(addr).await.context(bind_err(addr));
+            let socket = UdpSocket::bind(addr).await.context(bind_err("UDP", addr));
             if socket.is_err() {
                 drop(raw_field);
                 error!("{}", socket.err().unwrap());
@@ -274,7 +284,7 @@ impl Field {
         loop {
             //Retry Loop
             let mut raw_field = self.raw.write().await;
-            let listener = TcpListener::bind(addr).await.context(bind_err(addr));
+            let listener = TcpListener::bind(addr).await.context(bind_err("TCP", addr));
             if listener.is_err() {
                 error!("{}", listener.err().unwrap());
                 drop(raw_field);
@@ -352,6 +362,6 @@ impl Field {
     }
 }
 
-fn bind_err(addr: SocketAddr) -> String {
-    format!("Coult not bind to {}. The host device may not have an interface with that address. To change the ds address, use the --ds-address option. Attempting bind again in 15 seconds.", addr)
+fn bind_err(conn_type: &str, addr: SocketAddr) -> String {
+    format!("Coult not bind to {} {}. The host device may not have an interface with that address. To change the ds address, use the --ds-address option. Attempting bind again in 15 seconds.", conn_type, addr)
 }

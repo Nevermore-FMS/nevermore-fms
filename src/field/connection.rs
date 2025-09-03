@@ -16,8 +16,6 @@ use tokio::{
     sync::RwLock,
 };
 
-use crate::alarms::FMSAlarmType;
-
 use super::{
     driverstation::{DriverStation, LogData, LogMessage},
     enums::{AllianceStation, DriverstationStatus, Mode, Version, VersionType},

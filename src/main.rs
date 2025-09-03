@@ -2,13 +2,13 @@ extern crate anyhow;
 extern crate async_trait;
 extern crate clap;
 extern crate log;
-extern crate ractor;
 
 pub mod alarms;
 pub mod difftimer;
 pub mod field;
 pub mod game;
 pub mod graph;
+pub mod web;
 
 use clap::{Parser, ValueEnum};
 use log::*;
@@ -17,7 +17,7 @@ use std::{
     net::{IpAddr, SocketAddr},
 };
 
-use crate::{alarms::FMSAlarmType, field::Field};
+use crate::field::Field;
 
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -62,43 +62,15 @@ async fn main() -> anyhow::Result<()> {
 
     info!("{}", BIRD);
 
-    info!("Starting {} v{} by {}...", NAME, VERSION, AUTHORS);
-
     let cli = Cli::parse();
+
+    info!("Starting {} v{} by {}...", NAME, VERSION, AUTHORS);
 
     let field = Field::new(cli.ds_address).await?;
 
-    // field
-    //     .driverstations()
-    //     .await
-    //     .add_driverstation(5276, field::enums::AllianceStation::Blue1)
-    //     .await; //TODO Debug
-    // field
-    //     .driverstations()
-    //     .await
-    //     .get_driverstation_by_team_number(5276)
-    //     .await
-    //     .unwrap()
-    //     .update_expected_ip("0.0.0.0/0".parse().unwrap())
-    //     .await; //TODO Debug
+    field.driverstations().await.add_driverstation(5276, field::enums::AllianceStation::Red1).await.unwrap().update_expected_ip("0.0.0.0/0".parse().unwrap()).await; //TODO Remove
 
-    // let _ = field
-    //     .alarm_handler()
-    //     .await
-    //     .throw_alarm(
-    //         FMSAlarmType::Fault,
-    //         "TEST_ALARM",
-    //         "Test Alarm.",
-    //         "fms.test",
-    //         "fms.field",
-    //         true,
-    //         false,
-    //     )
-    //     .await;
-
-    // field.wait_for_terminate().await; //TODO Remove
-
-    graph::start_server().await;
+    web::start_server(cli.web_address, field.clone()).await;
 
     return Ok(());
 }
