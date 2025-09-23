@@ -492,6 +492,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dry-mods"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a07828d4f27555ab87d9f8d6f4f1ea5fe57f6b1eced8f61b2a3687cd4db2723d"
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1025,6 +1031,7 @@ dependencies = [
  "chrono",
  "cidr",
  "clap",
+ "dry-mods",
  "log",
  "poem",
  "pretty_env_logger",

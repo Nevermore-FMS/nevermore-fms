@@ -86,7 +86,6 @@ type FMSAlarm {
 type DriverStation {
   teamNumber: Int!
   allianceStation: AllianceStation!
-  mode: Mode!
   expectedIp: IpCidr
   activeConnection: DriverStationConnection
   confirmedState: DriverStationConfirmedState
@@ -97,9 +96,8 @@ type DriverStation {
 
 type DriverStationConnection {
   id: ID!
-  online: Boolean!
+  isAlive: Boolean!
   ipAddress: IpAddr!
-  sequenceNumber: Int!
   lastPacketReceivedAt: String!
 }
 

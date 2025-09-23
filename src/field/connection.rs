@@ -10,22 +10,23 @@ use log::*;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
-        tcp::{OwnedReadHalf, OwnedWriteHalf},
         TcpStream, UdpSocket,
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
     },
     sync::RwLock,
 };
 
 use super::{
+    Field,
     driverstation::{DriverStation, LogData, LogMessage},
     enums::{AllianceStation, DriverstationStatus, Mode, Version, VersionType},
-    Field,
 };
 
 struct RawDriverStationConnection {
     uuid: uuid::Uuid,
     field: Field,
-    parent: Option<DriverStation>, // Represents the current driver station, only if this station is expected to be connected
+    parent: Option<DriverStation>,
+    /// Represents the current driver station, only if this station is expected to be connected
     alive: bool,
     writer: OwnedWriteHalf,
     udp_socket: Arc<UdpSocket>,
@@ -50,21 +51,32 @@ impl DriverStationConnection {
                 > chrono::Duration::seconds(2)
         {
             drop(raw);
-            self.kill().await;
+            self.kill().await; //TODO Do this somewhere else?
             return false;
         }
 
         raw.alive
     }
 
-    pub async fn update_last_udp_packet_reception(&self, time: DateTime<Utc>) {
-        let mut raw = self.raw.write().await;
-        raw.last_udp_packet_reception = time;
-    }
-
     pub async fn uuid(&self) -> uuid::Uuid {
         let raw = self.raw.read().await;
         raw.uuid.clone()
+    }
+
+    /// Represents the current driver station, only if this station is expected to be connected
+    pub async fn parent(&self) -> Option<DriverStation> {
+        let raw = self.raw.read().await;
+        raw.parent.clone()
+    }
+
+    pub async fn ip_address(&self) -> IpAddr {
+        let raw = self.raw.read().await;
+        raw.ip_address
+    }
+
+    pub async fn last_udp_packet_reception(&self) -> DateTime<Utc> {
+        let raw = self.raw.read().await;
+        raw.last_udp_packet_reception
     }
 
     pub async fn kill(&self) {
@@ -126,6 +138,11 @@ impl DriverStationConnection {
         Ok(driver_station_connection)
     }
 
+    pub(super) async fn update_last_udp_packet_reception(&self, time: DateTime<Utc>) {
+        let mut raw = self.raw.write().await;
+        raw.last_udp_packet_reception = time;
+    }
+
     async fn handle_tcp_stream(&self, mut tcp: OwnedReadHalf) -> anyhow::Result<()> {
         loop {
             let raw_conn = self.raw.read().await;
@@ -161,7 +178,10 @@ impl DriverStationConnection {
                         ds.set_active_connection(Some(self.clone())).await;
                         info!("Driver station {} connected", team_number);
                     } else {
-                        warn!("Received a connection from a driver station that is not in the list of known driver stations. Team Number: {}", team_number);
+                        warn!(
+                            "Received a connection from a driver station that is not in the list of known driver stations. Team Number: {}",
+                            team_number
+                        );
                         drop(raw_conn);
                     }
 
@@ -383,7 +403,12 @@ impl DriverStationConnection {
                 control_byte |= 0x04
             }
 
-            if field.alarm_handler().await.is_target_faulted(field.alarm_target().await.as_str()).await {
+            if field
+                .alarm_handler()
+                .await
+                .is_target_faulted(field.alarm_target().await.as_str())
+                .await
+            {
                 // EStop DS if field is faulted
                 control_byte |= 0x80
             }

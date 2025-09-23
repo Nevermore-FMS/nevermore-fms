@@ -26,7 +26,7 @@ struct RawDriverStation {
     enabled: bool,
     expected_ip: Option<AnyIpCidr>,
     active_connection: Option<DriverStationConnection>,
-    confirmed_state: Option<ConfirmedState>,
+    confirmed_state: Option<DriverStationConfirmedState>,
     log_data: Vec<LogData>,
     versions: HashMap<VersionType, Version>,
     log_messages: Vec<LogMessage>,
@@ -73,6 +73,11 @@ impl DriverStation {
     pub async fn active_connection(&self) -> Option<DriverStationConnection> {
         let raw = self.raw.read().await;
         raw.active_connection.clone()
+    }
+
+    pub async fn confirmed_state(&self) -> Option<DriverStationConfirmedState> {
+        let raw = self.raw.read().await;
+        raw.confirmed_state
     }
 
     pub async fn log_messages(&self) -> Vec<LogMessage> {
@@ -130,7 +135,7 @@ impl DriverStation {
         raw.log_messages.push(log_message);
     }
 
-    pub(super) async fn set_confirmed_state(&self, confirmed_state: Option<ConfirmedState>) {
+    pub(super) async fn set_confirmed_state(&self, confirmed_state: Option<DriverStationConfirmedState>) {
         let mut raw = self.raw.write().await;
         raw.confirmed_state = confirmed_state;
         if raw.active_connection.is_some() {
@@ -290,6 +295,12 @@ impl DriverStations {
         return None;
     }
 
+    pub async fn get_all_driverstations(&self) -> Vec<DriverStation> {
+        let raw_driverstations = self.raw.read().await;
+        let all_driverstations = raw_driverstations.all_driverstations.clone();
+        return all_driverstations;
+    }
+
     pub async fn get_field(&self) -> Field {
         let raw_driverstations = self.raw.read().await;
         if let Some(field) = raw_driverstations.field.clone() {
@@ -413,7 +424,7 @@ impl DriverStations {
         let battery_voltage =
             (battery_byte >> 8 & 0xff) as f32 + ((battery_byte & 0xff) as f32 / 256.0);
 
-        let confirmed_state = ConfirmedState {
+        let confirmed_state = DriverStationConfirmedState {
             is_emergency_stopped,
             robot_communications_active,
             can_ping_radio,
@@ -448,7 +459,7 @@ impl DriverStations {
 }
 
 #[derive(Clone, Copy, Default)]
-pub struct ConfirmedState {
+pub struct DriverStationConfirmedState {
     pub is_emergency_stopped: bool,
     pub robot_communications_active: bool,
     pub can_ping_radio: bool,

@@ -159,7 +159,7 @@ impl Field {
     }
 
     pub async fn ds_mode(&self) -> enums::Mode {
-        let raw: tokio::sync::RwLockReadGuard<RawField> = self.raw.read().await;
+        let raw = self.raw.read().await;
         raw.ds_mode
     }
 

@@ -1,0 +1,34 @@
+    {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "cargo build",
+                "type": "shell",
+                "command": "cargo",
+                "args": [
+                    "build"
+                ],
+                "group": {
+                    "kind": "build",
+                    "isDefault": true
+                },
+                "problemMatcher": [
+                    "$rustc"
+                ],
+                "detail": "Runs 'cargo build' to compile the project."
+            },
+            {
+                "label": "cargo run",
+                "type": "shell",
+                "command": "cargo",
+                "args": [
+                    "run"
+                ],
+                "group": "build",
+                "problemMatcher": [
+                    "$rustc"
+                ],
+                "detail": "Runs 'cargo run' to build and execute the project."
+            }
+        ]
+    }

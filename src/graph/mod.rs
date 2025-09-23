@@ -4,7 +4,7 @@ use async_graphql_poem::GraphQL;
 use crate::{field::Field, graph::query::Query};
 
 pub mod query;
-pub mod types;
+mod types;
 
 pub fn provide_graphql(field: Field) -> GraphQL<Schema<Query, EmptyMutation, EmptySubscription>> {
     let schema = Schema::build(Query, EmptyMutation, EmptySubscription)
