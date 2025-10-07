@@ -1,35 +1,35 @@
 use std::{collections::HashMap, io::Cursor, net::IpAddr, sync::Arc, time::Duration};
 
-use anyhow::{bail, Context, Ok};
+use anyhow::{Context, Ok, bail};
 use chrono::Utc;
 use cidr::AnyIpCidr;
 use log::*;
 use tokio::{
     io::AsyncReadExt,
     net::TcpStream,
-    sync::{broadcast, RwLock},
+    sync::{RwLock, broadcast},
     time,
 };
 
-use crate::{alarms::FMSAlarmType};
+use crate::alarms::FMSAlarmType;
 
 use super::{
-    connection::DriverStationConnection,
-    enums::{AllianceStation, Mode, Version, VersionType},
     Field,
+    connection::DriverStationConnection,
+    enums::{AllianceStation, Mode, VersionData, VersionType},
 };
 
 struct RawDriverStation {
     parent: DriverStations,
     team_number: u16,
     alliance_station: AllianceStation,
-    enabled: bool,
+    commanded_enabled: bool,
     expected_ip: Option<AnyIpCidr>,
     active_connection: Option<DriverStationConnection>,
     confirmed_state: Option<DriverStationConfirmedState>,
-    log_data: Vec<LogData>,
-    versions: HashMap<VersionType, Version>,
-    log_messages: Vec<LogMessage>,
+    log_data: Vec<DriverStationLogData>,
+    versions: HashMap<VersionType, VersionData>,
+    log_messages: Vec<DriverStationLogMessage>,
 }
 
 #[derive(Clone)]
@@ -46,7 +46,10 @@ impl DriverStation {
     }
 
     pub async fn alarm_target(&self) -> String {
-        let alarm_target = format!("fms.field.driverstations.{}", self.alliance_station().await.to_string());
+        let alarm_target = format!(
+            "fms.field.driverstations.{}",
+            self.alliance_station().await.to_string()
+        );
         return alarm_target;
     }
 
@@ -60,9 +63,23 @@ impl DriverStation {
         raw.alliance_station
     }
 
+    pub async fn commanded_enabled(&self) -> bool {
+        let raw = self.raw.read().await;
+        raw.commanded_enabled
+    }
+
     pub async fn enabled(&self) -> bool {
         let raw = self.raw.read().await;
-        raw.enabled
+        let faulted = self
+            .parent()
+            .await
+            .get_field()
+            .await
+            .alarm_handler()
+            .await
+            .is_target_faulted(self.alarm_target().await.as_str())
+            .await;
+        raw.commanded_enabled && !faulted
     }
 
     pub async fn expected_ip(&self) -> Option<AnyIpCidr> {
@@ -80,9 +97,19 @@ impl DriverStation {
         raw.confirmed_state
     }
 
-    pub async fn log_messages(&self) -> Vec<LogMessage> {
+    pub async fn log_data(&self) -> Vec<DriverStationLogData> {
+        let raw = self.raw.read().await;
+        raw.log_data.clone()
+    }
+
+    pub async fn log_messages(&self) -> Vec<DriverStationLogMessage> {
         let raw = self.raw.read().await;
         raw.log_messages.clone()
+    }
+
+    pub async fn versions(&self) -> HashMap<VersionType, VersionData> {
+        let raw = self.raw.read().await;
+        raw.versions.clone()
     }
 
     pub async fn update_expected_ip(&self, expected_ip: AnyIpCidr) {
@@ -97,16 +124,12 @@ impl DriverStation {
 
     // Internal API -->
 
-    fn new(
-        parent: DriverStations,
-        team_number: u16,
-        alliance_station: AllianceStation,
-    ) -> Self {
+    fn new(parent: DriverStations, team_number: u16, alliance_station: AllianceStation) -> Self {
         let driverstation = RawDriverStation {
             parent,
             team_number,
             alliance_station,
-            enabled: false,
+            commanded_enabled: false,
             expected_ip: None,
             active_connection: None,
             confirmed_state: None,
@@ -120,31 +143,27 @@ impl DriverStation {
         driverstation
     }
 
-    pub(super) async fn set_version(&self, version_type: VersionType, version: Version) {
+    pub(super) async fn set_version(&self, version_type: VersionType, version: VersionData) {
         let mut raw = self.raw.write().await;
         raw.versions.insert(version_type, version);
     }
 
-    pub(super) async fn record_log_data(&self, log_data: LogData) {
+    pub(super) async fn record_log_data(&self, log_data: DriverStationLogData) {
         let mut raw = self.raw.write().await;
         raw.log_data.push(log_data);
     }
 
-    pub(super) async fn add_log_message(&self, log_message: LogMessage) {
+    pub(super) async fn add_log_message(&self, log_message: DriverStationLogMessage) {
         let mut raw = self.raw.write().await;
         raw.log_messages.push(log_message);
     }
 
-    pub(super) async fn set_confirmed_state(&self, confirmed_state: Option<DriverStationConfirmedState>) {
+    pub(super) async fn set_confirmed_state(
+        &self,
+        confirmed_state: Option<DriverStationConfirmedState>,
+    ) {
         let mut raw = self.raw.write().await;
         raw.confirmed_state = confirmed_state;
-        if raw.active_connection.is_some() {
-            raw.active_connection
-                .as_ref()
-                .unwrap()
-                .update_last_udp_packet_reception(Utc::now())
-                .await;
-        }
     }
 
     pub(super) async fn set_active_connection(
@@ -155,24 +174,35 @@ impl DriverStation {
         raw.active_connection = active_connection;
     }
 
-    pub(super) async fn set_enabled(
-        &self,
-        enabled: bool,
-    ) {
+    pub(super) async fn set_commanded_enabled(&self, enabled: bool) {
         let mut raw = self.raw.write().await;
-        raw.enabled = enabled;
+        raw.commanded_enabled = enabled;
     }
 
     async fn tick(&self) {
-            // Respond to active faults
-            if self.parent().await.get_field().await.alarm_handler().await.is_target_faulted(self.alarm_target().await.as_str()).await {
-                self.set_enabled(false).await;
-            }
+        // Respond to active faults
+        if self
+            .parent()
+            .await
+            .get_field()
+            .await
+            .alarm_handler()
+            .await
+            .is_target_faulted(self.alarm_target().await.as_str())
+            .await
+        {
+            self.set_commanded_enabled(false).await;
+        }
 
-            // Fire UDP Messages
-            if let Some(conn) = self.active_connection().await {
-                if conn.is_alive().await {
-                    if let Err(e) = conn.send_udp_message().await {
+        if let Some(conn) = self.active_connection().await {
+            if conn.is_alive().await {
+                if Utc::now().signed_duration_since(conn.last_udp_packet_reception().await)
+                    > chrono::Duration::seconds(2)
+                {
+                    conn.kill().await;
+                } else {
+                    let udp_result = conn.send_udp_message().await;
+                    if let Err(e) = udp_result {
                         error!(
                             "Error sending udp message to driver station{}: {}",
                             self.team_number().await,
@@ -181,6 +211,7 @@ impl DriverStation {
                     };
                 }
             }
+        }
     }
 }
 
@@ -205,20 +236,14 @@ impl DriverStations {
         team_number: u16,
         alliance_station: AllianceStation,
     ) -> anyhow::Result<DriverStation> {
-        if let Some(_) = self
-            .get_driverstation_by_team_number(team_number)
-            .await
-        {
+        if let Some(_) = self.get_driverstation_by_team_number(team_number).await {
             bail!(
                 "Driverstation with team number {} already exists",
                 team_number
             );
         }
 
-        if let Some(_) = self
-            .get_driverstation_by_position(alliance_station)
-            .await
-        {
+        if let Some(_) = self.get_driverstation_by_position(alliance_station).await {
             bail!(
                 "Driverstation already exists in alliance station {:?}",
                 alliance_station
@@ -368,13 +393,14 @@ impl DriverStations {
         drop(raw_driverstations);
 
         let mut interval = time::interval(Duration::from_millis(250));
+        interval.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
         loop {
             tokio::select! {
                 _ = interval.tick() => {
                     self.tick().await;
                 },
                 _ = term_rx.recv() => {
-                    return
+                    break
                 }
             }
         }
@@ -386,11 +412,10 @@ impl DriverStations {
         let field = self.get_field().await;
         drop(raw_driverstations);
         for ds in all_driverstations {
-
             // Throw conditional faults
             if ds.enabled().await && field.is_safe().await {
                 let _ = field.alarm_handler().await.throw_alarm(
-                    FMSAlarmType::Fault, 
+                    FMSAlarmType::Fault,
                     "FIELD_SAFE_MISMATCH", 
                     "Driver Station is set to ENABLED but field SAFE flag was set. Invalid state.", 
                     "fms.field.driverstations", 
@@ -437,8 +462,16 @@ impl DriverStations {
 
         if let Some(ds) = self.get_driverstation_by_team_number(team_number).await {
             ds.set_confirmed_state(Some(confirmed_state)).await;
+            if let Some(active_connection) = ds.active_connection().await {
+                active_connection
+                    .update_last_udp_packet_reception(Utc::now())
+                    .await
+            }
         } else {
-            warn!("Received a packet from a driver station that is not in the list of known driver stations. Team Number: {}", team_number);
+            warn!(
+                "Received a packet from a driver station that is not in the list of known driver stations. Team Number: {}",
+                team_number
+            );
         }
 
         Ok(())
@@ -471,13 +504,13 @@ pub struct DriverStationConfirmedState {
 }
 
 #[derive(Clone, Debug)]
-pub struct LogMessage {
+pub struct DriverStationLogMessage {
     pub timestamp: u64,
     pub message: String,
 }
 
 #[derive(Clone, Debug)]
-pub struct LogData {
+pub struct DriverStationLogData {
     pub timestamp: u64,
     pub trip_time: u8,
     pub lost_packets: u8,

@@ -1,20 +1,18 @@
-
-
 /// This function evaluates if the given target id string is contained within
 /// the given scope string. Some examples:
-/// 
+///
 /// Scope: fms.field.driverstations
 /// Target ID: fms.field.driverstations.Red1
 /// Returns: True
-/// 
+///
 /// Scope: fms.field.driverstations.Red2
 /// Target ID: fms.field.driverstations.Blue1
 /// Returns: False
-/// 
+///
 /// Scope: fms.field
 /// Target ID: fms.field.driverstations.Blue3
 /// Returns: True
-/// 
+///
 /// Scope: fms.field
 /// Target ID: fms.field.game_elements.collector
 /// Returns: True

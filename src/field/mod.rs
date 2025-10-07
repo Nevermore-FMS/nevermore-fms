@@ -13,8 +13,8 @@ use log::*;
 use tokio::{
     net::{TcpListener, UdpSocket},
     sync::{
-        broadcast::{self},
         RwLock,
+        broadcast::{self},
     },
     time,
 };
@@ -337,13 +337,14 @@ impl Field {
         drop(raw_field);
 
         let mut interval = time::interval(Duration::from_millis(250));
+        interval.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
         loop {
             tokio::select! {
                 _ = interval.tick() => {
                     self.tick().await;
                 },
                 _ = term_rx.recv() => {
-                    return
+                    break
                 }
             }
         }
@@ -363,5 +364,8 @@ impl Field {
 }
 
 fn bind_err(conn_type: &str, addr: SocketAddr) -> String {
-    format!("Coult not bind to {} {}. The host device may not have an interface with that address. To change the ds address, use the --ds-address option. Attempting bind again in 15 seconds.", conn_type, addr)
+    format!(
+        "Coult not bind to {} {}. The host device may not have an interface with that address. To change the ds address, use the --ds-address option. Attempting bind again in 15 seconds.",
+        conn_type, addr
+    )
 }

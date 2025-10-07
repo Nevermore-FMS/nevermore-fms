@@ -8,6 +8,11 @@
                 "args": [
                     "build"
                 ],
+                "options": {
+                    "env": {
+                        "RUSTFLAGS": "--cfg tokio_unstable"
+                    }
+                },
                 "group": {
                     "kind": "build",
                     "isDefault": true

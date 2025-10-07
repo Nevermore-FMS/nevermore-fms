@@ -89,8 +89,8 @@ type DriverStation {
   expectedIp: IpCidr
   activeConnection: DriverStationConnection
   confirmedState: DriverStationConfirmedState
-  logData: DriverStationLogData
-  versions: [DriverStationVersion!]!
+  logData: [DriverStationLogData!]
+  versions: [DriverStationVersion!]
   logMessages: [String!]
 }
 

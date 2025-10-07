@@ -178,9 +178,10 @@ impl fmt::Display for TournamentLevel {
 }
 
 #[derive(Clone, Debug)]
-pub struct Version {
+pub struct VersionData {
+    pub version_type: VersionType,
     pub status: String,
-    pub version: String
+    pub version: String,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
@@ -192,21 +193,21 @@ pub enum VersionType {
     PCM,
     CANJag,
     CANTalon,
-    ThirdParty
+    ThirdParty,
 }
 
 impl VersionType {
-    pub fn from_byte(integer: u8) -> VersionType {
-        match integer {
-            0x00 => VersionType::WPILib,
-            0x01 => VersionType::RoboRIO,
-            0x02 => VersionType::DS,
-            0x03 => VersionType::PDP,
-            0x04 => VersionType::PCM,
-            0x05 => VersionType::CANJag,
-            0x06 => VersionType::CANTalon,
-            0x07 => VersionType::ThirdParty,
-            _ => VersionType::WPILib
+    pub fn from_byte(byte: u8) -> anyhow::Result<VersionType> {
+        match byte {
+            0x00 => Ok(VersionType::WPILib),
+            0x01 => Ok(VersionType::RoboRIO),
+            0x02 => Ok(VersionType::DS),
+            0x03 => Ok(VersionType::PDP),
+            0x04 => Ok(VersionType::PCM),
+            0x05 => Ok(VersionType::CANJag),
+            0x06 => Ok(VersionType::CANTalon),
+            0x07 => Ok(VersionType::ThirdParty),
+            _ => Err(anyhow::anyhow!("Invalid version_type byte: {}", byte)),
         }
     }
 }
@@ -221,7 +222,7 @@ impl fmt::Display for VersionType {
             VersionType::PCM => write!(f, "PCM"),
             VersionType::CANJag => write!(f, "CANJag"),
             VersionType::CANTalon => write!(f, "CANTalon"),
-            VersionType::ThirdParty => write!(f, "ThirdParty")
+            VersionType::ThirdParty => write!(f, "ThirdParty"),
         }
     }
 }

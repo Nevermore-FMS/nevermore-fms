@@ -1,14 +1,14 @@
 use std::time::{Duration, Instant};
 
-/// DiffTimer is a way to represent the game time remaining in a way that 
-/// can easily be synced between different displaying devices provided 
+/// DiffTimer is a way to represent the game time remaining in a way that
+/// can easily be synced between different displaying devices provided
 /// they all use a synced time source.
 ///
-/// If started_at is None, then the timer is currently frozen and 
+/// If started_at is None, then the timer is currently frozen and
 /// time_remaining represents the time that should be displayed
 ///
-/// If started_at is Some, then the timer is currently running and 
-/// time_remaining represents the time that the clock had at the time 
+/// If started_at is Some, then the timer is currently running and
+/// time_remaining represents the time that the clock had at the time
 /// specified by started_at.
 
 #[derive(Clone)]
@@ -47,16 +47,16 @@ impl DiffTimer {
     }
 
     pub fn start(&self) -> DiffTimer {
-        DiffTimer { 
+        DiffTimer {
             started_at: Some(Instant::now()),
-            time_remaining: self.time_remaining
+            time_remaining: self.time_remaining,
         }
     }
 
     pub fn stop(&self) -> DiffTimer {
-        DiffTimer { 
+        DiffTimer {
             started_at: None,
-            time_remaining: self.current_time_remaining()
+            time_remaining: self.current_time_remaining(),
         }
     }
 }

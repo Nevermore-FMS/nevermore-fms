@@ -55,6 +55,8 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    console_subscriber::init();
+
     pretty_env_logger::formatted_timed_builder()
         .filter_level(log::LevelFilter::Info)
         .parse_filters(&env::var("NEVERMORE_LOG").unwrap_or(String::from("info")))

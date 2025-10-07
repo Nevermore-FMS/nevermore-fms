@@ -9,7 +9,10 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
+            "environment": [{
+                "name": "NEVERMORE_LOG",
+                "value": "trace"
+            }],
             "console": "integratedTerminal",
             "preLaunchTask": "cargo build"
         }

@@ -18,17 +18,17 @@ use tokio::{
 
 use super::{
     Field,
-    driverstation::{DriverStation, LogData, LogMessage},
-    enums::{AllianceStation, DriverstationStatus, Mode, Version, VersionType},
+    driverstation::{DriverStation, DriverStationLogData, DriverStationLogMessage},
+    enums::{AllianceStation, DriverstationStatus, Mode, VersionData, VersionType},
 };
 
 struct RawDriverStationConnection {
     uuid: uuid::Uuid,
     field: Field,
-    parent: Option<DriverStation>,
     /// Represents the current driver station, only if this station is expected to be connected
+    parent: Option<DriverStation>,
     alive: bool,
-    writer: OwnedWriteHalf,
+    tcp_writer: OwnedWriteHalf,
     udp_socket: Arc<UdpSocket>,
     ip_address: IpAddr,
     udp_outgoing_sequence_num: u16,
@@ -46,15 +46,6 @@ impl DriverStationConnection {
 
     pub async fn is_alive(&self) -> bool {
         let raw = self.raw.read().await;
-        if raw.alive
-            && Utc::now().signed_duration_since(raw.last_udp_packet_reception)
-                > chrono::Duration::seconds(2)
-        {
-            drop(raw);
-            self.kill().await; //TODO Do this somewhere else?
-            return false;
-        }
-
         raw.alive
     }
 
@@ -81,15 +72,28 @@ impl DriverStationConnection {
 
     pub async fn kill(&self) {
         let mut raw = self.raw.write().await;
+        if !raw.alive {
+            return;
+        }
         raw.alive = false;
+        
         if let Some(ds) = &raw.parent {
             ds.set_active_connection(None).await;
             ds.set_confirmed_state(None).await;
+            info!(
+                "Driver station {} disconnected (Conn ID: {})",
+                ds.team_number().await,
+                raw.uuid
+            );
+        } else {
+            info!(
+                "Driver station connection disconnected (Conn ID: {})",
+                raw.uuid
+            );
         }
-        if let Err(e) = raw.writer.shutdown().await {
+        if let Err(e) = raw.tcp_writer.shutdown().await {
             error!("Failed to shutdown TCP stream: {}", e);
         }
-        drop(raw);
     }
 
     // Internal API -->
@@ -103,7 +107,7 @@ impl DriverStationConnection {
             field,
             parent: None,
             alive: true,
-            writer: owned_write_half,
+            tcp_writer: owned_write_half,
             udp_socket: Arc::new(UdpSocket::bind("0.0.0.0:0").await?),
             ip_address,
             udp_outgoing_sequence_num: 0,
@@ -117,21 +121,8 @@ impl DriverStationConnection {
         let conn = driver_station_connection.clone();
         tokio::spawn(async move {
             if let Err(e) = conn.handle_tcp_stream(owned_read_half).await {
-                if e.to_string() == "early eof" {
-                    let raw_conn = conn.raw.read().await;
-                    if let Some(ds) = &raw_conn.parent {
-                        info!(
-                            "Driver station {} disconnected (ID: {})",
-                            ds.team_number().await,
-                            conn.uuid().await
-                        );
-                    }
-                    drop(raw_conn);
-                } else {
-                    warn!("Error handling TCP stream from driverstation: {}", e);
-                }
-                let mut raw_conn = conn.raw.write().await;
-                raw_conn.alive = false;
+                warn!("Error handling TCP stream from driverstation: {}", e);
+                conn.kill().await
             }
         });
 
@@ -143,7 +134,7 @@ impl DriverStationConnection {
         raw.last_udp_packet_reception = time;
     }
 
-    async fn handle_tcp_stream(&self, mut tcp: OwnedReadHalf) -> anyhow::Result<()> {
+    async fn handle_tcp_stream(&self, mut tcp_reader: OwnedReadHalf) -> anyhow::Result<()> {
         loop {
             let raw_conn = self.raw.read().await;
             if !raw_conn.alive {
@@ -152,12 +143,12 @@ impl DriverStationConnection {
             drop(raw_conn);
 
             let mut buffer = [0; 2];
-            tcp.read_exact(&mut buffer).await?;
+            tcp_reader.read_exact(&mut buffer).await?;
             let mut reader = Cursor::new(buffer);
             let packet_length = reader.read_u16().await?;
 
             let mut buffer = vec![0; packet_length as usize];
-            tcp.read_exact(&mut buffer).await?;
+            tcp_reader.read_exact(&mut buffer).await?;
             let mut reader = Cursor::new(buffer);
             let id = reader.read_u8().await?;
 
@@ -203,8 +194,12 @@ impl DriverStationConnection {
                         (String::new(), String::new())
                     };
 
-                    let version_type = VersionType::from_byte(id);
-                    let version = Version { status, version };
+                    let version_type = VersionType::from_byte(id).unwrap();
+                    let version = VersionData {
+                        version_type,
+                        status,
+                        version,
+                    };
 
                     let raw_conn = self.raw.read().await;
                     let ds = raw_conn.parent.clone();
@@ -227,7 +222,7 @@ impl DriverStationConnection {
                     drop(raw_conn);
                     if ds.is_some() {
                         ds.unwrap()
-                            .add_log_message(LogMessage {
+                            .add_log_message(DriverStationLogMessage {
                                 timestamp,
                                 message: data,
                             })
@@ -264,7 +259,7 @@ impl DriverStationConnection {
                     drop(raw_conn);
                     if ds.is_some() {
                         ds.unwrap()
-                            .record_log_data(LogData {
+                            .record_log_data(DriverStationLogData {
                                 timestamp,
                                 trip_time,
                                 lost_packets,
@@ -336,7 +331,7 @@ impl DriverStationConnection {
         let mut raw_conn = self.raw.write().await;
 
         raw_conn
-            .writer
+            .tcp_writer
             .write_all(&outer_packet.into_inner())
             .await?;
 
@@ -365,7 +360,7 @@ impl DriverStationConnection {
         let mut raw_conn = self.raw.write().await;
 
         raw_conn
-            .writer
+            .tcp_writer
             .write_all(&outer_packet.into_inner())
             .await?;
 

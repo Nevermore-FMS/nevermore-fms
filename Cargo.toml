@@ -7,7 +7,7 @@ edition = "2024"
 
 [dependencies]
 # Framework
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["full", "tracing"] }
 
 # CLI
 clap = { version = "4.5.47", features = ["derive", "env"] }
@@ -25,3 +25,4 @@ poem = "3.1.12"
 async-graphql = "7.0.17"
 async-graphql-poem = "7.0.17"
 dry-mods = "0.1.5"
+console-subscriber = "0.4.1"

@@ -34,3 +34,31 @@ pub enum GQLAllianceStation {
     Blue3,
     None,
 }
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+#[graphql(
+    remote = "crate::field::enums::VersionType",
+    name = "VersionType"
+)]
+pub enum GQLVersionType {
+    WPILib,
+    RoboRIO,
+    DS,
+    PDP,
+    PCM,
+    CANJag,
+    CANTalon,
+    ThirdParty
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+#[graphql(
+    remote = "crate::alarms::FMSAlarmType",
+    name = "FMSAlarmType"
+)]
+pub enum GQLFMSAlarmType {
+    Info,
+    Warning,
+    Fault,
+}
+

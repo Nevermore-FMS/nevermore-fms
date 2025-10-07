@@ -1,3 +1,4 @@
+use crate::alarms::FMSAlarm;
 use crate::field::Field;
 use crate::graph::types::*;
 use async_graphql::*;
@@ -43,12 +44,77 @@ impl GQLFieldState {
     }
 
     #[graphql(name = "activeFMSAlarms")]
-    async fn active_fms_alarms(&self, ctx: &Context<'_>) -> Vec<bool> {
-        todo!()
+    async fn active_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
+        let field = ctx.data::<Field>().unwrap();
+        field
+            .alarm_handler()
+            .await
+            .active_alarms()
+            .await
+            .iter()
+            .cloned()
+            .map(|alarm| GQLFMSAlarm {
+                obj_fmsalarm: alarm,
+            })
+            .collect()
     }
 
     #[graphql(name = "historicFMSAlarms")]
-    async fn historic_fms_alarms(&self, ctx: &Context<'_>) -> Vec<bool> {
-        todo!()
+    async fn historic_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
+        let field = ctx.data::<Field>().unwrap();
+        field
+            .alarm_handler()
+            .await
+            .historic_alarms()
+            .await
+            .iter()
+            .cloned()
+            .map(|alarm| GQLFMSAlarm {
+                obj_fmsalarm: alarm,
+            })
+            .collect()
+    }
+}
+
+pub struct GQLFMSAlarm {
+    pub obj_fmsalarm: FMSAlarm,
+}
+
+#[Object(name = "FMSAlarm")]
+impl GQLFMSAlarm {
+    async fn id(&self) -> String {
+        self.obj_fmsalarm.id.clone()
+    }
+
+    async fn alarm_type(&self) -> GQLFMSAlarmType {
+        GQLFMSAlarmType::from(self.obj_fmsalarm.alarm_type)
+    }
+
+    async fn code(&self) -> String {
+        self.obj_fmsalarm.code.clone()
+    }
+
+    async fn description(&self) -> String {
+        self.obj_fmsalarm.description.clone()
+    }
+
+    async fn source_id(&self) -> String {
+        self.obj_fmsalarm.source_id.clone()
+    }
+
+    async fn target_scope(&self) -> String {
+        self.obj_fmsalarm.target_scope.clone()
+    }
+
+    async fn timestamp(&self) -> u64 {
+        self.obj_fmsalarm.timestamp
+    }
+
+    async fn released(&self) -> bool {
+        self.obj_fmsalarm.released
+    }
+
+    async fn auto_clear(&self) -> bool {
+        self.obj_fmsalarm.auto_clear
     }
 }
