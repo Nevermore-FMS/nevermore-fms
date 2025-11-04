@@ -76,7 +76,7 @@ impl DriverStationConnection {
             return;
         }
         raw.alive = false;
-        
+
         if let Some(ds) = &raw.parent {
             ds.set_active_connection(None).await;
             ds.set_confirmed_state(None).await;
@@ -119,12 +119,14 @@ impl DriverStationConnection {
         };
 
         let conn = driver_station_connection.clone();
-        tokio::spawn(async move {
-            if let Err(e) = conn.handle_tcp_stream(owned_read_half).await {
-                warn!("Error handling TCP stream from driverstation: {}", e);
-                conn.kill().await
-            }
-        });
+        tokio::task::Builder::new()
+            .name("DriverStationConnection TCP Stream Handler")
+            .spawn(async move {
+                if let Err(e) = conn.handle_tcp_stream(owned_read_half).await {
+                    warn!("Error handling TCP stream from driverstation: {}", e);
+                    conn.kill().await
+                }
+            })?;
 
         Ok(driver_station_connection)
     }

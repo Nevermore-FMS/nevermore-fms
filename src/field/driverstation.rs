@@ -69,7 +69,6 @@ impl DriverStation {
     }
 
     pub async fn enabled(&self) -> bool {
-        let raw = self.raw.read().await;
         let faulted = self
             .parent()
             .await
@@ -79,7 +78,8 @@ impl DriverStation {
             .await
             .is_target_faulted(self.alarm_target().await.as_str())
             .await;
-        raw.commanded_enabled && !faulted
+        let commanded_enabled = self.commanded_enabled().await;
+        commanded_enabled && !faulted
     }
 
     pub async fn expected_ip(&self) -> Option<AnyIpCidr> {
@@ -349,7 +349,7 @@ impl DriverStations {
 
     // Internal API -->
 
-    pub(super) fn new(field: Option<Field>) -> Self {
+    pub(super) fn new(field: Option<Field>) -> anyhow::Result<Self> {
         let (terminate_sender, _) = broadcast::channel(1);
 
         let (indicate_running, running_signal) = async_channel::bounded(1);
@@ -365,12 +365,14 @@ impl DriverStations {
         };
 
         let async_driverstations = driverstations.clone();
-        tokio::spawn(async move {
-            tokio::join!(async_driverstations.tick_loop());
-            drop(indicate_running);
-        });
+        tokio::task::Builder::new()
+            .name("DriverStations tick loop")
+            .spawn(async move {
+                async_driverstations.tick_loop().await;
+                drop(indicate_running);
+            })?;
 
-        driverstations
+        Ok(driverstations)
     }
 
     pub(super) async fn set_field(&self, field: Field) -> anyhow::Result<()> {
@@ -407,10 +409,8 @@ impl DriverStations {
     }
 
     async fn tick(&self) {
-        let raw_driverstations = self.raw.read().await;
-        let all_driverstations = raw_driverstations.all_driverstations.clone();
+        let all_driverstations = self.get_all_driverstations().await;
         let field = self.get_field().await;
-        drop(raw_driverstations);
         for ds in all_driverstations {
             // Throw conditional faults
             if ds.enabled().await && field.is_safe().await {
@@ -424,7 +424,6 @@ impl DriverStations {
                     false
                 ).await;
             }
-
             ds.tick().await;
         }
     }
@@ -482,11 +481,7 @@ impl DriverStations {
         tcp_stream: TcpStream,
         ip_address: IpAddr,
     ) -> anyhow::Result<()> {
-        tokio::spawn(DriverStationConnection::new(
-            tcp_stream,
-            ip_address,
-            self.get_field().await,
-        ));
+        DriverStationConnection::new(tcp_stream, ip_address, self.get_field().await).await?;
         Ok(())
     }
 }

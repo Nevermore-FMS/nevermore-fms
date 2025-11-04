@@ -194,7 +194,7 @@ impl Field {
             play_number: 1,
             time_left: difftimer::DiffTimer::new(Duration::ZERO, false),
             ds_mode: enums::Mode::Autonomous,
-            driverstations: DriverStations::new(None),
+            driverstations: DriverStations::new(None)?,
             alarm_handler: FMSAlarmHandler::new(),
             is_safe: true,
             terminate_signal: Some(terminate_sender),
@@ -215,17 +215,30 @@ impl Field {
 
         let udp_address = SocketAddr::new(ds_address, 1160);
         let tcp_address = SocketAddr::new(ds_address, 1750);
-        let async_field = field.clone();
-        tokio::spawn(async move {
-            let (udp_result, tcp_result, _) = tokio::join!(
-                async_field.listen_for_udp_messages(udp_address),
-                async_field.listen_for_tcp_connections(tcp_address),
-                async_field.tick_loop()
-            );
-            udp_result.unwrap();
-            tcp_result.unwrap();
-            drop(indicate_running);
-        });
+        let async_field_udp = field.clone();
+        let async_field_tcp = field.clone();
+        let async_field_loop = field.clone();
+        let udp_handle = tokio::task::Builder::new()
+            .name("Field UDP Listener")
+            .spawn(async move { async_field_udp.listen_for_udp_messages(udp_address).await })?;
+        let tcp_handle = tokio::task::Builder::new()
+            .name("Field TCP Listener")
+            .spawn(async move {
+                async_field_tcp
+                    .listen_for_tcp_connections(tcp_address)
+                    .await
+            })?;
+        let loop_handle = tokio::task::Builder::new()
+            .name("Field tick loop")
+            .spawn(async move { async_field_loop.tick_loop().await })?;
+        tokio::task::Builder::new()
+            .name("Field alive signal")
+            .spawn(async move {
+                let (udp_result, tcp_result, _) = tokio::join!(udp_handle, tcp_handle, loop_handle);
+                udp_result.unwrap().unwrap();
+                tcp_result.unwrap().unwrap();
+                drop(indicate_running);
+            })?;
 
         Ok(field)
     }
