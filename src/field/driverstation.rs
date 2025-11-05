@@ -436,6 +436,7 @@ impl DriverStations {
         let status_byte = reader.read_u8().await?;
         let team_number = reader.read_u16().await?;
         let battery_byte = reader.read_u16().await?;
+        //TODO Handle Tags
 
         //Status byte info
         let is_emergency_stopped = (status_byte >> 7 & 0x01) == 1;

@@ -210,27 +210,6 @@ impl DriverStationConnection {
                         ds.unwrap().set_version(version_type, version).await;
                     }
                 }
-                0x17 => {
-                    // Log Message Packet
-                    let _ = reader.read_u32().await?; // Message Count (Seems to always be 1?) - Chase
-                    let timestamp = reader.read_u64().await?;
-                    reader.read_u64().await?;
-                    let mut data = String::new();
-                    reader.read_u32().await?;
-                    reader.read_to_string(&mut data).await.ok();
-
-                    let raw_conn = self.raw.read().await;
-                    let ds = raw_conn.parent.clone();
-                    drop(raw_conn);
-                    if ds.is_some() {
-                        ds.unwrap()
-                            .add_log_message(DriverStationLogMessage {
-                                timestamp,
-                                message: data,
-                            })
-                            .await;
-                    }
-                }
                 0x16 => {
                     // Log Data Packet
                     let timestamp = Utc::now().timestamp() as u64;
@@ -277,6 +256,27 @@ impl DriverStationConnection {
                                 can_utilization,
                                 signal,
                                 bandwidth,
+                            })
+                            .await;
+                    }
+                }
+                0x17 => {
+                    // Log Message Packet
+                    let _ = reader.read_u32().await?; // Message Count (Seems to always be 1?) - Chase
+                    let timestamp = reader.read_u64().await?;
+                    reader.read_u64().await?;
+                    let mut data = String::new();
+                    reader.read_u32().await?;
+                    reader.read_to_string(&mut data).await.ok();
+
+                    let raw_conn = self.raw.read().await;
+                    let ds = raw_conn.parent.clone();
+                    drop(raw_conn);
+                    if ds.is_some() {
+                        ds.unwrap()
+                            .add_log_message(DriverStationLogMessage {
+                                timestamp,
+                                message: data,
                             })
                             .await;
                     }

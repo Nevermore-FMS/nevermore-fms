@@ -55,6 +55,7 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    #[cfg(debug_assertions)]
     console_subscriber::init();
 
     pretty_env_logger::formatted_timed_builder()

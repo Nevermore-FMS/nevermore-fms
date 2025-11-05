@@ -3,50 +3,48 @@ use crate::field::Field;
 use crate::graph::types::*;
 use async_graphql::*;
 
-pub struct GQLFieldState;
+pub struct GQLFieldState {
+    pub obj_field: Field,
+}
 
 #[allow(unreachable_code)]
 #[Object(name = "FieldState")]
 impl GQLFieldState {
-    async fn event_name(&self, ctx: &Context<'_>) -> String {
-        let field = ctx.data::<Field>().unwrap();
-        field.event_name().await
+    async fn event_name(&self) -> String {
+        self.obj_field.event_name().await
     }
 
-    async fn tournament_level(&self, ctx: &Context<'_>) -> GQLTournamentLevel {
-        let field = ctx.data::<Field>().unwrap();
-        GQLTournamentLevel::from(field.tournament_level().await)
+    async fn tournament_level(&self) -> GQLTournamentLevel {
+        GQLTournamentLevel::from(self.obj_field.tournament_level().await)
     }
 
-    async fn match_number(&self, ctx: &Context<'_>) -> u16 {
-        let field = ctx.data::<Field>().unwrap();
-        field.match_number().await
+    async fn match_number(&self) -> u16 {
+        self.obj_field.match_number().await
     }
 
-    async fn play_number(&self, ctx: &Context<'_>) -> u8 {
-        let field = ctx.data::<Field>().unwrap();
-        field.play_number().await
+    async fn play_number(&self) -> u8 {
+        self.obj_field.play_number().await
     }
 
-    async fn time_left(&self, ctx: &Context<'_>) -> f64 {
-        let field = ctx.data::<Field>().unwrap();
-        field.timer().await.current_time_remaining().as_secs_f64()
+    async fn time_left(&self) -> f64 {
+        self.obj_field
+            .timer()
+            .await
+            .current_time_remaining()
+            .as_secs_f64()
     }
 
-    async fn udp_online(&self, ctx: &Context<'_>) -> bool {
-        let field = ctx.data::<Field>().unwrap();
-        field.udp_online().await
+    async fn udp_online(&self) -> bool {
+        self.obj_field.udp_online().await
     }
 
-    async fn tcp_online(&self, ctx: &Context<'_>) -> bool {
-        let field = ctx.data::<Field>().unwrap();
-        field.tcp_online().await
+    async fn tcp_online(&self) -> bool {
+        self.obj_field.tcp_online().await
     }
 
     #[graphql(name = "activeFMSAlarms")]
-    async fn active_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
-        let field = ctx.data::<Field>().unwrap();
-        field
+    async fn active_fms_alarms(&self) -> Vec<GQLFMSAlarm> {
+        self.obj_field
             .alarm_handler()
             .await
             .active_alarms()
@@ -60,9 +58,8 @@ impl GQLFieldState {
     }
 
     #[graphql(name = "historicFMSAlarms")]
-    async fn historic_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
-        let field = ctx.data::<Field>().unwrap();
-        field
+    async fn historic_fms_alarms(&self) -> Vec<GQLFMSAlarm> {
+        self.obj_field
             .alarm_handler()
             .await
             .historic_alarms()
