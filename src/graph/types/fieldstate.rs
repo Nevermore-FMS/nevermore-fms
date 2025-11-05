@@ -15,7 +15,7 @@ impl GQLFieldState {
     }
 
     async fn tournament_level(&self) -> GQLTournamentLevel {
-        GQLTournamentLevel::from(self.obj_field.tournament_level().await)
+        self.obj_field.tournament_level().await.into()
     }
 
     async fn match_number(&self) -> u16 {
@@ -32,6 +32,14 @@ impl GQLFieldState {
             .await
             .current_time_remaining()
             .as_secs_f64()
+    }
+
+    async fn ds_mode(&self) -> GQLMode {
+        self.obj_field.ds_mode().await.into()
+    }
+
+    async fn is_safe(&self) -> bool {
+        self.obj_field.is_safe().await
     }
 
     async fn udp_online(&self) -> bool {
@@ -84,7 +92,7 @@ impl GQLFMSAlarm {
     }
 
     async fn alarm_type(&self) -> GQLFMSAlarmType {
-        GQLFMSAlarmType::from(self.obj_fmsalarm.alarm_type)
+        self.obj_fmsalarm.alarm_type.into()
     }
 
     async fn code(&self) -> String {

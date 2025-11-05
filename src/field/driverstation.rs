@@ -506,6 +506,7 @@ pub struct DriverStationConfirmedState {
 #[derive(Clone, Debug)]
 pub struct DriverStationLogMessage {
     pub timestamp: u64,
+    pub local_timestamp: u64,
     pub message: String,
 }
 

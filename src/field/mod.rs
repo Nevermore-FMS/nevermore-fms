@@ -30,13 +30,13 @@ struct RawField {
     play_number: u8,
     time_left: difftimer::DiffTimer,
     ds_mode: enums::Mode,
-    driverstations: DriverStations,
-    alarm_handler: FMSAlarmHandler,
     is_safe: bool,
-    terminate_signal: Option<broadcast::Sender<()>>,
-    running_signal: async_channel::Receiver<()>,
     udp_online: bool,
     tcp_online: bool,
+    driverstations: DriverStations,
+    alarm_handler: FMSAlarmHandler,
+    terminate_signal: Option<broadcast::Sender<()>>,
+    running_signal: async_channel::Receiver<()>,
 }
 
 #[derive(Clone)]

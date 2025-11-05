@@ -17,7 +17,7 @@ impl GQLDriverStation {
     }
 
     async fn alliance_station(&self) -> GQLAllianceStation {
-        GQLAllianceStation::from(self.obj_driverstation.alliance_station().await)
+        self.obj_driverstation.alliance_station().await.into()
     }
 
     async fn commanded_enabled(&self) -> bool {
@@ -142,7 +142,7 @@ impl GQLDriverStationConfirmedState {
     }
 
     async fn mode(&self) -> GQLMode {
-        GQLMode::from(self.obj_driverstationconfirmedstate.mode)
+        self.obj_driverstationconfirmedstate.mode.into()
     }
 
     async fn team_number(&self) -> u16 {
@@ -229,6 +229,10 @@ impl GQLDriverStationLogMessage {
         self.obj_driverstationlogmessage.timestamp
     }
 
+    async fn local_timestamp(&self) -> u64 {
+        self.obj_driverstationlogmessage.local_timestamp
+    }
+
     async fn message(&self) -> String {
         self.obj_driverstationlogmessage.message.clone()
     }
@@ -241,7 +245,7 @@ pub struct GQLVersionData {
 #[Object(name = "VersionData")]
 impl GQLVersionData {
     async fn version_type(&self) -> GQLVersionType {
-        GQLVersionType::from(self.obj_versiondata.version_type)
+        self.obj_versiondata.version_type.into()
     }
 
     async fn status(&self) -> String {

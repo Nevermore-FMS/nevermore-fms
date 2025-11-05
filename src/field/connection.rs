@@ -262,8 +262,9 @@ impl DriverStationConnection {
                 }
                 0x17 => {
                     // Log Message Packet
+                    let timestamp = Utc::now().timestamp() as u64;
                     let _ = reader.read_u32().await?; // Message Count (Seems to always be 1?) - Chase
-                    let timestamp = reader.read_u64().await?;
+                    let local_timestamp = reader.read_u64().await? - 2082844800; // Offset from LabView epoch to UNIX Epoch
                     reader.read_u64().await?;
                     let mut data = String::new();
                     reader.read_u32().await?;
@@ -276,6 +277,7 @@ impl DriverStationConnection {
                         ds.unwrap()
                             .add_log_message(DriverStationLogMessage {
                                 timestamp,
+                                local_timestamp,
                                 message: data,
                             })
                             .await;
