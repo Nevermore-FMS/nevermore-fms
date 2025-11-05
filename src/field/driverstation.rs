@@ -100,11 +100,13 @@ impl DriverStation {
     pub async fn log_data(&self) -> Vec<DriverStationLogData> {
         let raw = self.raw.read().await;
         raw.log_data.clone()
+        //TODO Don't store in RAM, read from DB instead
     }
 
     pub async fn log_messages(&self) -> Vec<DriverStationLogMessage> {
         let raw = self.raw.read().await;
         raw.log_messages.clone()
+        //TODO Don't store in RAM, read from DB instead
     }
 
     pub async fn versions(&self) -> HashMap<VersionType, VersionData> {
@@ -151,11 +153,13 @@ impl DriverStation {
     pub(super) async fn record_log_data(&self, log_data: DriverStationLogData) {
         let mut raw = self.raw.write().await;
         raw.log_data.push(log_data);
+        //TODO Don't store in RAM, write to DB instead
     }
 
     pub(super) async fn add_log_message(&self, log_message: DriverStationLogMessage) {
         let mut raw = self.raw.write().await;
         raw.log_messages.push(log_message);
+        //TODO Don't store in RAM, write to DB instead
     }
 
     pub(super) async fn set_confirmed_state(
