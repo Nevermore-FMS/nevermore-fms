@@ -2,14 +2,19 @@ use std::net::SocketAddr;
 
 use log::info;
 use poem::{
-    EndpointExt, Route, Server, http::Method, listener::TcpListener, middleware::Cors, post,
+    EndpointExt, Route, Server, get, http::Method, listener::TcpListener, middleware::Cors, post,
 };
 
-use crate::{field::Field, graph};
+use crate::{
+    field::Field,
+    graph::{self, create_sdl_endpoint},
+};
 
 pub async fn start_server(web_address: SocketAddr, field: Field) {
+    let schema = graph::create_schema(field);
     let app = Route::new()
-        .at("/api/graphql", post(graph::provide_graphql(field)))
+        .at("/api/graphql", post(graph::create_graphql_endpoint(schema.clone())))
+        .at("/api/schema.graphql", get(create_sdl_endpoint(schema)))
         .with(
             Cors::new()
                 .allow_method(Method::GET)

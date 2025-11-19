@@ -30,7 +30,6 @@ impl Query {
             .collect()
     }
 
-    #[graphql(oneof)]
     async fn driver_station(
         &self,
         ctx: &Context<'_>,
