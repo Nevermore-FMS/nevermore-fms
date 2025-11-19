@@ -10,7 +10,7 @@ type Query {
   me: User!
   users: [User!]
 
-  currentMatch: Match
+  currentMatch: FieldMatch
   currentSchedule: Schedule
   schedules: [Schedule!]
 }
@@ -33,7 +33,7 @@ type Mutation {
   commitMatch: Boolean!
   discardMatch: Boolean!
 
-  setCurrentMatch(id: ID): Match
+  setCurrentMatch(id: ID): FieldMatch
 
   createSchedule(newSchedule: ScheduleInput!): Schedule
   updateSchedule(id: ID!, newSchedule: ScheduleInput!): Schedule
@@ -170,7 +170,7 @@ enum Mode {
   Autonomous
 }
 
-interface Match {
+interface FieldMatch {
   id: ID!
   scheduledMatch: ScheduledMatch!
   playNumber: Int!
@@ -182,7 +182,7 @@ interface Match {
   completedSuccessfully: Boolean!
 }
 
-type Match2025 implements Match {
+type FieldMatch2025 implements FieldMatch {
   id: ID!
   scheduledMatch: ScheduledMatch!
   playNumber: Int!

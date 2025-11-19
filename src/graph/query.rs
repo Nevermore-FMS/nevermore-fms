@@ -55,4 +55,9 @@ impl Query {
                 }),
         }
     }
+
+    async fn current_match(&self, ctx: &Context<'_>) -> Option<GQLFieldMatch> {
+        let _field = ctx.data::<Field>().unwrap();
+        None
+    }
 }
