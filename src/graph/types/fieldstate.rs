@@ -49,36 +49,6 @@ impl GQLFieldState {
     async fn tcp_online(&self) -> bool {
         self.obj_field.tcp_online().await
     }
-
-    #[graphql(name = "activeFMSAlarms")]
-    async fn active_fms_alarms(&self) -> Vec<GQLFMSAlarm> {
-        self.obj_field
-            .alarm_handler()
-            .await
-            .active_alarms()
-            .await
-            .iter()
-            .cloned()
-            .map(|alarm| GQLFMSAlarm {
-                obj_fmsalarm: alarm,
-            })
-            .collect()
-    }
-
-    #[graphql(name = "historicFMSAlarms")]
-    async fn historic_fms_alarms(&self) -> Vec<GQLFMSAlarm> {
-        self.obj_field
-            .alarm_handler()
-            .await
-            .historic_alarms()
-            .await
-            .iter()
-            .cloned()
-            .map(|alarm| GQLFMSAlarm {
-                obj_fmsalarm: alarm,
-            })
-            .collect()
-    }
 }
 
 pub struct GQLFMSAlarm {

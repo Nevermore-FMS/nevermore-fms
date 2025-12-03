@@ -1,3 +1,3 @@
 dry_mods::mods! {
-    pub mod pub use driverstationbycriteria;
+    pub mod pub use driverstationbycriteria, newds;
 }

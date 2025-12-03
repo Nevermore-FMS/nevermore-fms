@@ -1,5 +1,7 @@
 type Query {
   fieldState: FieldState
+  activeFMSAlarms: [FMSAlarm!]
+  historicFMSAlarms: [FMSAlarm!]
 
   driverStations: [DriverStation!]
   driverStation(
@@ -51,8 +53,6 @@ type FieldState {
   timeLeft: DiffTimer
   udpOnline: Boolean!
   tcpOnline: Boolean!
-  activeFMSAlarms: [FMSAlarm!]
-  historicFMSAlarms: [FMSAlarm!]
 }
 
 enum TournamentLevel {
@@ -218,10 +218,9 @@ type Schedule {
   scheduledMatches: [ScheduledMatch!]!
 }
 
-input DriverStationInput {
+input NewDsInput {
   teamNumber: Int!
   allianceStation: AllianceStation!
-  expectedIp: IpCidr
 }
 
 type Token {

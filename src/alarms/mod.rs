@@ -128,6 +128,21 @@ impl FMSAlarmHandler {
         Ok(true)
     }
 
+    /// Returns `true` if all active alarms could be cleared, and `false` if 
+    /// any alarm could not be cleared
+    pub async fn clear_all_alarms(&self) -> anyhow::Result<bool> {
+        let alarms = self.active_alarms().await;
+        let mut any_failed = false;
+        for alarm in alarms {
+            let alarm_cleared = self.clear_alarm(&alarm.code).await?;
+            if !alarm_cleared {
+                any_failed = true;
+            }
+        }
+        
+        Ok(!any_failed)
+    }
+
     pub async fn is_target_faulted(&self, target: &str) -> bool {
         let raw = self.raw.write().await;
         for active_alarm in raw.active_alarms.clone() {

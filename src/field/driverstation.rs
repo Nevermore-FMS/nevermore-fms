@@ -1,6 +1,6 @@
 use std::{collections::HashMap, io::Cursor, net::IpAddr, sync::Arc, time::Duration};
 
-use anyhow::{Context, Ok, bail};
+use anyhow::{Context, anyhow, bail};
 use chrono::Utc;
 use cidr::AnyIpCidr;
 use log::*;
@@ -236,7 +236,7 @@ impl DriverStations {
     // Public API -->
 
     pub async fn add_driverstation(
-        &mut self,
+        &self,
         team_number: u16,
         alliance_station: AllianceStation,
     ) -> anyhow::Result<DriverStation> {
@@ -270,7 +270,7 @@ impl DriverStations {
         Ok(driverstation)
     }
 
-    pub async fn delete_driverstation(&mut self, team_number: u16) -> anyhow::Result<()> {
+    pub async fn delete_driverstation(&self, team_number: u16) -> anyhow::Result<()> {
         let raw_driverstations = self.raw.read().await;
         let all_driverstations = raw_driverstations.all_driverstations.clone();
         drop(raw_driverstations);
@@ -287,11 +287,16 @@ impl DriverStations {
             }
         }
 
-        let mut raw_driverstations = self.raw.write().await;
-        raw_driverstations.all_driverstations = new_driverstations;
-        info!("Deleted driverstation {}", team_number);
+        if all_driverstations.len() > new_driverstations.len() {
+            let mut raw_driverstations = self.raw.write().await;
+            raw_driverstations.all_driverstations = new_driverstations;
+            info!("Deleted driverstation {}", team_number);
+            Ok(())
+        } else {
+            Err(anyhow!("Failed to delete driverstation {} - driverstation does not exist", team_number))
+        }
 
-        Ok(())
+        
     }
 
     pub async fn get_driverstation_by_team_number(

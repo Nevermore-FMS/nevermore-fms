@@ -71,14 +71,14 @@ async fn main() -> anyhow::Result<()> {
 
     let field = Field::new(cli.ds_address).await?;
 
-    field
-        .driverstations()
-        .await
-        .add_driverstation(5276, field::enums::AllianceStation::Red1)
-        .await
-        .unwrap()
-        .update_expected_ip("0.0.0.0/0".parse().unwrap())
-        .await; //TODO Remove
+    // field
+    //     .driverstations()
+    //     .await
+    //     .add_driverstation(5276, field::enums::AllianceStation::Red1)
+    //     .await
+    //     .unwrap()
+    //     .update_expected_ip("0.0.0.0/0".parse().unwrap())
+    //     .await; //TODO Remove
 
     web::start_server(cli.web_address, field.clone()).await;
 

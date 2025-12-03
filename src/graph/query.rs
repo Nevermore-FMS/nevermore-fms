@@ -9,11 +9,46 @@ pub struct Query;
 #[allow(unreachable_code)]
 #[Object]
 impl Query {
+    //TODO Auth
+
+
     async fn field_state(&self, ctx: &Context<'_>) -> GQLFieldState {
         let field = ctx.data::<Field>().unwrap();
         GQLFieldState {
             obj_field: field.to_owned(),
         }
+    }
+
+        #[graphql(name = "activeFMSAlarms")]
+    async fn active_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
+        let field = ctx.data::<Field>().unwrap();
+        field
+            .alarm_handler()
+            .await
+            .active_alarms()
+            .await
+            .iter()
+            .cloned()
+            .map(|alarm| GQLFMSAlarm {
+                obj_fmsalarm: alarm,
+            })
+            .collect()
+    }
+
+    #[graphql(name = "historicFMSAlarms")]
+    async fn historic_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
+        let field = ctx.data::<Field>().unwrap();
+        field
+            .alarm_handler()
+            .await
+            .historic_alarms()
+            .await
+            .iter()
+            .cloned()
+            .map(|alarm| GQLFMSAlarm {
+                obj_fmsalarm: alarm,
+            })
+            .collect()
     }
 
     async fn driver_stations(&self, ctx: &Context<'_>) -> Vec<GQLDriverStation> {
@@ -33,11 +68,11 @@ impl Query {
     async fn driver_station(
         &self,
         ctx: &Context<'_>,
-        criteria: GQLDriverStationByCriteria,
+        criteria: GQLDriverStationByCriteriaInput,
     ) -> Option<GQLDriverStation> {
         let field = ctx.data::<Field>().unwrap();
         match criteria {
-            GQLDriverStationByCriteria::AllianceStation(alliance_station) => field
+            GQLDriverStationByCriteriaInput::AllianceStation(alliance_station) => field
                 .driverstations()
                 .await
                 .get_driverstation_by_position(alliance_station.into())
@@ -45,7 +80,7 @@ impl Query {
                 .map(|ds| GQLDriverStation {
                     obj_driverstation: ds,
                 }),
-            GQLDriverStationByCriteria::TeamNumber(team_number) => field
+            GQLDriverStationByCriteriaInput::TeamNumber(team_number) => field
                 .driverstations()
                 .await
                 .get_driverstation_by_team_number(team_number.into())

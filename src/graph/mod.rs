@@ -1,14 +1,15 @@
-use async_graphql::{EmptyMutation, EmptySubscription, ObjectType, Schema, SubscriptionType};
+use async_graphql::{EmptySubscription, ObjectType, Schema, SubscriptionType};
 use async_graphql_poem::GraphQL;
 
-use crate::{field::Field, graph::query::Query};
+use crate::{field::Field, graph::{mutation::Mutation, query::Query},};
 
 mod inputs;
 pub mod query;
+pub mod mutation;
 mod types;
 
-pub fn create_schema(field: Field) -> Schema<Query, EmptyMutation, EmptySubscription> {
-    Schema::build(Query, EmptyMutation, EmptySubscription)
+pub fn create_schema(field: Field) -> Schema<Query, Mutation, EmptySubscription> {
+    Schema::build(Query, Mutation, EmptySubscription)
         .data(field)
         .finish()
 }
