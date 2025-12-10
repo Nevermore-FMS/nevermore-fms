@@ -66,7 +66,9 @@ async fn main() -> anyhow::Result<()> {
 
     let field = Field::new(cli.ds_address).await?;
 
-    web::start_server(cli.web_address, field.clone()).await?;
+    web::start_server(cli.web_address, field.clone())?.await??;
+
+    //TODO Join all tasks
 
     return Ok(());
 }

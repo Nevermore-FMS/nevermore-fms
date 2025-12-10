@@ -4,10 +4,14 @@ use log::info;
 use poem::{
     EndpointExt, Route, Server, get, http::Method, listener::TcpListener, middleware::Cors, post,
 };
+use tokio::task::JoinHandle;
 
 use crate::{field::Field, graph};
 
-pub async fn start_server(web_address: SocketAddr, field: Field) -> anyhow::Result<()> {
+pub fn start_server(
+    web_address: SocketAddr,
+    field: Field,
+) -> anyhow::Result<JoinHandle<Result<(), std::io::Error>>> {
     let schema = graph::schema::create_schema(field);
     let app = Route::new()
         .at(
@@ -26,7 +30,11 @@ pub async fn start_server(web_address: SocketAddr, field: Field) -> anyhow::Resu
 
     info!("Web server started on {}", web_address);
 
-    Server::new(TcpListener::bind(web_address)).run(app).await?;
+    let server = Server::new(TcpListener::bind(web_address));
 
-    Ok(())
+    let join_handle = tokio::task::Builder::new()
+        .name("Web Server")
+        .spawn(server.run(app))?;
+
+    Ok(join_handle)
 }
