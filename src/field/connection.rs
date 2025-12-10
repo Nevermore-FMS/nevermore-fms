@@ -302,10 +302,10 @@ impl DriverStationConnection {
 
         if let Some(ds) = raw_conn.parent.clone() {
             alliance_station = ds.alliance_station().await;
+            status = DriverstationStatus::Good;
+
             if let Some(expected_ip) = ds.expected_ip().await.take() {
-                if expected_ip.contains(&raw_conn.ip_address) {
-                    status = DriverstationStatus::Good;
-                } else {
+                if !expected_ip.contains(&raw_conn.ip_address) {
                     status = DriverstationStatus::Bad;
                     info!(
                         "Driver station {} is not expected to be connected from this IP address ({})",
@@ -313,8 +313,6 @@ impl DriverStationConnection {
                         &raw_conn.ip_address
                     );
                 }
-            } else {
-                status = DriverstationStatus::Waiting;
             }
         }
 
