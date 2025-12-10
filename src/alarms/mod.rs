@@ -1,16 +1,15 @@
+pub mod targets;
+
 use std::{
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, bail};
-use targets::is_target_in_scope;
 use tokio::sync::RwLock;
 
-pub mod targets;
-
-/// FMSAlarmType indicates how the alarm will be displayed
-/// The Fault type will also activate the associated System Stop for the target_scope (LStop or EStop)
+/// FMSAlarmType indicates how the alarm will be displayed.
+/// `FMSAlarmType::Fault` will also activate the associated System Stop for the target_scope (LStop or EStop)
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum FMSAlarmType {
     Info,
@@ -147,7 +146,7 @@ impl FMSAlarmHandler {
         let raw = self.raw.write().await;
         for active_alarm in raw.active_alarms.clone() {
             if active_alarm.alarm_type == FMSAlarmType::Fault
-                && is_target_in_scope(&active_alarm.target_scope, target)
+                && targets::is_target_in_scope(&active_alarm.target_scope, target)
             {
                 return true;
             }

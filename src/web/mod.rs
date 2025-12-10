@@ -10,7 +10,7 @@ use crate::{
     graph::{self, create_sdl_endpoint},
 };
 
-pub async fn start_server(web_address: SocketAddr, field: Field) {
+pub async fn start_server(web_address: SocketAddr, field: Field) -> anyhow::Result<()> {
     let schema = graph::create_schema(field);
     let app = Route::new()
         .at("/api/graphql", post(graph::create_graphql_endpoint(schema.clone())))
@@ -22,8 +22,10 @@ pub async fn start_server(web_address: SocketAddr, field: Field) {
         );
 
     info!("Web server started on {}", web_address);
+
     Server::new(TcpListener::bind(web_address))
         .run(app)
-        .await
-        .unwrap()
+        .await?;
+
+    Ok(())
 }

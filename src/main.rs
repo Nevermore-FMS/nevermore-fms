@@ -1,14 +1,10 @@
-extern crate anyhow;
-extern crate async_trait;
-extern crate clap;
-extern crate log;
-
 pub mod alarms;
 pub mod difftimer;
 pub mod field;
 pub mod game;
 pub mod graph;
 pub mod web;
+// TODO These do not need to be pub
 
 use clap::{Parser, ValueEnum};
 use log::*;
@@ -71,16 +67,7 @@ async fn main() -> anyhow::Result<()> {
 
     let field = Field::new(cli.ds_address).await?;
 
-    // field
-    //     .driverstations()
-    //     .await
-    //     .add_driverstation(5276, field::enums::AllianceStation::Red1)
-    //     .await
-    //     .unwrap()
-    //     .update_expected_ip("0.0.0.0/0".parse().unwrap())
-    //     .await; //TODO Remove
-
-    web::start_server(cli.web_address, field.clone()).await;
+    web::start_server(cli.web_address, field.clone()).await?;
 
     return Ok(());
 }
