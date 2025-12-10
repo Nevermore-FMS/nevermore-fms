@@ -1,7 +1,6 @@
 pub mod alarms;
 pub mod difftimer;
 pub mod field;
-pub mod game;
 pub mod graph;
 pub mod web;
 // TODO These do not need to be pub
@@ -18,7 +17,7 @@ use crate::field::Field;
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
-const BIRD: &'static str = include_str!("eaobird.txt");
+const BIRD: &'static str = include_str!("../assets/eaobird.txt");
 
 #[derive(ValueEnum, PartialEq, Debug, Clone)]
 pub enum UIWindow {
