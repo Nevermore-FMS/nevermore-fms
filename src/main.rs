@@ -65,19 +65,18 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting {} v{} by {}...", NAME, VERSION, AUTHORS);
 
-    let field = Field::new().await?;
+    let field = Field::new().await;
 
     let cancellation_token = CancellationToken::new();
 
-
     let res = tokio::try_join!(
         field.run(cli.ds_address, cancellation_token.clone()),
-        web::start_server(cli.web_address, field.clone(), cancellation_token.clone())
+        web::run(cli.web_address, field.clone(), cancellation_token.clone())
     );
 
     if let Err(e) = res {
         return Err(e.context("Main process terminated unexpectedly"))
     }
 
-    return Ok(());
+    Ok(())
 }

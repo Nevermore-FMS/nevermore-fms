@@ -8,6 +8,7 @@ edition = "2024"
 [dependencies]
 # Framework
 tokio = { version = "1", features = ["full", "tracing"] }
+tokio-util = "0.7.17"
 
 # CLI
 clap = { version = "4.5.47", features = ["derive", "env"] }
@@ -22,10 +23,8 @@ anyhow = "1.0.99"
 async-trait = "0.1.89"
 chrono = "0.4.41"
 uuid = { version = "1.18.1", features = ["v4", "fast-rng"] }
-async-channel = "2.5.0"
 cidr = "0.3.1"
 poem = "3.1.12"
 async-graphql = "7.0.17"
 async-graphql-poem = "7.0.17"
-console-subscriber = "0.4.1"
-tokio-util = "0.7.17"
+console-subscriber = "0.5.0"

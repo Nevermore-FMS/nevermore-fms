@@ -8,7 +8,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{field::Field, graph};
 
-pub async fn start_server(
+pub async fn run(
     web_address: SocketAddr,
     field: Field,
     cancellation_token: CancellationToken,

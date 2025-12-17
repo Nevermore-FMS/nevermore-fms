@@ -1,15 +1,10 @@
 use std::{collections::HashMap, io::Cursor, net::IpAddr, sync::Arc, time::Duration};
 
-use anyhow::{Context, anyhow, bail};
+use anyhow::{anyhow, bail};
 use chrono::Utc;
 use cidr::AnyIpCidr;
 use log::*;
-use tokio::{
-    io::AsyncReadExt,
-    net::TcpStream,
-    sync::{RwLock, broadcast},
-    time,
-};
+use tokio::{io::AsyncReadExt, net::TcpStream, sync::RwLock, time::Interval};
 use tokio_util::sync::CancellationToken;
 
 use crate::alarms::FMSAlarmType;
@@ -224,8 +219,6 @@ impl DriverStation {
 pub struct RawDriverStations {
     field: Option<Field>,
     all_driverstations: Vec<DriverStation>,
-    terminate_signal: Option<broadcast::Sender<()>>,
-    running_signal: async_channel::Receiver<()>,
 }
 
 #[derive(Clone)]
@@ -294,10 +287,11 @@ impl DriverStations {
             info!("Deleted driverstation {}", team_number);
             Ok(())
         } else {
-            Err(anyhow!("Failed to delete driverstation {} - driverstation does not exist", team_number))
+            Err(anyhow!(
+                "Failed to delete driverstation {} - driverstation does not exist",
+                team_number
+            ))
         }
-
-        
     }
 
     pub async fn get_driverstation_by_team_number(
@@ -345,44 +339,28 @@ impl DriverStations {
         }
     }
 
-    pub async fn terminate(&self) {
-        let mut raw_driverstations = self.raw.write().await;
-        drop(raw_driverstations.terminate_signal.take());
-    }
-
-    pub async fn wait_for_terminate(&self) {
-        let raw_driverstations = self.raw.read().await;
-        let running_signal = raw_driverstations.running_signal.clone();
-        drop(raw_driverstations);
-        let _ = running_signal.recv().await;
-    }
-
     // Internal API -->
 
-    pub(super) fn new(field: Option<Field>) -> anyhow::Result<Self> {
-        let (terminate_sender, _) = broadcast::channel(1);
-
-        let (indicate_running, running_signal) = async_channel::bounded(1);
-
+    pub(super) fn new(field: Option<Field>) -> Self {
         let driverstations = RawDriverStations {
             field,
             all_driverstations: Vec::new(),
-            terminate_signal: Some(terminate_sender),
-            running_signal,
         };
         let driverstations = Self {
             raw: Arc::new(RwLock::new(driverstations)),
         };
 
-        let async_driverstations = driverstations.clone();
-        tokio::task::Builder::new()
-            .name("DriverStations tick loop")
-            .spawn(async move {
-                async_driverstations.tick_loop().await;
-                drop(indicate_running);
-            })?;
+        driverstations
+    }
 
-        Ok(driverstations)
+    pub(super) async fn run(self, cancellation_token: CancellationToken) -> anyhow::Result<()> {
+        let task_handle = tokio::task::Builder::new()
+            .name("DriverStations tick loop")
+            .spawn(self.tick_loop(cancellation_token))?;
+
+        task_handle.await??;
+
+        Ok(())
     }
 
     pub(super) async fn set_field(&self, field: Field) -> anyhow::Result<()> {
@@ -394,27 +372,20 @@ impl DriverStations {
         Ok(())
     }
 
-    async fn tick_loop(&self) {
-        let raw_driverstations = self.raw.write().await;
-        let mut term_rx = raw_driverstations
-            .terminate_signal
-            .as_ref()
-            .context("Can't start the driverstations tick loop because driverstations has already terminated")
-            .unwrap()
-            .subscribe();
-        drop(raw_driverstations);
+    async fn tick_loop(self, cancellation_token: CancellationToken) -> anyhow::Result<()> {
+        let mut interval = tokio::time::interval(Duration::from_millis(250));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
-        let mut interval = time::interval(Duration::from_millis(250));
-        interval.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
-        loop {
-            tokio::select! {
-                _ = interval.tick() => {
-                    self.tick().await;
-                },
-                _ = term_rx.recv() => {
-                    break
-                }
+        let interval_tick_loop = async |mut interval: Interval, driverstations: DriverStations| {
+            loop {
+                interval.tick().await;
+                driverstations.tick().await;
             }
+        };
+
+        tokio::select! {
+            _ = cancellation_token.cancelled() => Ok(()),
+            _ = interval_tick_loop(interval, self) => Err(anyhow::anyhow!("Tick loop closed unexpectedly")),
         }
     }
 
@@ -491,9 +462,9 @@ impl DriverStations {
         &self,
         tcp_stream: TcpStream,
         ip_address: IpAddr,
-        cancellation_token: CancellationToken
+        cancellation_token: CancellationToken,
     ) -> anyhow::Result<()> {
-        let ds_connection = DriverStationConnection::new(ip_address, self.get_field().await).await?;
+        let ds_connection = DriverStationConnection::new(ip_address, self.get_field().await);
         ds_connection.run(tcp_stream, cancellation_token).await
     }
 }

@@ -167,7 +167,7 @@ impl Field {
 
     // Internal API -->
 
-    pub(super) async fn new() -> anyhow::Result<Self> {
+    pub(super) async fn new() -> Self {
         let field = RawField {
             event_name: "nvmre".to_string(),
             tournament_level: TournamentLevel::Test,
@@ -175,7 +175,7 @@ impl Field {
             play_number: 1,
             time_left: difftimer::DiffTimer::new(Duration::ZERO, false),
             ds_mode: enums::Mode::Autonomous,
-            driverstations: DriverStations::new(None)?,
+            driverstations: DriverStations::new(None),
             alarm_handler: FMSAlarmHandler::new(),
             is_safe: true,
             udp_online: false,
@@ -190,9 +190,10 @@ impl Field {
             .driverstations()
             .await
             .set_field(field.clone())
-            .await?;
+            .await
+            .unwrap();
 
-        Ok(field)
+        field
     }
 
     pub(super) async fn run(
@@ -222,8 +223,22 @@ impl Field {
             .name("Field tick loop")
             .spawn(self.clone().tick_loop(cancellation_token.clone()))?;
 
-        while let Some(res) = tasks.join_next().await {
-            res.context("Failed to await Field joined tasks")??;
+        let run_field_tasks = async {
+            while let Some(res) = tasks.join_next().await {
+                res.context("Field tasks stopped unexpectedly")??;
+            }
+            anyhow::Ok(())
+        };
+
+        let driverstations = self.driverstations().await;
+
+        let res = tokio::try_join!(
+            run_field_tasks,
+            driverstations.run(cancellation_token.clone())
+        );
+
+        if let Err(e) = res {
+            return Err(e.context("Field run terminated unexpectedly"));
         }
 
         Ok(())

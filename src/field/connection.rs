@@ -5,6 +5,7 @@ use std::{
     sync::Arc,
 };
 
+use anyhow::Context;
 use chrono::{DateTime, Datelike, Local, Timelike, Utc};
 use log::*;
 use tokio::{
@@ -29,7 +30,7 @@ struct RawDriverStationConnection {
     /// Represents the current driver station, only if this station is expected to be connected
     parent: Option<DriverStation>,
     tcp_writer: Option<OwnedWriteHalf>,
-    udp_socket: Arc<UdpSocket>,
+    udp_socket: Option<Arc<UdpSocket>>,
     ip_address: IpAddr,
     udp_outgoing_sequence_num: u16,
     last_udp_packet_reception: DateTime<Utc>,
@@ -95,12 +96,12 @@ impl DriverStationConnection {
     }
 
     // Internal API -->
-    pub(super) async fn new(ip_address: IpAddr, field: Field) -> anyhow::Result<Self> {
+    pub(super) fn new(ip_address: IpAddr, field: Field) -> Self {
         let driver_station_connection = RawDriverStationConnection {
             field,
             parent: None,
             tcp_writer: None,
-            udp_socket: Arc::new(UdpSocket::bind("0.0.0.0:0").await?),
+            udp_socket: None,
             ip_address,
             udp_outgoing_sequence_num: 0,
             last_udp_packet_reception: Utc::now(),
@@ -109,7 +110,8 @@ impl DriverStationConnection {
         let driver_station_connection = Self {
             raw: Arc::new(RwLock::new(driver_station_connection)),
         };
-        Ok(driver_station_connection)
+
+        driver_station_connection
     }
 
     pub(super) async fn run(
@@ -117,9 +119,11 @@ impl DriverStationConnection {
         tcp_stream: TcpStream,
         cancellation_token: CancellationToken,
     ) -> anyhow::Result<()> {
+        let udp_socket = Arc::new(UdpSocket::bind("0.0.0.0:0").await?);
         let (owned_read_half, owned_write_half) = tcp_stream.into_split();
         let mut raw = self.raw.write().await;
         raw.tcp_writer = Some(owned_write_half);
+        raw.udp_socket = Some(udp_socket);
         drop(raw);
 
         let task_handle = tokio::task::Builder::new()
@@ -308,9 +312,12 @@ impl DriverStationConnection {
         };
 
         tokio::select! {
-            _ = cancellation_token.cancelled() => Ok(()),
+            _ = cancellation_token.cancelled() => {
+                self.kill().await;
+                Ok(())
+            },
             _ = died => Ok(()),
-            _ = read_stream(tcp_reader) => Err(anyhow::anyhow!("TCP Stream handler closed unexpectedly")),
+            res = read_stream(tcp_reader) => res.context("TCP Stream handler closed unexpectedly"),
         }
     }
 
@@ -386,95 +393,100 @@ impl DriverStationConnection {
     pub(super) async fn send_udp_message(&self) -> anyhow::Result<()> {
         let mut raw_conn = self.raw.write().await;
 
-        if let Some(ds) = raw_conn.parent.clone() {
-            if raw_conn.udp_outgoing_sequence_num >= u16::max_value() {
-                raw_conn.udp_outgoing_sequence_num = 0;
-            } else {
-                raw_conn.udp_outgoing_sequence_num += 1;
-            }
+        let Some(ds) = raw_conn.parent.clone() else {
+            anyhow::bail!("This DriverStationConnection does not have a parent DriverStation assigned")
+        };
 
-            let mut packet = Cursor::new(Vec::new());
-            packet.write_u16(raw_conn.udp_outgoing_sequence_num).await?;
-            packet.write_u8(0x00).await?; //Comm Version
+        let Some(udp_socket) = raw_conn.udp_socket.clone() else {
+            anyhow::bail!("This DriverStationConnection does not have a UdpSocket")
+        };
 
-            let driverstations = raw_conn.field.driverstations().await;
-            let field = driverstations.get_field().await;
-            let udp_socket = raw_conn.udp_socket.clone();
-            let ip_address = raw_conn.ip_address.clone();
-            drop(raw_conn);
-
-            let mut control_byte = 0x00;
-            match field.ds_mode().await {
-                Mode::TeleOp => control_byte |= 0x00,
-                Mode::Test => control_byte |= 0x01,
-                Mode::Autonomous => control_byte |= 0x02,
-            }
-
-            if ds.enabled().await {
-                control_byte |= 0x04
-            }
-
-            if field
-                .alarm_handler()
-                .await
-                .is_target_faulted(field.alarm_target().await.as_str())
-                .await
-            {
-                // EStop DS if field is faulted
-                control_byte |= 0x80
-            }
-
-            packet.write_u8(control_byte).await?;
-            packet.write_u8(0x00).await?; //Request Byte
-            packet
-                .write_u8(ds.alliance_station().await.to_byte())
-                .await?; //Alliance Station
-            packet
-                .write_u8(
-                    driverstations
-                        .get_field()
-                        .await
-                        .tournament_level()
-                        .await
-                        .to_byte(),
-                )
-                .await?; //Tournament Level
-            packet
-                .write_u16(driverstations.get_field().await.match_number().await)
-                .await?; //Match Number
-            packet
-                .write_u8(driverstations.get_field().await.play_number().await)
-                .await?; //Play Number
-
-            let time = Local::now();
-            packet.write_u32(time.nanosecond() / 1000).await?;
-            packet.write_u8(time.second().try_into().unwrap()).await?;
-            packet.write_u8(time.minute().try_into().unwrap()).await?;
-            packet.write_u8(time.hour().try_into().unwrap()).await?;
-            packet.write_u8(time.day().try_into().unwrap()).await?;
-            packet.write_u8(time.month().try_into().unwrap()).await?;
-            packet
-                .write_u8((time.year() - 1900).try_into().unwrap())
-                .await?;
-
-            packet
-                .write_u16(
-                    driverstations
-                        .get_field()
-                        .await
-                        .timer()
-                        .await
-                        .current_time_remaining()
-                        .as_secs() as u16,
-                )
-                .await?; //Time Remaining
-
-            let buffer = packet.into_inner();
-
-            udp_socket
-                .send_to(&buffer, SocketAddr::from((ip_address, 1121)))
-                .await?;
+        if raw_conn.udp_outgoing_sequence_num >= u16::max_value() {
+            raw_conn.udp_outgoing_sequence_num = 0;
+        } else {
+            raw_conn.udp_outgoing_sequence_num += 1;
         }
+
+        let mut packet = Cursor::new(Vec::new());
+        packet.write_u16(raw_conn.udp_outgoing_sequence_num).await?;
+        packet.write_u8(0x00).await?; //Comm Version
+
+        let driverstations = raw_conn.field.driverstations().await;
+        let field = driverstations.get_field().await;
+        let ip_address = raw_conn.ip_address.clone();
+        drop(raw_conn);
+
+        let mut control_byte = 0x00;
+        match field.ds_mode().await {
+            Mode::TeleOp => control_byte |= 0x00,
+            Mode::Test => control_byte |= 0x01,
+            Mode::Autonomous => control_byte |= 0x02,
+        }
+
+        if ds.enabled().await {
+            control_byte |= 0x04
+        }
+
+        if field
+            .alarm_handler()
+            .await
+            .is_target_faulted(field.alarm_target().await.as_str())
+            .await
+        {
+            // EStop DS if field is faulted
+            control_byte |= 0x80
+        }
+
+        packet.write_u8(control_byte).await?;
+        packet.write_u8(0x00).await?; //Request Byte
+        packet
+            .write_u8(ds.alliance_station().await.to_byte())
+            .await?; //Alliance Station
+        packet
+            .write_u8(
+                driverstations
+                    .get_field()
+                    .await
+                    .tournament_level()
+                    .await
+                    .to_byte(),
+            )
+            .await?; //Tournament Level
+        packet
+            .write_u16(driverstations.get_field().await.match_number().await)
+            .await?; //Match Number
+        packet
+            .write_u8(driverstations.get_field().await.play_number().await)
+            .await?; //Play Number
+
+        let time = Local::now();
+        packet.write_u32(time.nanosecond() / 1000).await?;
+        packet.write_u8(time.second().try_into().unwrap()).await?;
+        packet.write_u8(time.minute().try_into().unwrap()).await?;
+        packet.write_u8(time.hour().try_into().unwrap()).await?;
+        packet.write_u8(time.day().try_into().unwrap()).await?;
+        packet.write_u8(time.month().try_into().unwrap()).await?;
+        packet
+            .write_u8((time.year() - 1900).try_into().unwrap())
+            .await?;
+
+        packet
+            .write_u16(
+                driverstations
+                    .get_field()
+                    .await
+                    .timer()
+                    .await
+                    .current_time_remaining()
+                    .as_secs() as u16,
+            )
+            .await?; //Time Remaining
+
+        let buffer = packet.into_inner();
+
+        udp_socket
+            .send_to(&buffer, SocketAddr::from((ip_address, 1121)))
+            .await?;
 
         Ok(())
     }
