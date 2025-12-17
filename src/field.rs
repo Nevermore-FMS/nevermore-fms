@@ -14,7 +14,6 @@ use tokio::{
     net::{TcpListener, UdpSocket},
     sync::RwLock,
     task::JoinSet,
-    time::Interval,
 };
 use tokio_util::sync::CancellationToken;
 

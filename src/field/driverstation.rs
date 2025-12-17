@@ -4,7 +4,7 @@ use anyhow::{anyhow, bail};
 use chrono::Utc;
 use cidr::AnyIpCidr;
 use log::*;
-use tokio::{io::AsyncReadExt, net::TcpStream, sync::RwLock, time::Interval};
+use tokio::{io::AsyncReadExt, net::TcpStream, sync::RwLock};
 use tokio_util::sync::CancellationToken;
 
 use crate::alarms::FMSAlarmType;
