@@ -15,6 +15,7 @@ use tokio::{
     },
     sync::RwLock,
 };
+use tokio_util::sync::CancellationToken;
 
 use super::{
     Field,
@@ -27,8 +28,7 @@ struct RawDriverStationConnection {
     field: Field,
     /// Represents the current driver station, only if this station is expected to be connected
     parent: Option<DriverStation>,
-    alive: bool,
-    tcp_writer: OwnedWriteHalf,
+    tcp_writer: Option<OwnedWriteHalf>,
     udp_socket: Arc<UdpSocket>,
     ip_address: IpAddr,
     udp_outgoing_sequence_num: u16,
@@ -46,7 +46,7 @@ impl DriverStationConnection {
 
     pub async fn is_alive(&self) -> bool {
         let raw = self.raw.read().await;
-        raw.alive
+        raw.tcp_writer.is_some()
     }
 
     pub async fn uuid(&self) -> uuid::Uuid {
@@ -72,42 +72,34 @@ impl DriverStationConnection {
 
     pub async fn kill(&self) {
         let mut raw = self.raw.write().await;
-        if !raw.alive {
-            return;
-        }
-        raw.alive = false;
 
-        if let Some(ds) = &raw.parent {
-            ds.set_active_connection(None).await;
-            ds.set_confirmed_state(None).await;
-            info!(
-                "Driver station {} disconnected (Conn ID: {})",
-                ds.team_number().await,
-                raw.uuid
-            );
-        } else {
-            info!(
-                "Driver station connection disconnected (Conn ID: {})",
-                raw.uuid
-            );
-        }
-        if let Err(e) = raw.tcp_writer.shutdown().await {
-            error!("Failed to shutdown TCP stream: {}", e);
+        if let Some(mut tcp_writer) = raw.tcp_writer.take() {
+            if let Some(ds) = &raw.parent {
+                ds.set_active_connection(None).await;
+                ds.set_confirmed_state(None).await;
+                info!(
+                    "Driver station {} disconnected (Conn ID: {})",
+                    ds.team_number().await,
+                    raw.uuid
+                );
+            } else {
+                info!(
+                    "Driver station connection disconnected (Conn ID: {})",
+                    raw.uuid
+                );
+            }
+            if let Err(e) = tcp_writer.shutdown().await {
+                error!("Failed to shutdown TCP stream: {}", e);
+            }
         }
     }
 
     // Internal API -->
-    pub(super) async fn new(
-        tcp_stream: TcpStream,
-        ip_address: IpAddr,
-        field: Field,
-    ) -> anyhow::Result<Self> {
-        let (owned_read_half, owned_write_half) = tcp_stream.into_split();
+    pub(super) async fn new(ip_address: IpAddr, field: Field) -> anyhow::Result<Self> {
         let driver_station_connection = RawDriverStationConnection {
             field,
             parent: None,
-            alive: true,
-            tcp_writer: owned_write_half,
+            tcp_writer: None,
             udp_socket: Arc::new(UdpSocket::bind("0.0.0.0:0").await?),
             ip_address,
             udp_outgoing_sequence_num: 0,
@@ -117,18 +109,34 @@ impl DriverStationConnection {
         let driver_station_connection = Self {
             raw: Arc::new(RwLock::new(driver_station_connection)),
         };
+        Ok(driver_station_connection)
+    }
 
-        let conn = driver_station_connection.clone();
-        tokio::task::Builder::new()
+    pub(super) async fn run(
+        self,
+        tcp_stream: TcpStream,
+        cancellation_token: CancellationToken,
+    ) -> anyhow::Result<()> {
+        let (owned_read_half, owned_write_half) = tcp_stream.into_split();
+        let mut raw = self.raw.write().await;
+        raw.tcp_writer = Some(owned_write_half);
+        drop(raw);
+
+        let task_handle = tokio::task::Builder::new()
             .name("DriverStationConnection TCP Stream Handler")
             .spawn(async move {
-                if let Err(e) = conn.handle_tcp_stream(owned_read_half).await {
+                if let Err(e) = self
+                    .handle_tcp_stream(owned_read_half, cancellation_token)
+                    .await
+                {
                     warn!("Error handling TCP stream from driverstation: {}", e);
-                    conn.kill().await
+                    self.kill().await
                 }
             })?;
 
-        Ok(driver_station_connection)
+        task_handle.await?;
+
+        Ok(())
     }
 
     pub(super) async fn update_last_udp_packet_reception(&self, time: DateTime<Utc>) {
@@ -136,187 +144,195 @@ impl DriverStationConnection {
         raw.last_udp_packet_reception = time;
     }
 
-    async fn handle_tcp_stream(&self, mut tcp_reader: OwnedReadHalf) -> anyhow::Result<()> {
-        loop {
-            let raw_conn = self.raw.read().await;
-            if !raw_conn.alive {
-                return Ok(());
-            };
-            drop(raw_conn);
+    async fn handle_tcp_stream(
+        &self,
+        tcp_reader: OwnedReadHalf,
+        cancellation_token: CancellationToken,
+    ) -> anyhow::Result<()> {
+        let read_stream = async |mut tcp_reader: OwnedReadHalf| -> anyhow::Result<()> {
+            loop {
+                let mut buffer = [0; 2];
+                tcp_reader.read_exact(&mut buffer).await?;
+                let mut reader = Cursor::new(buffer);
+                let packet_length = reader.read_u16().await?;
 
-            let mut buffer = [0; 2];
-            tcp_reader.read_exact(&mut buffer).await?;
-            let mut reader = Cursor::new(buffer);
-            let packet_length = reader.read_u16().await?;
+                let mut buffer = vec![0; packet_length as usize];
+                tcp_reader.read_exact(&mut buffer).await?;
+                let mut reader = Cursor::new(buffer);
+                let id = reader.read_u8().await?;
 
-            let mut buffer = vec![0; packet_length as usize];
-            tcp_reader.read_exact(&mut buffer).await?;
-            let mut reader = Cursor::new(buffer);
-            let id = reader.read_u8().await?;
+                match id {
+                    0x18 => {
+                        // Team Number packet
+                        let team_number = reader.read_u16().await?;
+                        let mut raw_conn = self.raw.write().await;
+                        if let Some(ds) = raw_conn
+                            .field
+                            .driverstations()
+                            .await
+                            .get_driverstation_by_team_number(team_number)
+                            .await
+                        {
+                            raw_conn.parent = Some(ds.clone());
+                            drop(raw_conn);
+                            ds.set_active_connection(Some(self.clone())).await;
+                            info!("Driver station {} connected", team_number);
+                        } else {
+                            warn!(
+                                "Received a connection from a driver station that is not in the list of known driver stations. Team Number: {}",
+                                team_number
+                            );
+                            drop(raw_conn);
+                        }
 
-            match id {
-                0x18 => {
-                    // Team Number packet
-                    let team_number = reader.read_u16().await?;
-                    let mut raw_conn = self.raw.write().await;
-                    if let Some(ds) = raw_conn
-                        .field
-                        .driverstations()
-                        .await
-                        .get_driverstation_by_team_number(team_number)
-                        .await
-                    {
-                        raw_conn.parent = Some(ds.clone());
+                        self.send_tcp_station_info().await?;
+                        self.send_tcp_event_code().await?;
+                    }
+                    0x00 | 0x01 | 0x02 | 0x03 | 0x04 | 0x05 | 0x06 | 0x07 => {
+                        // Version Codes
+                        //TODO Maybe use regex?
+                        let mut version_unparsed = String::new();
+                        reader.read_to_string(&mut version_unparsed).await.ok();
+                        let split: Vec<&str> = version_unparsed.split(">").collect();
+                        let (status, version) = if split.len() > 1 {
+                            (
+                                split[0].trim_start_matches("<").to_string(),
+                                split[1].to_string(),
+                            )
+                        } else {
+                            (String::new(), String::new())
+                        };
+
+                        let version_type = VersionType::from_byte(id).unwrap();
+                        let version = VersionData {
+                            version_type,
+                            status,
+                            version,
+                        };
+
+                        let raw_conn = self.raw.read().await;
+                        let ds = raw_conn.parent.clone();
                         drop(raw_conn);
-                        ds.set_active_connection(Some(self.clone())).await;
-                        info!("Driver station {} connected", team_number);
-                    } else {
+                        if ds.is_some() {
+                            ds.unwrap().set_version(version_type, version).await;
+                        }
+                    }
+                    0x16 => {
+                        // Log Data Packet
+                        let timestamp = Utc::now().timestamp() as u64;
+
+                        let trip_time = reader.read_u8().await? / 2;
+                        let lost_packets = reader.read_u8().await?;
+
+                        let voltage_byte = reader.read_u16().await?;
+                        let voltage = (voltage_byte >> 8 & 0xff) as f32
+                            + ((voltage_byte & 0xff) as f32 / 256.0);
+
+                        let status_byte = reader.read_u8().await?;
+                        let brownout = (status_byte >> 7 & 0x01) == 1;
+                        let watchdog = (status_byte >> 6 & 0x01) == 1;
+                        let ds_teleop = (status_byte >> 5 & 0x01) == 1;
+                        let ds_auto = (status_byte >> 4 & 0x01) == 1;
+                        let ds_disable = (status_byte >> 3 & 0x01) == 1;
+                        let robot_teleop = (status_byte >> 2 & 0x01) == 1;
+                        let robot_auto = (status_byte >> 1 & 0x01) == 1;
+                        let robot_disable = (status_byte >> 0 & 0x01) == 1;
+
+                        let can_utilization = reader.read_u8().await? / 2;
+                        let signal = reader.read_u8().await? / 2;
+                        let bandwidth = reader.read_u16().await? as f32 / 256.0;
+
+                        let raw_conn = self.raw.read().await;
+                        let ds = raw_conn.parent.clone();
+                        drop(raw_conn);
+                        if ds.is_some() {
+                            ds.unwrap()
+                                .record_log_data(DriverStationLogData {
+                                    timestamp,
+                                    trip_time,
+                                    lost_packets,
+                                    voltage,
+                                    brownout,
+                                    watchdog,
+                                    ds_teleop,
+                                    ds_auto,
+                                    ds_disable,
+                                    robot_teleop,
+                                    robot_auto,
+                                    robot_disable,
+                                    can_utilization,
+                                    signal,
+                                    bandwidth,
+                                })
+                                .await;
+                        }
+                    }
+                    0x17 => {
+                        // Log Message Packet
+                        let timestamp = Utc::now().timestamp() as u64;
+                        let _ = reader.read_u32().await?; // Message Count (Seems to always be 1?) - Chase
+                        let local_timestamp = reader.read_u64().await? - 2082844800; // Offset from LabView epoch to UNIX Epoch
+                        reader.read_u64().await?;
+                        let mut data = String::new();
+                        reader.read_u32().await?;
+                        reader.read_to_string(&mut data).await.ok();
+
+                        let raw_conn = self.raw.read().await;
+                        let ds = raw_conn.parent.clone();
+                        drop(raw_conn);
+                        if ds.is_some() {
+                            ds.unwrap()
+                                .add_log_message(DriverStationLogMessage {
+                                    timestamp,
+                                    local_timestamp,
+                                    message: data,
+                                })
+                                .await;
+                        }
+                    }
+                    0x1d => { /* Keep-Alive Packet, doesn't need a reply */ }
+                    unknown_id => {
                         warn!(
-                            "Received a connection from a driver station that is not in the list of known driver stations. Team Number: {}",
-                            team_number
+                            "Received a TCP packet from a driverstation with an unknown id {:#x} and size {}",
+                            unknown_id, packet_length
                         );
-                        drop(raw_conn);
                     }
-
-                    self.send_tcp_station_info().await?;
-                    self.send_tcp_event_code().await?;
-                }
-                0x00 | 0x01 | 0x02 | 0x03 | 0x04 | 0x05 | 0x06 | 0x07 => {
-                    // Version Codes
-                    //TODO Maybe use regex?
-                    let mut version_unparsed = String::new();
-                    reader.read_to_string(&mut version_unparsed).await.ok();
-                    let split: Vec<&str> = version_unparsed.split(">").collect();
-                    let (status, version) = if split.len() > 1 {
-                        (
-                            split[0].trim_start_matches("<").to_string(),
-                            split[1].to_string(),
-                        )
-                    } else {
-                        (String::new(), String::new())
-                    };
-
-                    let version_type = VersionType::from_byte(id).unwrap();
-                    let version = VersionData {
-                        version_type,
-                        status,
-                        version,
-                    };
-
-                    let raw_conn = self.raw.read().await;
-                    let ds = raw_conn.parent.clone();
-                    drop(raw_conn);
-                    if ds.is_some() {
-                        ds.unwrap().set_version(version_type, version).await;
-                    }
-                }
-                0x16 => {
-                    // Log Data Packet
-                    let timestamp = Utc::now().timestamp() as u64;
-
-                    let trip_time = reader.read_u8().await? / 2;
-                    let lost_packets = reader.read_u8().await?;
-
-                    let voltage_byte = reader.read_u16().await?;
-                    let voltage =
-                        (voltage_byte >> 8 & 0xff) as f32 + ((voltage_byte & 0xff) as f32 / 256.0);
-
-                    let status_byte = reader.read_u8().await?;
-                    let brownout = (status_byte >> 7 & 0x01) == 1;
-                    let watchdog = (status_byte >> 6 & 0x01) == 1;
-                    let ds_teleop = (status_byte >> 5 & 0x01) == 1;
-                    let ds_auto = (status_byte >> 4 & 0x01) == 1;
-                    let ds_disable = (status_byte >> 3 & 0x01) == 1;
-                    let robot_teleop = (status_byte >> 2 & 0x01) == 1;
-                    let robot_auto = (status_byte >> 1 & 0x01) == 1;
-                    let robot_disable = (status_byte >> 0 & 0x01) == 1;
-
-                    let can_utilization = reader.read_u8().await? / 2;
-                    let signal = reader.read_u8().await? / 2;
-                    let bandwidth = reader.read_u16().await? as f32 / 256.0;
-
-                    let raw_conn = self.raw.read().await;
-                    let ds = raw_conn.parent.clone();
-                    drop(raw_conn);
-                    if ds.is_some() {
-                        ds.unwrap()
-                            .record_log_data(DriverStationLogData {
-                                timestamp,
-                                trip_time,
-                                lost_packets,
-                                voltage,
-                                brownout,
-                                watchdog,
-                                ds_teleop,
-                                ds_auto,
-                                ds_disable,
-                                robot_teleop,
-                                robot_auto,
-                                robot_disable,
-                                can_utilization,
-                                signal,
-                                bandwidth,
-                            })
-                            .await;
-                    }
-                }
-                0x17 => {
-                    // Log Message Packet
-                    let timestamp = Utc::now().timestamp() as u64;
-                    let _ = reader.read_u32().await?; // Message Count (Seems to always be 1?) - Chase
-                    let local_timestamp = reader.read_u64().await? - 2082844800; // Offset from LabView epoch to UNIX Epoch
-                    reader.read_u64().await?;
-                    let mut data = String::new();
-                    reader.read_u32().await?;
-                    reader.read_to_string(&mut data).await.ok();
-
-                    let raw_conn = self.raw.read().await;
-                    let ds = raw_conn.parent.clone();
-                    drop(raw_conn);
-                    if ds.is_some() {
-                        ds.unwrap()
-                            .add_log_message(DriverStationLogMessage {
-                                timestamp,
-                                local_timestamp,
-                                message: data,
-                            })
-                            .await;
-                    }
-                }
-                0x1d => { /* Keep-Alive Packet, doesn't need a reply */ }
-                unknown_id => {
-                    warn!(
-                        "Received a TCP packet from a driverstation with an unknown id {:#x} and size {}",
-                        unknown_id, packet_length
-                    );
                 }
             }
+        };
+
+        let died = async {
+            while self.is_alive().await {
+                tokio::task::yield_now().await;
+            }
+        };
+
+        tokio::select! {
+            _ = cancellation_token.cancelled() => Ok(()),
+            _ = died => Ok(()),
+            _ = read_stream(tcp_reader) => Err(anyhow::anyhow!("TCP Stream handler closed unexpectedly")),
         }
     }
 
     async fn send_tcp_station_info(&self) -> anyhow::Result<()> {
-        let raw_conn = self.raw.read().await;
-
         let mut alliance_station = AllianceStation::None;
         let mut status = DriverstationStatus::Waiting;
 
-        if let Some(ds) = raw_conn.parent.clone() {
+        if let Some(ds) = self.parent().await {
             alliance_station = ds.alliance_station().await;
             status = DriverstationStatus::Good;
 
-            if let Some(expected_ip) = ds.expected_ip().await.take() {
-                if !expected_ip.contains(&raw_conn.ip_address) {
+            if let Some(expected_ip) = ds.expected_ip().await {
+                if !expected_ip.contains(&self.ip_address().await) {
                     status = DriverstationStatus::Bad;
                     info!(
                         "Driver station {} is not expected to be connected from this IP address ({})",
                         ds.team_number().await,
-                        &raw_conn.ip_address
+                        self.ip_address().await
                     );
                 }
             }
         }
-
-        drop(raw_conn);
 
         let mut packet = Cursor::new(Vec::new());
         packet.write_u8(0x19).await?; //0x19 = ID For Station Info
@@ -331,11 +347,10 @@ impl DriverStationConnection {
         outer_packet.write_all(&buffer).await?;
 
         let mut raw_conn = self.raw.write().await;
-
-        raw_conn
-            .tcp_writer
-            .write_all(&outer_packet.into_inner())
-            .await?;
+        let Some(ref mut tcp_writer) = raw_conn.tcp_writer else {
+            anyhow::bail!("This DriverStationConnection is already closed")
+        };
+        tcp_writer.write_all(&outer_packet.into_inner()).await?;
 
         Ok(())
     }
@@ -360,11 +375,10 @@ impl DriverStationConnection {
         outer_packet.write_all(&buffer).await?;
 
         let mut raw_conn = self.raw.write().await;
-
-        raw_conn
-            .tcp_writer
-            .write_all(&outer_packet.into_inner())
-            .await?;
+        let Some(ref mut tcp_writer) = raw_conn.tcp_writer else {
+            anyhow::bail!("This DriverStationConnection is already closed")
+        };
+        tcp_writer.write_all(&outer_packet.into_inner()).await?;
 
         Ok(())
     }

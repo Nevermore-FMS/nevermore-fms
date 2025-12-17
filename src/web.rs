@@ -4,14 +4,15 @@ use log::info;
 use poem::{
     EndpointExt, Route, Server, get, http::Method, listener::TcpListener, middleware::Cors, post,
 };
-use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 
 use crate::{field::Field, graph};
 
-pub fn start_server(
+pub async fn start_server(
     web_address: SocketAddr,
     field: Field,
-) -> anyhow::Result<JoinHandle<Result<(), std::io::Error>>> {
+    cancellation_token: CancellationToken,
+) -> anyhow::Result<()> {
     let schema = graph::schema::create_schema(field);
     let app = Route::new()
         .at(
@@ -34,7 +35,14 @@ pub fn start_server(
 
     let join_handle = tokio::task::Builder::new()
         .name("Web Server")
-        .spawn(server.run(app))?;
+        .spawn(async move {
+            server
+                .run_with_graceful_shutdown(app, cancellation_token.cancelled(), None)
+                .await
+        })?;
 
-    Ok(join_handle)
+    join_handle
+        .await
+        .map_err(|e| anyhow::Error::from(e))?
+        .map_err(|e| anyhow::Error::from(e))
 }

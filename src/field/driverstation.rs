@@ -10,6 +10,7 @@ use tokio::{
     sync::{RwLock, broadcast},
     time,
 };
+use tokio_util::sync::CancellationToken;
 
 use crate::alarms::FMSAlarmType;
 
@@ -490,9 +491,10 @@ impl DriverStations {
         &self,
         tcp_stream: TcpStream,
         ip_address: IpAddr,
+        cancellation_token: CancellationToken
     ) -> anyhow::Result<()> {
-        DriverStationConnection::new(tcp_stream, ip_address, self.get_field().await).await?;
-        Ok(())
+        let ds_connection = DriverStationConnection::new(ip_address, self.get_field().await).await?;
+        ds_connection.run(tcp_stream, cancellation_token).await
     }
 }
 

@@ -7,6 +7,7 @@ pub mod web;
 
 use clap::{Parser, ValueEnum};
 use log::*;
+use tokio_util::sync::CancellationToken;
 use std::{
     env,
     net::{IpAddr, SocketAddr},
@@ -64,11 +65,19 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting {} v{} by {}...", NAME, VERSION, AUTHORS);
 
-    let field = Field::new(cli.ds_address).await?;
+    let field = Field::new().await?;
 
-    web::start_server(cli.web_address, field.clone())?.await??;
+    let cancellation_token = CancellationToken::new();
 
-    //TODO Join all tasks
+
+    let res = tokio::try_join!(
+        field.run(cli.ds_address, cancellation_token.clone()),
+        web::start_server(cli.web_address, field.clone(), cancellation_token.clone())
+    );
+
+    if let Err(e) = res {
+        return Err(e.context("Main process terminated unexpectedly"))
+    }
 
     return Ok(());
 }

@@ -12,11 +12,11 @@ use anyhow::Context;
 use log::*;
 use tokio::{
     net::{TcpListener, UdpSocket},
-    sync::{
-        RwLock, broadcast,
-    },
-    time,
+    sync::RwLock,
+    task::JoinSet,
+    time::Interval,
 };
+use tokio_util::sync::CancellationToken;
 
 use crate::{alarms::FMSAlarmHandler, difftimer};
 
@@ -34,8 +34,6 @@ struct RawField {
     tcp_online: bool,
     driverstations: DriverStations,
     alarm_handler: FMSAlarmHandler,
-    terminate_signal: Option<broadcast::Sender<()>>,
-    running_signal: async_channel::Receiver<()>,
 }
 
 #[derive(Clone)]
@@ -45,18 +43,6 @@ pub struct Field {
 
 impl Field {
     // Public API -->
-    pub async fn terminate(&self) {
-        let mut raw_field = self.raw.write().await;
-        drop(raw_field.terminate_signal.take());
-    }
-
-    pub async fn wait_for_terminate(&self) {
-        let raw = self.raw.read().await;
-        let running_signal = raw.running_signal.clone();
-        drop(raw);
-        let _ = running_signal.recv().await;
-    }
-
     pub async fn udp_online(&self) -> bool {
         let raw = self.raw.read().await;
         raw.udp_online
@@ -181,11 +167,7 @@ impl Field {
 
     // Internal API -->
 
-    pub(super) async fn new(ds_address: IpAddr) -> anyhow::Result<Self> {
-        let (terminate_sender, _) = broadcast::channel(1);
-
-        let (indicate_running, running_signal) = async_channel::bounded(1);
-
+    pub(super) async fn new() -> anyhow::Result<Self> {
         let field = RawField {
             event_name: "nvmre".to_string(),
             tournament_level: TournamentLevel::Test,
@@ -196,8 +178,6 @@ impl Field {
             driverstations: DriverStations::new(None)?,
             alarm_handler: FMSAlarmHandler::new(),
             is_safe: true,
-            terminate_signal: Some(terminate_sender),
-            running_signal,
             udp_online: false,
             tcp_online: false,
         };
@@ -212,153 +192,158 @@ impl Field {
             .set_field(field.clone())
             .await?;
 
-        let udp_address = SocketAddr::new(ds_address, 1160);
-        let tcp_address = SocketAddr::new(ds_address, 1750);
-        let async_field_udp = field.clone();
-        let async_field_tcp = field.clone();
-        let async_field_loop = field.clone();
-        let udp_handle = tokio::task::Builder::new()
-            .name("Field UDP Listener")
-            .spawn(async move { async_field_udp.listen_for_udp_messages(udp_address).await })?;
-        let tcp_handle = tokio::task::Builder::new()
-            .name("Field TCP Listener")
-            .spawn(async move {
-                async_field_tcp
-                    .listen_for_tcp_connections(tcp_address)
-                    .await
-            })?;
-        let loop_handle = tokio::task::Builder::new()
-            .name("Field tick loop")
-            .spawn(async move { async_field_loop.tick_loop().await })?;
-        tokio::task::Builder::new()
-            .name("Field alive signal")
-            .spawn(async move {
-                let (udp_result, tcp_result, _) = tokio::join!(udp_handle, tcp_handle, loop_handle);
-                udp_result.unwrap().unwrap();
-                tcp_result.unwrap().unwrap();
-                drop(indicate_running);
-            })?;
-
         Ok(field)
     }
 
-    async fn listen_for_udp_messages(&self, addr: SocketAddr) -> anyhow::Result<()> {
-        loop {
-            //Retry Loop
-            let mut raw_field = self.raw.write().await;
-            let socket = UdpSocket::bind(addr).await.context(bind_err("UDP", addr));
-            if socket.is_err() {
-                drop(raw_field);
-                error!("{}", socket.err().unwrap());
-                tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-                continue;
-            }
-            let socket = socket.unwrap();
-            raw_field.udp_online = true;
+    pub(super) async fn run(
+        &self,
+        ds_address: IpAddr,
+        cancellation_token: CancellationToken,
+    ) -> anyhow::Result<()> {
+        let mut tasks = JoinSet::new();
 
-            let mut term_rx = raw_field
-                .terminate_signal
-                .as_ref()
-                .context("Can't listen for UDP Messages because field has already terminated")
-                .unwrap()
-                .subscribe();
-            let driverstations = raw_field.driverstations.clone();
-            drop(raw_field);
+        let udp_address = SocketAddr::new(ds_address, 1160);
+        let tcp_address = SocketAddr::new(ds_address, 1750);
 
-            let mut buf = vec![0; 1024];
-            info!("Listening for UDP messages on {}", addr);
+        tasks.build_task().name("Field TCP Listener").spawn(
+            self.clone().listen_for_tcp_connections_with_retry_loop(
+                tcp_address,
+                cancellation_token.clone(),
+            ),
+        )?;
+
+        tasks.build_task().name("Field UDP Listener").spawn(
+            self.clone()
+                .listen_for_udp_messages_with_retry_loop(udp_address, cancellation_token.clone()),
+        )?;
+
+        tasks
+            .build_task()
+            .name("Field tick loop")
+            .spawn(self.clone().tick_loop(cancellation_token.clone()))?;
+
+        while let Some(res) = tasks.join_next().await {
+            res.context("Failed to await Field joined tasks")??;
+        }
+
+        Ok(())
+    }
+
+    async fn listen_for_udp_messages_with_retry_loop(
+        self,
+        addr: SocketAddr,
+        cancellation_token: CancellationToken,
+    ) -> anyhow::Result<()> {
+        let listen_with_retry_loop = async |_cancellation_token: CancellationToken| {
             loop {
-                tokio::select! {
-                    result = socket.recv_from(&mut buf) => {
-                        match result {
-                            Ok((size, _)) => {
-                                if let Err(e) = driverstations.decode_udp_message(buf[..size].to_vec()).await {
-                                    if e.to_string() != "unexpected end of file" {
-                                        error!("Error decoding UDP message: {}", e);
-                                    }
+                //Retry Loop
+                let mut raw_field = self.raw.write().await;
+                let socket = UdpSocket::bind(addr)
+                    .await
+                    .context(new_bind_err("UDP", addr));
+                if socket.is_err() {
+                    error!("{}", socket.err().unwrap());
+                    raw_field.udp_online = false;
+                    drop(raw_field);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
+                    continue;
+                }
+                let socket = socket.unwrap();
+                raw_field.udp_online = true;
+                let driverstations = raw_field.driverstations.clone();
+                drop(raw_field);
+
+                let mut buf = vec![0; 1024];
+                info!("Listening for UDP messages on {}", addr);
+                loop {
+                    match socket.recv_from(&mut buf).await {
+                        Ok((size, _)) => {
+                            if let Err(e) = driverstations
+                                .decode_udp_message(buf[..size].to_vec())
+                                .await
+                            {
+                                if e.to_string() != "unexpected end of file" {
+                                    error!("Error decoding UDP message: {}", e);
                                 }
-                            },
-                            Err(e) => {
-                                error!("Error when reading UDP Message: {}", e);
                             }
                         }
-                    }
-                    _ = term_rx.recv() => {
-                        info!("Closing the UDP listener because the field has terminated.");
-                        return Ok(());
+                        Err(e) => {
+                            error!("Error when reading UDP Message: {}", e);
+                        }
                     }
                 }
             }
+        };
+
+        tokio::select! {
+            _ = cancellation_token.cancelled() => Ok(()),
+            _ = listen_with_retry_loop(cancellation_token.clone()) => Err(anyhow::anyhow!("UDP Listener closed unexpectedly")),
         }
     }
 
-    async fn listen_for_tcp_connections(&self, addr: SocketAddr) -> anyhow::Result<()> {
-        loop {
-            //Retry Loop
-            let mut raw_field = self.raw.write().await;
-            let listener = TcpListener::bind(addr).await.context(bind_err("TCP", addr));
-            if listener.is_err() {
-                error!("{}", listener.err().unwrap());
-                drop(raw_field);
-                tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-                continue;
-            }
-            let listener = listener.unwrap();
-            raw_field.tcp_online = true;
-            let mut term_rx = raw_field
-                .terminate_signal
-                .as_ref()
-                .context("Can't listen for TCP Connections because field has already terminated")
-                .unwrap()
-                .subscribe();
-            let driverstations = raw_field.driverstations.clone();
-            drop(raw_field);
-
-            info!("Listening for TCP connections on {}", addr);
+    async fn listen_for_tcp_connections_with_retry_loop(
+        self,
+        addr: SocketAddr,
+        cancellation_token: CancellationToken,
+    ) -> anyhow::Result<()> {
+        let listen_with_retry_loop = async |cancellation_token: CancellationToken| {
             loop {
-                tokio::select! {
-                    socket = listener.accept() => {
-                        match socket {
-                            Ok((stream, socket)) => {
-                                if let Err(e) = driverstations.handle_tcp_stream(stream, socket.ip()).await {
-                                    error!("Error accepting TCP stream: {}", e);
-                                }
-                            },
-                            Err(e) => {
-                                error!("Error when accepting TCP Connection: {}", e);
+                //Retry Loop
+                let mut raw_field = self.raw.write().await;
+                let listener = TcpListener::bind(addr)
+                    .await
+                    .context(new_bind_err("TCP", addr));
+                if listener.is_err() {
+                    error!("{}", listener.err().unwrap());
+                    raw_field.tcp_online = false;
+                    drop(raw_field);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
+                    continue;
+                }
+                let listener = listener.unwrap();
+                raw_field.tcp_online = true;
+                let driverstations = raw_field.driverstations.clone();
+                drop(raw_field);
+
+                info!("Listening for TCP connections on {}", addr);
+                loop {
+                    match listener.accept().await {
+                        Ok((stream, socket)) => {
+                            if let Err(e) = driverstations
+                                .handle_tcp_stream(stream, socket.ip(), cancellation_token.clone())
+                                .await
+                            {
+                                error!("Error accepting TCP stream: {}", e);
                             }
                         }
-                    }
-                    _ = term_rx.recv() => {
-                        info!("Closing the TCP listener because the field has terminated.");
-                        return Ok(());
+                        Err(e) => {
+                            error!("Error when accepting TCP Connection: {}", e);
+                        }
                     }
                 }
             }
+        };
+
+        tokio::select! {
+            _ = cancellation_token.cancelled() => Ok(()),
+            _ = listen_with_retry_loop(cancellation_token.clone()) => Err(anyhow::anyhow!("TCP Listener closed unexpectedly")),
         }
     }
 
-    async fn tick_loop(&self) {
-        let raw_field = self.raw.write().await;
-        let mut term_rx = raw_field
-            .terminate_signal
-            .as_ref()
-            .context("Can't start the field tick loop because field has already terminated")
-            .unwrap()
-            .subscribe();
-        drop(raw_field);
+    async fn tick_loop(self, cancellation_token: CancellationToken) -> anyhow::Result<()> {
+        let mut interval = tokio::time::interval(Duration::from_millis(250));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
-        let mut interval = time::interval(Duration::from_millis(250));
-        interval.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
-        loop {
-            tokio::select! {
-                _ = interval.tick() => {
-                    self.tick().await;
-                },
-                _ = term_rx.recv() => {
-                    break
-                }
+        let interval_tick_loop = async |mut interval: Interval, field: Field| {
+            loop {
+                interval.tick().await;
+                field.tick().await;
             }
+        };
+
+        tokio::select! {
+            _ = cancellation_token.cancelled() => Ok(()),
+            _ = interval_tick_loop(interval, self) => Err(anyhow::anyhow!("Tick loop closed unexpectedly")),
         }
     }
 
@@ -375,7 +360,7 @@ impl Field {
     }
 }
 
-fn bind_err(conn_type: &str, addr: SocketAddr) -> String {
+fn new_bind_err(conn_type: &str, addr: SocketAddr) -> String {
     format!(
         "Coult not bind to {} {}. The host device may not have an interface with that address. To change the ds address, use the --ds-address option. Attempting bind again in 15 seconds.",
         conn_type, addr
