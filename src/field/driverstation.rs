@@ -166,12 +166,17 @@ impl DriverStation {
         raw.confirmed_state = confirmed_state;
     }
 
+     pub(super) async fn remove_active_connection(&self) -> Option<DriverStationConnection> {
+        let mut raw = self.raw.write().await;
+        raw.active_connection.take()
+     }
+
     pub(super) async fn set_active_connection(
         &self,
-        active_connection: Option<DriverStationConnection>,
+        active_connection: DriverStationConnection,
     ) {
         let mut raw = self.raw.write().await;
-        raw.active_connection = active_connection;
+        raw.active_connection = Some(active_connection);
     }
 
     pub(super) async fn set_commanded_enabled(&self, enabled: bool) {
@@ -274,9 +279,9 @@ impl DriverStations {
             if ds.team_number().await != team_number {
                 new_driverstations.push(ds.clone());
             } else {
-                let conn = ds.active_connection().await;
-                if conn.is_some() {
-                    conn.unwrap().kill().await;
+                if let Some(conn) = ds.active_connection().await {
+                    info!("Deleted driverstation {}", team_number);
+                    conn.kill().await;
                 }
             }
         }
@@ -284,7 +289,6 @@ impl DriverStations {
         if all_driverstations.len() > new_driverstations.len() {
             let mut raw_driverstations = self.raw.write().await;
             raw_driverstations.all_driverstations = new_driverstations;
-            info!("Deleted driverstation {}", team_number);
             Ok(())
         } else {
             Err(anyhow!(

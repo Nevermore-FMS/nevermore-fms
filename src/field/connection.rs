@@ -55,6 +55,11 @@ impl DriverStationConnection {
         raw.uuid.clone()
     }
 
+    pub async fn field(&self) -> Field {
+        let raw = self.raw.read().await;
+        raw.field.clone()
+    }
+
     /// Represents the current driver station, only if this station is expected to be connected
     pub async fn parent(&self) -> Option<DriverStation> {
         let raw = self.raw.read().await;
@@ -76,7 +81,7 @@ impl DriverStationConnection {
 
         if let Some(mut tcp_writer) = raw.tcp_writer.take() {
             if let Some(ds) = &raw.parent {
-                ds.set_active_connection(None).await;
+                ds.remove_active_connection().await;
                 ds.set_confirmed_state(None).await;
                 info!(
                     "Driver station {} disconnected (Conn ID: {})",
@@ -148,6 +153,11 @@ impl DriverStationConnection {
         raw.last_udp_packet_reception = time;
     }
 
+    async fn set_parent(&self, parent: Option<DriverStation>) {
+        let mut raw = self.raw.write().await;
+        raw.parent = parent;
+    }
+
     async fn handle_tcp_stream(
         &self,
         mut tcp_reader: OwnedReadHalf,
@@ -169,24 +179,25 @@ impl DriverStationConnection {
                     0x18 => {
                         // Team Number packet
                         let team_number = reader.read_u16().await?;
-                        let mut raw_conn = self.raw.write().await;
-                        if let Some(ds) = raw_conn
-                            .field
+                        if let Some(ds) = self
+                            .field()
+                            .await
                             .driverstations()
                             .await
                             .get_driverstation_by_team_number(team_number)
                             .await
                         {
-                            raw_conn.parent = Some(ds.clone());
-                            drop(raw_conn);
-                            ds.set_active_connection(Some(self.clone())).await;
+                            self.set_parent(Some(ds.clone())).await;
+                            if let Some(old_conn) = ds.remove_active_connection().await {
+                                old_conn.kill().await
+                            }
+                            ds.set_active_connection(self.clone()).await;
                             info!("Driver station {} connected", team_number);
                         } else {
                             warn!(
                                 "Received a connection from a driver station that is not in the list of known driver stations. Team Number: {}",
                                 team_number
                             );
-                            drop(raw_conn);
                         }
 
                         self.send_tcp_station_info().await?;
@@ -391,12 +402,13 @@ impl DriverStationConnection {
     }
 
     pub(super) async fn send_udp_message(&self) -> anyhow::Result<()> {
-        let mut raw_conn = self.raw.write().await;
-
-        let Some(ds) = raw_conn.parent.clone() else {
-            anyhow::bail!("This DriverStationConnection does not have a parent DriverStation assigned")
+        let Some(ds) = self.parent().await else {
+            anyhow::bail!(
+                "This DriverStationConnection does not have a parent DriverStation assigned"
+            )
         };
 
+        let mut raw_conn = self.raw.write().await;
         let Some(udp_socket) = raw_conn.udp_socket.clone() else {
             anyhow::bail!("This DriverStationConnection does not have a UdpSocket")
         };
@@ -407,14 +419,18 @@ impl DriverStationConnection {
             raw_conn.udp_outgoing_sequence_num += 1;
         }
 
+        let seq_num = raw_conn.udp_outgoing_sequence_num;
+
+        drop(raw_conn);
+
         let mut packet = Cursor::new(Vec::new());
-        packet.write_u16(raw_conn.udp_outgoing_sequence_num).await?;
+        packet.write_u16(seq_num).await?;
         packet.write_u8(0x00).await?; //Comm Version
 
-        let driverstations = raw_conn.field.driverstations().await;
+        let driverstations = self.field().await.driverstations().await;
         let field = driverstations.get_field().await;
-        let ip_address = raw_conn.ip_address.clone();
-        drop(raw_conn);
+        let ip_address = self.ip_address().await;
+        
 
         let mut control_byte = 0x00;
         match field.ds_mode().await {
