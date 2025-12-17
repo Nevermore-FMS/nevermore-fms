@@ -376,16 +376,16 @@ impl DriverStations {
         let mut interval = tokio::time::interval(Duration::from_millis(250));
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
-        let interval_tick_loop = async |mut interval: Interval, driverstations: DriverStations| {
+        let interval_tick_loop = async {
             loop {
                 interval.tick().await;
-                driverstations.tick().await;
+                self.tick().await;
             }
         };
 
         tokio::select! {
             _ = cancellation_token.cancelled() => Ok(()),
-            _ = interval_tick_loop(interval, self) => Err(anyhow::anyhow!("Tick loop closed unexpectedly")),
+            _ = interval_tick_loop => Err(anyhow::anyhow!("Tick loop closed unexpectedly")),
         }
     }
 

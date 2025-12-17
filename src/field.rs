@@ -249,7 +249,7 @@ impl Field {
         addr: SocketAddr,
         cancellation_token: CancellationToken,
     ) -> anyhow::Result<()> {
-        let listen_with_retry_loop = async |_cancellation_token: CancellationToken| {
+        let listen_with_retry_loop = async {
             loop {
                 //Retry Loop
                 let mut raw_field = self.raw.write().await;
@@ -292,7 +292,7 @@ impl Field {
 
         tokio::select! {
             _ = cancellation_token.cancelled() => Ok(()),
-            _ = listen_with_retry_loop(cancellation_token.clone()) => Err(anyhow::anyhow!("UDP Listener closed unexpectedly")),
+            _ = listen_with_retry_loop => Err(anyhow::anyhow!("UDP Listener closed unexpectedly")),
         }
     }
 
@@ -301,7 +301,7 @@ impl Field {
         addr: SocketAddr,
         cancellation_token: CancellationToken,
     ) -> anyhow::Result<()> {
-        let listen_with_retry_loop = async |cancellation_token: CancellationToken| {
+        let listen_with_retry_loop = async {
             loop {
                 //Retry Loop
                 let mut raw_field = self.raw.write().await;
@@ -341,7 +341,7 @@ impl Field {
 
         tokio::select! {
             _ = cancellation_token.cancelled() => Ok(()),
-            _ = listen_with_retry_loop(cancellation_token.clone()) => Err(anyhow::anyhow!("TCP Listener closed unexpectedly")),
+            _ = listen_with_retry_loop => Err(anyhow::anyhow!("TCP Listener closed unexpectedly")),
         }
     }
 
@@ -349,16 +349,16 @@ impl Field {
         let mut interval = tokio::time::interval(Duration::from_millis(250));
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
-        let interval_tick_loop = async |mut interval: Interval, field: Field| {
+        let interval_tick_loop = async {
             loop {
                 interval.tick().await;
-                field.tick().await;
+                self.tick().await;
             }
         };
 
         tokio::select! {
             _ = cancellation_token.cancelled() => Ok(()),
-            _ = interval_tick_loop(interval, self) => Err(anyhow::anyhow!("Tick loop closed unexpectedly")),
+            _ = interval_tick_loop => Err(anyhow::anyhow!("Tick loop closed unexpectedly")),
         }
     }
 

@@ -150,10 +150,10 @@ impl DriverStationConnection {
 
     async fn handle_tcp_stream(
         &self,
-        tcp_reader: OwnedReadHalf,
+        mut tcp_reader: OwnedReadHalf,
         cancellation_token: CancellationToken,
     ) -> anyhow::Result<()> {
-        let read_stream = async |mut tcp_reader: OwnedReadHalf| -> anyhow::Result<()> {
+        let mut read_stream = async || -> anyhow::Result<()> {
             loop {
                 let mut buffer = [0; 2];
                 tcp_reader.read_exact(&mut buffer).await?;
@@ -317,7 +317,7 @@ impl DriverStationConnection {
                 Ok(())
             },
             _ = died => Ok(()),
-            res = read_stream(tcp_reader) => res.context("TCP Stream handler closed unexpectedly"),
+            res = read_stream() => res.context("TCP Stream handler closed unexpectedly"),
         }
     }
 
