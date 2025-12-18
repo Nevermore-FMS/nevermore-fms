@@ -1,12 +1,11 @@
 pub mod targets;
 
 use std::{
-    sync::Arc,
+    sync::{Arc, RwLock},
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, bail};
-use tokio::sync::RwLock;
 
 /// FMSAlarmType indicates how the alarm will be displayed.
 /// `FMSAlarmType::Fault` will also activate the associated System Stop for the target_scope (LStop or EStop)
@@ -43,17 +42,17 @@ pub struct FMSAlarmHandler {
 impl FMSAlarmHandler {
     // Public API -->
 
-    pub async fn active_alarms(&self) -> Vec<FMSAlarm> {
-        let raw = self.raw.read().await;
+    pub fn active_alarms(&self) -> Vec<FMSAlarm> {
+        let raw = self.raw.read().unwrap();
         raw.active_alarms.clone()
     }
 
-    pub async fn historic_alarms(&self) -> Vec<FMSAlarm> {
-        let raw = self.raw.read().await;
+    pub fn historic_alarms(&self) -> Vec<FMSAlarm> {
+        let raw = self.raw.read().unwrap();
         raw.historic_alarms.clone()
     }
 
-    pub async fn throw_alarm(
+    pub fn throw_alarm(
         &self,
         alarm_type: FMSAlarmType,
         code: &str,
@@ -63,9 +62,9 @@ impl FMSAlarmHandler {
         require_release: bool,
         auto_clear: bool,
     ) -> anyhow::Result<()> {
-        let mut raw = self.raw.write().await;
+        let active_alarms = self.active_alarms();
 
-        for active_alarm in raw.active_alarms.clone() {
+        for active_alarm in active_alarms {
             if active_alarm.code == code {
                 bail!("Alarm with code {} is already active", code);
             }
@@ -87,13 +86,14 @@ impl FMSAlarmHandler {
             auto_clear,
         };
 
+        let mut raw = self.raw.write().unwrap();
         raw.active_alarms.push(new_alarm);
 
         Ok(())
     }
 
-    pub async fn release_alarm(&self, code: &str) -> anyhow::Result<()> {
-        let mut raw = self.raw.write().await;
+    pub fn release_alarm(&self, code: &str) -> anyhow::Result<()> {
+        let mut raw = self.raw.write().unwrap();
 
         for active_alarm in raw.active_alarms.iter_mut() {
             if active_alarm.code == code {
@@ -101,7 +101,7 @@ impl FMSAlarmHandler {
                 if active_alarm.auto_clear {
                     let code = active_alarm.code.clone();
                     drop(raw);
-                    let _ = self.clear_alarm(code.as_str()).await;
+                    let _ = self.clear_alarm(code.as_str());
                 }
                 return Ok(());
             }
@@ -110,8 +110,8 @@ impl FMSAlarmHandler {
         bail!("No active alarm with code {} exists", code);
     }
 
-    pub async fn clear_alarm(&self, code: &str) -> anyhow::Result<bool> {
-        let mut raw = self.raw.write().await;
+    pub fn clear_alarm(&self, code: &str) -> anyhow::Result<bool> {
+        let mut raw = self.raw.write().unwrap();
 
         let idx = raw
             .active_alarms
@@ -129,11 +129,11 @@ impl FMSAlarmHandler {
 
     /// Returns `true` if all active alarms could be cleared, and `false` if 
     /// any alarm could not be cleared
-    pub async fn clear_all_alarms(&self) -> anyhow::Result<bool> {
-        let alarms = self.active_alarms().await;
+    pub fn clear_all_alarms(&self) -> anyhow::Result<bool> {
+        let alarms = self.active_alarms();
         let mut any_failed = false;
         for alarm in alarms {
-            let alarm_cleared = self.clear_alarm(&alarm.code).await?;
+            let alarm_cleared = self.clear_alarm(&alarm.code)?;
             if !alarm_cleared {
                 any_failed = true;
             }
@@ -142,16 +142,16 @@ impl FMSAlarmHandler {
         Ok(!any_failed)
     }
 
-    pub async fn is_target_faulted(&self, target: &str) -> bool {
-        let raw = self.raw.write().await;
-        for active_alarm in raw.active_alarms.clone() {
+    pub fn is_target_faulted(&self, target: &str) -> bool {
+        for active_alarm in self.active_alarms() {
             if active_alarm.alarm_type == FMSAlarmType::Fault
                 && targets::is_target_in_scope(&active_alarm.target_scope, target)
             {
                 return true;
             }
         }
-        return false;
+        
+        false
     }
 
     // Internal API -->
@@ -161,8 +161,8 @@ impl FMSAlarmHandler {
             active_alarms: Vec::new(),
             historic_alarms: Vec::new(),
         };
-        return Self {
+        Self {
             raw: Arc::new(RwLock::new(alarm_handler)),
-        };
+        }
     }
 }

@@ -13,50 +13,42 @@ pub struct GQLDriverStation {
 #[Object(name = "DriverStation")]
 impl GQLDriverStation {
     async fn team_number(&self) -> u16 {
-        self.obj_driverstation.team_number().await
+        self.obj_driverstation.team_number()
     }
 
     async fn alliance_station(&self) -> GQLAllianceStation {
-        self.obj_driverstation.alliance_station().await.into()
+        self.obj_driverstation.alliance_station().into()
     }
 
     async fn commanded_enabled(&self) -> bool {
-        self.obj_driverstation.commanded_enabled().await
+        self.obj_driverstation.commanded_enabled()
     }
 
     async fn enabled(&self) -> bool {
-        self.obj_driverstation.enabled().await
+        self.obj_driverstation.enabled()
     }
 
     async fn expected_ip(&self) -> Option<GQLIpCidr> {
-        match self.obj_driverstation.expected_ip().await {
-            None => None,
-            Some(expected_ip) => Some(GQLIpCidr(expected_ip)),
-        }
+        self.obj_driverstation.expected_ip().map(GQLIpCidr)
     }
 
     async fn active_connection(&self) -> Option<GQLDriverStationConnection> {
-        match self.obj_driverstation.active_connection().await {
-            Some(x) => Some(GQLDriverStationConnection {
+        self.obj_driverstation
+            .active_connection()
+            .map(|x| GQLDriverStationConnection {
                 obj_driverstationconnection: x,
-            }),
-            None => None,
-        }
+            })
     }
 
     async fn confirmed_state(&self) -> Option<GQLDriverStationConfirmedState> {
-        match self.obj_driverstation.confirmed_state().await {
-            Some(x) => Some(GQLDriverStationConfirmedState {
+        self.obj_driverstation.confirmed_state().map(|x| GQLDriverStationConfirmedState {
                 obj_driverstationconfirmedstate: x,
-            }),
-            None => None,
-        }
+            })
     }
 
     async fn log_data(&self) -> Vec<GQLDriverStationLogData> {
         self.obj_driverstation
             .log_data()
-            .await
             .iter()
             .map(|log_data| GQLDriverStationLogData {
                 obj_driverstationlogdata: log_data.clone(),
@@ -67,7 +59,6 @@ impl GQLDriverStation {
     async fn log_messages(&self) -> Vec<GQLDriverStationLogMessage> {
         self.obj_driverstation
             .log_messages()
-            .await
             .iter()
             .map(|log_message| GQLDriverStationLogMessage {
                 obj_driverstationlogmessage: log_message.clone(),
@@ -78,7 +69,6 @@ impl GQLDriverStation {
     async fn versions(&self) -> Vec<GQLVersionData> {
         self.obj_driverstation
             .versions()
-            .await
             .values()
             .cloned()
             .map(|version_data| GQLVersionData {
@@ -95,21 +85,20 @@ pub struct GQLDriverStationConnection {
 #[Object(name = "DriverStationConnection")]
 impl GQLDriverStationConnection {
     async fn id(&self) -> ID {
-        ID(self.obj_driverstationconnection.uuid().await.to_string())
+        ID(self.obj_driverstationconnection.uuid().to_string())
     }
 
     async fn is_alive(&self) -> bool {
-        self.obj_driverstationconnection.is_alive().await
+        self.obj_driverstationconnection.is_alive()
     }
 
     async fn ip_address(&self) -> GQLIpAddr {
-        GQLIpAddr(self.obj_driverstationconnection.ip_address().await)
+        GQLIpAddr(self.obj_driverstationconnection.ip_address())
     }
 
     async fn last_packet_recieved_at_millis(&self) -> i64 {
         self.obj_driverstationconnection
             .last_udp_packet_reception()
-            .await
             .timestamp_millis()
     }
 }

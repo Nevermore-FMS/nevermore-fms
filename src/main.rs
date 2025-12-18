@@ -7,18 +7,18 @@ pub mod web;
 
 use clap::{Parser, ValueEnum};
 use log::*;
-use tokio_util::sync::CancellationToken;
 use std::{
     env,
     net::{IpAddr, SocketAddr},
 };
+use tokio_util::sync::CancellationToken;
 
 use crate::field::Field;
 
-const NAME: &'static str = env!("CARGO_PKG_NAME");
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
-const BIRD: &'static str = include_str!("../assets/eaobird.txt");
+const NAME: &str = env!("CARGO_PKG_NAME");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
+const BIRD: &str = include_str!("../assets/eaobird.txt");
 
 #[derive(ValueEnum, PartialEq, Debug, Clone)]
 pub enum UIWindow {
@@ -65,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting {} v{} by {}...", NAME, VERSION, AUTHORS);
 
-    let field = Field::new().await;
+    let field = Field::new();
 
     let cancellation_token = CancellationToken::new();
 
@@ -75,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     if let Err(e) = res {
-        return Err(e.context("Main process terminated unexpectedly"))
+        return Err(e.context("Main process terminated unexpectedly"));
     }
 
     Ok(())

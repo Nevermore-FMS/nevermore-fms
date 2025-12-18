@@ -1,10 +1,16 @@
-use std::{collections::HashMap, io::Cursor, net::IpAddr, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    io::Cursor,
+    net::IpAddr,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 use anyhow::{anyhow, bail};
 use chrono::Utc;
 use cidr::AnyIpCidr;
 use log::*;
-use tokio::{io::AsyncReadExt, net::TcpStream, sync::RwLock};
+use tokio::{io::AsyncReadExt, net::TcpStream};
 use tokio_util::sync::CancellationToken;
 
 use crate::alarms::FMSAlarmType;
@@ -36,82 +42,74 @@ pub struct DriverStation {
 impl DriverStation {
     // Public API -->
 
-    pub async fn parent(&self) -> DriverStations {
-        let raw = self.raw.read().await;
+    pub fn parent(&self) -> DriverStations {
+        let raw = self.raw.read().unwrap();
         raw.parent.clone()
     }
 
-    pub async fn alarm_target(&self) -> String {
-        let alarm_target = format!(
-            "fms.field.driverstations.{}",
-            self.alliance_station().await.to_string()
-        );
-        return alarm_target;
+    pub fn alarm_target(&self) -> String {
+        format!("fms.field.driverstations.{}", self.alliance_station())
     }
 
-    pub async fn team_number(&self) -> u16 {
-        let raw = self.raw.read().await;
+    pub fn team_number(&self) -> u16 {
+        let raw = self.raw.read().unwrap();
         raw.team_number
     }
 
-    pub async fn alliance_station(&self) -> AllianceStation {
-        let raw = self.raw.read().await;
+    pub fn alliance_station(&self) -> AllianceStation {
+        let raw = self.raw.read().unwrap();
         raw.alliance_station
     }
 
-    pub async fn commanded_enabled(&self) -> bool {
-        let raw = self.raw.read().await;
+    pub fn commanded_enabled(&self) -> bool {
+        let raw = self.raw.read().unwrap();
         raw.commanded_enabled
     }
 
-    pub async fn enabled(&self) -> bool {
+    pub fn enabled(&self) -> bool {
         let faulted = self
             .parent()
-            .await
             .get_field()
-            .await
             .alarm_handler()
-            .await
-            .is_target_faulted(self.alarm_target().await.as_str())
-            .await;
-        let commanded_enabled = self.commanded_enabled().await;
+            .is_target_faulted(self.alarm_target().as_str());
+        let commanded_enabled = self.commanded_enabled();
         commanded_enabled && !faulted
     }
 
-    pub async fn expected_ip(&self) -> Option<AnyIpCidr> {
-        let raw = self.raw.read().await;
+    pub fn expected_ip(&self) -> Option<AnyIpCidr> {
+        let raw = self.raw.read().unwrap();
         raw.expected_ip
     }
 
-    pub async fn active_connection(&self) -> Option<DriverStationConnection> {
-        let raw = self.raw.read().await;
+    pub fn active_connection(&self) -> Option<DriverStationConnection> {
+        let raw = self.raw.read().unwrap();
         raw.active_connection.clone()
     }
 
-    pub async fn confirmed_state(&self) -> Option<DriverStationConfirmedState> {
-        let raw = self.raw.read().await;
+    pub fn confirmed_state(&self) -> Option<DriverStationConfirmedState> {
+        let raw = self.raw.read().unwrap();
         raw.confirmed_state
     }
 
-    pub async fn log_data(&self) -> Vec<DriverStationLogData> {
-        let raw = self.raw.read().await;
+    pub fn log_data(&self) -> Vec<DriverStationLogData> {
+        let raw = self.raw.read().unwrap();
         raw.log_data.clone()
         //TODO Don't store in RAM, read from DB instead
     }
 
-    pub async fn log_messages(&self) -> Vec<DriverStationLogMessage> {
-        let raw = self.raw.read().await;
+    pub fn log_messages(&self) -> Vec<DriverStationLogMessage> {
+        let raw = self.raw.read().unwrap();
         raw.log_messages.clone()
         //TODO Don't store in RAM, read from DB instead
     }
 
-    pub async fn versions(&self) -> HashMap<VersionType, VersionData> {
-        let raw = self.raw.read().await;
+    pub fn versions(&self) -> HashMap<VersionType, VersionData> {
+        let raw = self.raw.read().unwrap();
         raw.versions.clone()
     }
 
-    pub async fn update_expected_ip(&self, expected_ip: AnyIpCidr) {
-        let mut raw = self.raw.write().await;
+    pub fn update_expected_ip(&self, expected_ip: AnyIpCidr) {
+        let mut raw = self.raw.write().unwrap();
         raw.expected_ip = Option::Some(expected_ip);
         info!(
             "Expected ip of {} set to {}",
@@ -135,52 +133,46 @@ impl DriverStation {
             versions: HashMap::new(),
             log_messages: Vec::new(),
         };
-        let driverstation = Self {
+
+        Self {
             raw: Arc::new(RwLock::new(driverstation)),
-        };
-        driverstation
+        }
     }
 
-    pub(super) async fn set_version(&self, version_type: VersionType, version: VersionData) {
-        let mut raw = self.raw.write().await;
+    pub(super) fn set_version(&self, version_type: VersionType, version: VersionData) {
+        let mut raw = self.raw.write().unwrap();
         raw.versions.insert(version_type, version);
     }
 
-    pub(super) async fn record_log_data(&self, log_data: DriverStationLogData) {
-        let mut raw = self.raw.write().await;
+    pub(super) fn record_log_data(&self, log_data: DriverStationLogData) {
+        let mut raw = self.raw.write().unwrap();
         raw.log_data.push(log_data);
         //TODO Don't store in RAM, write to DB instead
     }
 
-    pub(super) async fn add_log_message(&self, log_message: DriverStationLogMessage) {
-        let mut raw = self.raw.write().await;
+    pub(super) fn add_log_message(&self, log_message: DriverStationLogMessage) {
+        let mut raw = self.raw.write().unwrap();
         raw.log_messages.push(log_message);
         //TODO Don't store in RAM, write to DB instead
     }
 
-    pub(super) async fn set_confirmed_state(
-        &self,
-        confirmed_state: Option<DriverStationConfirmedState>,
-    ) {
-        let mut raw = self.raw.write().await;
+    pub(super) fn set_confirmed_state(&self, confirmed_state: Option<DriverStationConfirmedState>) {
+        let mut raw = self.raw.write().unwrap();
         raw.confirmed_state = confirmed_state;
     }
 
-     pub(super) async fn remove_active_connection(&self) -> Option<DriverStationConnection> {
-        let mut raw = self.raw.write().await;
+    pub(super) fn remove_active_connection(&self) -> Option<DriverStationConnection> {
+        let mut raw = self.raw.write().unwrap();
         raw.active_connection.take()
-     }
+    }
 
-    pub(super) async fn set_active_connection(
-        &self,
-        active_connection: DriverStationConnection,
-    ) {
-        let mut raw = self.raw.write().await;
+    pub(super) fn set_active_connection(&self, active_connection: DriverStationConnection) {
+        let mut raw = self.raw.write().unwrap();
         raw.active_connection = Some(active_connection);
     }
 
-    pub(super) async fn set_commanded_enabled(&self, enabled: bool) {
-        let mut raw = self.raw.write().await;
+    pub(super) fn set_commanded_enabled(&self, enabled: bool) {
+        let mut raw = self.raw.write().unwrap();
         raw.commanded_enabled = enabled;
     }
 
@@ -188,33 +180,29 @@ impl DriverStation {
         // Respond to active faults
         if self
             .parent()
-            .await
             .get_field()
-            .await
             .alarm_handler()
-            .await
-            .is_target_faulted(self.alarm_target().await.as_str())
-            .await
+            .is_target_faulted(self.alarm_target().as_str())
         {
-            self.set_commanded_enabled(false).await;
+            self.set_commanded_enabled(false);
         }
 
-        if let Some(conn) = self.active_connection().await {
-            if conn.is_alive().await {
-                if Utc::now().signed_duration_since(conn.last_udp_packet_reception().await)
-                    > chrono::Duration::seconds(2)
-                {
-                    conn.kill().await;
-                } else {
-                    let udp_result = conn.send_udp_message().await;
-                    if let Err(e) = udp_result {
-                        error!(
-                            "Error sending udp message to driver station{}: {}",
-                            self.team_number().await,
-                            e
-                        );
-                    };
-                }
+        if let Some(conn) = self.active_connection()
+            && conn.is_alive()
+        {
+            if Utc::now().signed_duration_since(conn.last_udp_packet_reception())
+                > chrono::Duration::seconds(2)
+            {
+                conn.kill().await;
+            } else {
+                let udp_result = conn.send_udp_message().await;
+                if let Err(e) = udp_result {
+                    error!(
+                        "Error sending udp message to driver station{}: {}",
+                        self.team_number(),
+                        e
+                    );
+                };
             }
         }
     }
@@ -234,19 +222,22 @@ pub struct DriverStations {
 impl DriverStations {
     // Public API -->
 
-    pub async fn add_driverstation(
+    pub fn add_driverstation(
         &self,
         team_number: u16,
         alliance_station: AllianceStation,
     ) -> anyhow::Result<DriverStation> {
-        if let Some(_) = self.get_driverstation_by_team_number(team_number).await {
+        if self.get_driverstation_by_team_number(team_number).is_some() {
             bail!(
                 "Driverstation with team number {} already exists",
                 team_number
             );
         }
 
-        if let Some(_) = self.get_driverstation_by_position(alliance_station).await {
+        if self
+            .get_driverstation_by_position(alliance_station)
+            .is_some()
+        {
             bail!(
                 "Driverstation already exists in alliance station {:?}",
                 alliance_station
@@ -255,39 +246,35 @@ impl DriverStations {
 
         let driverstation = DriverStation::new(self.clone(), team_number, alliance_station);
 
-        let mut raw_driverstations = self.raw.write().await;
+        let mut raw_driverstations = self.raw.write().unwrap();
         raw_driverstations
             .all_driverstations
             .push(driverstation.clone());
 
         info!(
             "Added driverstation {} to {}",
-            driverstation.team_number().await,
-            driverstation.alliance_station().await
+            driverstation.team_number(),
+            driverstation.alliance_station()
         );
 
         Ok(driverstation)
     }
 
     pub async fn delete_driverstation(&self, team_number: u16) -> anyhow::Result<()> {
-        let raw_driverstations = self.raw.read().await;
-        let all_driverstations = raw_driverstations.all_driverstations.clone();
-        drop(raw_driverstations);
+        let all_driverstations = self.get_all_driverstations();
         let mut new_driverstations: Vec<DriverStation> = Vec::new();
 
         for ds in all_driverstations.iter() {
-            if ds.team_number().await != team_number {
+            if ds.team_number() != team_number {
                 new_driverstations.push(ds.clone());
-            } else {
-                if let Some(conn) = ds.active_connection().await {
-                    info!("Deleted driverstation {}", team_number);
-                    conn.kill().await;
-                }
+            } else if let Some(conn) = ds.active_connection() {
+                info!("Deleted driverstation {}", team_number);
+                conn.kill().await;
             }
         }
 
         if all_driverstations.len() > new_driverstations.len() {
-            let mut raw_driverstations = self.raw.write().await;
+            let mut raw_driverstations = self.raw.write().unwrap();
             raw_driverstations.all_driverstations = new_driverstations;
             Ok(())
         } else {
@@ -298,48 +285,42 @@ impl DriverStations {
         }
     }
 
-    pub async fn get_driverstation_by_team_number(
-        &self,
-        team_number: u16,
-    ) -> Option<DriverStation> {
-        let raw_driverstations = self.raw.read().await;
-        let all_driverstations = raw_driverstations.all_driverstations.clone();
-        drop(raw_driverstations);
+    pub fn get_driverstation_by_team_number(&self, team_number: u16) -> Option<DriverStation> {
+        let all_driverstations = self.get_all_driverstations();
         for ds in all_driverstations.iter() {
-            if ds.team_number().await == team_number {
+            if ds.team_number() == team_number {
                 return Some(ds.clone());
             }
         }
-        return None;
+
+        None
     }
 
-    pub async fn get_driverstation_by_position(
+    pub fn get_driverstation_by_position(
         &self,
         alliance_station: AllianceStation,
     ) -> Option<DriverStation> {
-        let raw_driverstations = self.raw.read().await;
-        let all_driverstations = raw_driverstations.all_driverstations.clone();
-        drop(raw_driverstations);
+        let all_driverstations = self.get_all_driverstations();
         for ds in all_driverstations.iter() {
-            if ds.alliance_station().await == alliance_station {
+            if ds.alliance_station() == alliance_station {
                 return Some(ds.clone());
             }
         }
-        return None;
+
+        None
     }
 
-    pub async fn get_all_driverstations(&self) -> Vec<DriverStation> {
-        let raw_driverstations = self.raw.read().await;
-        let all_driverstations = raw_driverstations.all_driverstations.clone();
-        return all_driverstations;
+    pub fn get_all_driverstations(&self) -> Vec<DriverStation> {
+        let raw_driverstations = self.raw.read().unwrap();
+        raw_driverstations.all_driverstations.clone()
     }
 
-    pub async fn get_field(&self) -> Field {
-        let raw_driverstations = self.raw.read().await;
+    pub fn get_field(&self) -> Field {
+        let raw_driverstations = self.raw.read().unwrap();
         if let Some(field) = raw_driverstations.field.clone() {
             field
         } else {
-            panic!("Driverstations get_field() used too early");
+            panic!("Driverstations::get_field() used too early");
         }
     }
 
@@ -350,11 +331,10 @@ impl DriverStations {
             field,
             all_driverstations: Vec::new(),
         };
-        let driverstations = Self {
-            raw: Arc::new(RwLock::new(driverstations)),
-        };
 
-        driverstations
+        Self {
+            raw: Arc::new(RwLock::new(driverstations)),
+        }
     }
 
     pub(super) async fn run(self, cancellation_token: CancellationToken) -> anyhow::Result<()> {
@@ -367,8 +347,8 @@ impl DriverStations {
         Ok(())
     }
 
-    pub(super) async fn set_field(&self, field: Field) -> anyhow::Result<()> {
-        let mut raw_driverstations = self.raw.write().await;
+    pub(super) fn set_field(&self, field: Field) -> anyhow::Result<()> {
+        let mut raw_driverstations = self.raw.write().unwrap();
         if raw_driverstations.field.is_some() {
             bail!("Field already set");
         }
@@ -394,20 +374,20 @@ impl DriverStations {
     }
 
     async fn tick(&self) {
-        let all_driverstations = self.get_all_driverstations().await;
-        let field = self.get_field().await;
+        let all_driverstations = self.get_all_driverstations();
+        let field = self.get_field();
         for ds in all_driverstations {
             // Throw conditional faults
-            if ds.enabled().await && field.is_safe().await {
-                let _ = field.alarm_handler().await.throw_alarm(
+            if ds.enabled() && field.is_safe() {
+                let _ = field.alarm_handler().throw_alarm(
                     FMSAlarmType::Fault,
-                    "FIELD_SAFE_MISMATCH", 
-                    "Driver Station is set to ENABLED but field SAFE flag was set. Invalid state.", 
-                    "fms.field.driverstations", 
-                    "fms.field", 
+                    "FIELD_SAFE_MISMATCH",
+                    "Driver Station is set to ENABLED but field SAFE flag was set. Invalid state.",
+                    "fms.field.driverstations",
+                    "fms.field",
                     true,
-                    false
-                ).await;
+                    false,
+                );
             }
             ds.tick().await;
         }
@@ -445,12 +425,10 @@ impl DriverStations {
             battery_voltage,
         };
 
-        if let Some(ds) = self.get_driverstation_by_team_number(team_number).await {
-            ds.set_confirmed_state(Some(confirmed_state)).await;
-            if let Some(active_connection) = ds.active_connection().await {
-                active_connection
-                    .update_last_udp_packet_reception(Utc::now())
-                    .await
+        if let Some(ds) = self.get_driverstation_by_team_number(team_number) {
+            ds.set_confirmed_state(Some(confirmed_state));
+            if let Some(active_connection) = ds.active_connection() {
+                active_connection.update_last_udp_packet_reception(Utc::now())
             }
         } else {
             warn!(
@@ -468,7 +446,7 @@ impl DriverStations {
         ip_address: IpAddr,
         cancellation_token: CancellationToken,
     ) -> anyhow::Result<()> {
-        let ds_connection = DriverStationConnection::new(ip_address, self.get_field().await);
+        let ds_connection = DriverStationConnection::new(ip_address, self.get_field());
         ds_connection.run(tcp_stream, cancellation_token).await
     }
 }

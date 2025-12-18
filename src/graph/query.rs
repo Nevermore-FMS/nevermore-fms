@@ -11,7 +11,6 @@ pub struct Query;
 impl Query {
     //TODO Auth
 
-
     async fn field_state(&self, ctx: &Context<'_>) -> GQLFieldState {
         let field = ctx.data::<Field>().unwrap();
         GQLFieldState {
@@ -19,14 +18,12 @@ impl Query {
         }
     }
 
-        #[graphql(name = "activeFMSAlarms")]
+    #[graphql(name = "activeFMSAlarms")]
     async fn active_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
         let field = ctx.data::<Field>().unwrap();
         field
             .alarm_handler()
-            .await
             .active_alarms()
-            .await
             .iter()
             .cloned()
             .map(|alarm| GQLFMSAlarm {
@@ -40,9 +37,7 @@ impl Query {
         let field = ctx.data::<Field>().unwrap();
         field
             .alarm_handler()
-            .await
             .historic_alarms()
-            .await
             .iter()
             .cloned()
             .map(|alarm| GQLFMSAlarm {
@@ -55,9 +50,7 @@ impl Query {
         let field = ctx.data::<Field>().unwrap();
         field
             .driverstations()
-            .await
             .get_all_driverstations()
-            .await
             .iter()
             .map(|ds| GQLDriverStation {
                 obj_driverstation: ds.clone(),
@@ -74,17 +67,13 @@ impl Query {
         match criteria {
             GQLDriverStationByCriteriaInput::AllianceStation(alliance_station) => field
                 .driverstations()
-                .await
                 .get_driverstation_by_position(alliance_station.into())
-                .await
                 .map(|ds| GQLDriverStation {
                     obj_driverstation: ds,
                 }),
             GQLDriverStationByCriteriaInput::TeamNumber(team_number) => field
                 .driverstations()
-                .await
-                .get_driverstation_by_team_number(team_number.into())
-                .await
+                .get_driverstation_by_team_number(team_number)
                 .map(|ds| GQLDriverStation {
                     obj_driverstation: ds,
                 }),

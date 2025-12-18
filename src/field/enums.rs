@@ -3,17 +3,14 @@ use std::fmt;
 // Represents the Mode of a DriverStation. These values correspond to the values you can
 /// get from WPILib and can set on the Driverstation when directly connected.
 #[derive(Clone, Copy)]
+#[derive(Default)]
 pub enum Mode {
+    #[default]
     TeleOp,
     Test,
     Autonomous,
 }
 
-impl Default for Mode {
-    fn default() -> Self {
-        Self::Test
-    }
-}
 
 impl Mode {
     pub fn from_byte(integer: u8) -> Mode {

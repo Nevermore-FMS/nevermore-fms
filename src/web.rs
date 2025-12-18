@@ -43,6 +43,6 @@ pub async fn run(
 
     join_handle
         .await
-        .map_err(|e| anyhow::Error::from(e))?
-        .map_err(|e| anyhow::Error::from(e))
+        .map_err(anyhow::Error::from)?
+        .map_err(anyhow::Error::from)
 }

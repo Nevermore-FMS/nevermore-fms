@@ -4,7 +4,7 @@ pub mod enums;
 
 use std::{
     net::{IpAddr, SocketAddr},
-    sync::Arc,
+    sync::{Arc, RwLock},
     time::Duration,
 };
 
@@ -12,7 +12,6 @@ use anyhow::Context;
 use log::*;
 use tokio::{
     net::{TcpListener, UdpSocket},
-    sync::RwLock,
     task::JoinSet,
 };
 use tokio_util::sync::CancellationToken;
@@ -42,131 +41,131 @@ pub struct Field {
 
 impl Field {
     // Public API -->
-    pub async fn udp_online(&self) -> bool {
-        let raw = self.raw.read().await;
+    pub fn udp_online(&self) -> bool {
+        let raw: std::sync::RwLockReadGuard<'_, RawField> = self.raw.read().unwrap();
         raw.udp_online
     }
 
-    pub async fn tcp_online(&self) -> bool {
-        let raw = self.raw.read().await;
+    pub fn tcp_online(&self) -> bool {
+        let raw = self.raw.read().unwrap();
         raw.tcp_online
     }
 
-    pub async fn driverstations(&self) -> DriverStations {
-        let raw = self.raw.read().await;
+    pub fn driverstations(&self) -> DriverStations {
+        let raw = self.raw.read().unwrap();
         raw.driverstations.clone()
     }
 
-    pub async fn alarm_handler(&self) -> FMSAlarmHandler {
-        let raw = self.raw.read().await;
+    pub fn alarm_handler(&self) -> FMSAlarmHandler {
+        let raw = self.raw.read().unwrap();
         raw.alarm_handler.clone()
     }
 
-    pub async fn alarm_target(&self) -> String {
-        return format!("fms.field");
+    pub fn alarm_target(&self) -> String {
+        "fms.field".to_string()
     }
 
-    pub async fn event_name(&self) -> String {
-        let raw = self.raw.read().await;
+    pub fn event_name(&self) -> String {
+        let raw = self.raw.read().unwrap();
         raw.event_name.clone()
     }
 
-    pub async fn set_event_name(&self, event_name: String) {
-        let mut raw = self.raw.write().await;
+    pub fn set_event_name(&self, event_name: String) {
+        let mut raw = self.raw.write().unwrap();
         raw.event_name = event_name;
         info!("Event name set to {}", raw.event_name.clone());
     }
 
-    pub async fn tournament_level(&self) -> TournamentLevel {
-        let raw = self.raw.read().await;
-        raw.tournament_level.clone()
+    pub fn tournament_level(&self) -> TournamentLevel {
+        let raw = self.raw.read().unwrap();
+        raw.tournament_level
     }
 
-    pub async fn set_tournament_level(&self, tournament_level: TournamentLevel) {
-        let mut raw = self.raw.write().await;
+    pub fn set_tournament_level(&self, tournament_level: TournamentLevel) {
+        let mut raw = self.raw.write().unwrap();
         raw.tournament_level = tournament_level;
         info!("Tournament Level set to {}", raw.tournament_level.clone());
     }
 
-    pub async fn match_number(&self) -> u16 {
-        let raw = self.raw.read().await;
-        raw.match_number.clone()
+    pub fn match_number(&self) -> u16 {
+        let raw = self.raw.read().unwrap();
+        raw.match_number
     }
 
-    pub async fn set_match_number(&self, match_number: u16) {
-        let mut raw = self.raw.write().await;
+    pub fn set_match_number(&self, match_number: u16) {
+        let mut raw = self.raw.write().unwrap();
         raw.match_number = match_number;
         info!("Match Number set to {}", &raw.match_number);
     }
 
-    pub async fn play_number(&self) -> u8 {
-        let raw = self.raw.read().await;
-        raw.play_number.clone()
+    pub fn play_number(&self) -> u8 {
+        let raw = self.raw.read().unwrap();
+        raw.play_number
     }
 
-    pub async fn set_play_number(&self, play_number: u8) {
-        let mut raw = self.raw.write().await;
+    pub fn set_play_number(&self, play_number: u8) {
+        let mut raw = self.raw.write().unwrap();
         raw.play_number = play_number;
         info!("Play number set to {}", &raw.play_number);
     }
 
-    pub async fn timer(&self) -> difftimer::DiffTimer {
-        let raw = self.raw.read().await;
+    pub fn timer(&self) -> difftimer::DiffTimer {
+        let raw = self.raw.read().unwrap();
         raw.time_left.clone()
     }
 
-    pub async fn set_time_remaining(&self, time_left: Duration) {
-        let mut raw = self.raw.write().await;
+    pub fn set_time_remaining(&self, time_left: Duration) {
+        let mut raw = self.raw.write().unwrap();
         raw.time_left = difftimer::DiffTimer::new(time_left, raw.time_left.is_running());
         info!("Timer set to {} ms", time_left.as_millis());
     }
 
-    pub async fn start_timer(&self) {
-        let mut raw = self.raw.write().await;
+    pub fn start_timer(&self) {
+        let mut raw = self.raw.write().unwrap();
         if !raw.time_left.is_running() {
             raw.time_left = raw.time_left.start();
             info!("Timer started");
         }
     }
 
-    pub async fn stop_timer(&self) {
-        let mut raw = self.raw.write().await;
+    pub fn stop_timer(&self) {
+        let mut raw = self.raw.write().unwrap();
         if raw.time_left.is_running() {
             raw.time_left = raw.time_left.stop();
             info!("Timer stopped");
         }
     }
 
-    pub async fn match_abort(&self) {
-        self.stop_timer().await
+    pub fn match_abort(&self) {
+        self.stop_timer()
         //TODO Other actions related to match abort
     }
 
-    pub async fn ds_mode(&self) -> enums::Mode {
-        let raw = self.raw.read().await;
+    pub fn ds_mode(&self) -> enums::Mode {
+        let raw = self.raw.read().unwrap();
         raw.ds_mode
     }
 
-    pub async fn set_ds_mode(&self, ds_mode: enums::Mode) {
-        let mut raw = self.raw.write().await;
+    pub fn set_ds_mode(&self, ds_mode: enums::Mode) {
+        let mut raw = self.raw.write().unwrap();
         raw.ds_mode = ds_mode;
         info!("DS Mode set to {}", ds_mode);
     }
 
-    pub async fn is_safe(&self) -> bool {
-        let raw = self.raw.read().await;
+    pub fn is_safe(&self) -> bool {
+        let raw = self.raw.read().unwrap();
         raw.is_safe
     }
 
-    pub async fn set_is_safe(&self, is_safe: bool) {
-        let mut raw = self.raw.write().await;
+    pub fn set_is_safe(&self, is_safe: bool) {
+        let mut raw = self.raw.write().unwrap();
         raw.is_safe = is_safe;
         info!("Field safe flag set to {}", is_safe);
     }
 
     // Internal API -->
 
-    pub(super) async fn new() -> Self {
+    pub(super) fn new() -> Self {
         let field = RawField {
             event_name: "nvmre".to_string(),
             tournament_level: TournamentLevel::Test,
@@ -185,12 +184,7 @@ impl Field {
             raw: Arc::new(RwLock::new(field)),
         };
 
-        field
-            .driverstations()
-            .await
-            .set_field(field.clone())
-            .await
-            .unwrap();
+        field.driverstations().set_field(field.clone()).unwrap();
 
         field
     }
@@ -229,7 +223,7 @@ impl Field {
             anyhow::Ok(())
         };
 
-        let driverstations = self.driverstations().await;
+        let driverstations = self.driverstations();
 
         let res = tokio::try_join!(
             run_field_tasks,
@@ -251,21 +245,24 @@ impl Field {
         let listen_with_retry_loop = async {
             loop {
                 //Retry Loop
-                let mut raw_field = self.raw.write().await;
                 let socket = UdpSocket::bind(addr)
                     .await
                     .context(new_bind_err("UDP", addr));
                 if socket.is_err() {
                     error!("{}", socket.err().unwrap());
-                    raw_field.udp_online = false;
-                    drop(raw_field);
+                    {
+                        let mut raw_field = self.raw.write().unwrap();
+                        raw_field.udp_online = false;
+                    }
                     tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
                     continue;
                 }
                 let socket = socket.unwrap();
-                raw_field.udp_online = true;
-                let driverstations = raw_field.driverstations.clone();
-                drop(raw_field);
+                {
+                    let mut raw_field = self.raw.write().unwrap();
+                    raw_field.udp_online = false;
+                }
+                let driverstations = self.driverstations();
 
                 let mut buf = vec![0; 1024];
                 info!("Listening for UDP messages on {}", addr);
@@ -275,10 +272,9 @@ impl Field {
                             if let Err(e) = driverstations
                                 .decode_udp_message(buf[..size].to_vec())
                                 .await
+                                && e.to_string() != "unexpected end of file"
                             {
-                                if e.to_string() != "unexpected end of file" {
-                                    error!("Error decoding UDP message: {}", e);
-                                }
+                                error!("Error decoding UDP message: {}", e);
                             }
                         }
                         Err(e) => {
@@ -303,21 +299,24 @@ impl Field {
         let listen_with_retry_loop = async {
             loop {
                 //Retry Loop
-                let mut raw_field = self.raw.write().await;
                 let listener = TcpListener::bind(addr)
                     .await
                     .context(new_bind_err("TCP", addr));
                 if listener.is_err() {
                     error!("{}", listener.err().unwrap());
-                    raw_field.tcp_online = false;
-                    drop(raw_field);
+                    {
+                        let mut raw_field = self.raw.write().unwrap();
+                        raw_field.tcp_online = false;
+                    }
                     tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
                     continue;
                 }
                 let listener = listener.unwrap();
-                raw_field.tcp_online = true;
-                let driverstations = raw_field.driverstations.clone();
-                drop(raw_field);
+                {
+                    let mut raw_field = self.raw.write().unwrap();
+                    raw_field.tcp_online = true;
+                }
+                let driverstations = self.driverstations();
 
                 info!("Listening for TCP connections on {}", addr);
                 loop {
@@ -351,7 +350,7 @@ impl Field {
         let interval_tick_loop = async {
             loop {
                 interval.tick().await;
-                self.tick().await;
+                self.tick();
             }
         };
 
@@ -361,15 +360,13 @@ impl Field {
         }
     }
 
-    async fn tick(&self) {
+    fn tick(&self) {
         // Respond to active faults
         if self
             .alarm_handler()
-            .await
-            .is_target_faulted(self.alarm_target().await.as_str())
-            .await
+            .is_target_faulted(self.alarm_target().as_str())
         {
-            self.match_abort().await
+            self.match_abort();
         }
     }
 }

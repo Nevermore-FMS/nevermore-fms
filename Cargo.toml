@@ -28,3 +28,7 @@ poem = "3.1.12"
 async-graphql = "7.0.17"
 async-graphql-poem = "7.0.17"
 console-subscriber = "0.5.0"
+
+[lints.clippy]
+too_many_arguments = "allow"
+unused_async = "warn"

@@ -24,25 +24,25 @@ impl DiffTimer {
             started_at = Some(Instant::now())
         }
         DiffTimer {
-            time_remaining: time_remaining,
+            time_remaining,
             started_at,
         }
     }
 
     pub fn is_running(&self) -> bool {
-        self.started_at != None
+        self.started_at.is_some()
     }
 
     pub fn current_time_remaining(&self) -> Duration {
         if self.is_running() {
             let time_passed = self.started_at.unwrap().elapsed();
             if time_passed > self.time_remaining {
-                return Duration::ZERO;
+                Duration::ZERO
             } else {
-                return self.time_remaining - time_passed;
+                self.time_remaining - time_passed
             }
         } else {
-            return self.time_remaining;
+            self.time_remaining
         }
     }
 
