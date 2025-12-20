@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::{Context, bail};
 
-/// FMSAlarmType indicates how the alarm will be displayed.
+/// `FMSAlarmType` indicates how the alarm will be displayed.
 /// `FMSAlarmType::Fault` will also activate the associated System Stop for the target_scope (LStop or EStop)
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum FMSAlarmType {

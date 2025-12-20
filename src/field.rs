@@ -149,7 +149,7 @@ impl Field {
     pub fn set_ds_mode(&self, ds_mode: enums::Mode) {
         let mut raw = self.raw.write().unwrap();
         raw.ds_mode = ds_mode;
-        info!("DS Mode set to {}", ds_mode);
+        info!("DS Mode set to {ds_mode}");
     }
 
     pub fn is_safe(&self) -> bool {

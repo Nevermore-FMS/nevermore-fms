@@ -17,8 +17,8 @@
 /// Target ID: fms.field.game_elements.collector
 /// Returns: True
 pub fn is_target_in_scope(scope: &str, target_id: &str) -> bool {
-    let mut scope_secs = scope.split(".");
-    let mut target_secs = target_id.split(".");
+    let mut scope_secs = scope.split('.');
+    let mut target_secs = target_id.split('.');
 
     loop {
         let next_scope_sec = scope_secs.next();

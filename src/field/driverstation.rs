@@ -412,7 +412,7 @@ impl DriverStations {
         let mode = Mode::from_byte(status_byte & 0x03);
 
         let battery_voltage =
-            (battery_byte >> 8 & 0xff) as f32 + ((battery_byte & 0xff) as f32 / 256.0);
+            f32::from(battery_byte >> 8 & 0xff) + (f32::from(battery_byte & 0xff) / 256.0);
 
         let confirmed_state = DriverStationConfirmedState {
             is_emergency_stopped,

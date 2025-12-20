@@ -24,8 +24,8 @@ impl DiffTimer {
             started_at = Some(Instant::now())
         }
         DiffTimer {
-            time_remaining,
             started_at,
+            time_remaining,
         }
     }
 
