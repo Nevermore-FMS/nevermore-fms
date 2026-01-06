@@ -1,3 +1,5 @@
+#![allow(clippy::wildcard_imports)]
+
 use crate::alarms::FMSAlarm;
 use crate::field::Field;
 use crate::graph::types::*;

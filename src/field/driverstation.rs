@@ -9,11 +9,11 @@ use std::{
 use anyhow::{anyhow, bail};
 use chrono::Utc;
 use cidr::AnyIpCidr;
-use log::*;
+use log::{info, error, warn};
 use tokio::{io::AsyncReadExt, net::TcpStream};
 use tokio_util::sync::CancellationToken;
 
-use crate::alarms::FMSAlarmType;
+use crate::alarms::{FMSAlarmThrowable, FMSAlarmType};
 
 use super::{
     Field,
@@ -202,7 +202,7 @@ impl DriverStation {
                         self.team_number(),
                         e
                     );
-                };
+                }
             }
         }
     }
@@ -264,11 +264,11 @@ impl DriverStations {
         let all_driverstations = self.get_all_driverstations();
         let mut new_driverstations: Vec<DriverStation> = Vec::new();
 
-        for ds in all_driverstations.iter() {
+        for ds in &all_driverstations {
             if ds.team_number() != team_number {
                 new_driverstations.push(ds.clone());
             } else if let Some(conn) = ds.active_connection() {
-                info!("Deleted driverstation {}", team_number);
+                info!("Deleted driverstation {team_number}");
                 conn.kill().await;
             }
         }
@@ -287,7 +287,7 @@ impl DriverStations {
 
     pub fn get_driverstation_by_team_number(&self, team_number: u16) -> Option<DriverStation> {
         let all_driverstations = self.get_all_driverstations();
-        for ds in all_driverstations.iter() {
+        for ds in &all_driverstations {
             if ds.team_number() == team_number {
                 return Some(ds.clone());
             }
@@ -301,7 +301,7 @@ impl DriverStations {
         alliance_station: AllianceStation,
     ) -> Option<DriverStation> {
         let all_driverstations = self.get_all_driverstations();
-        for ds in all_driverstations.iter() {
+        for ds in &all_driverstations {
             if ds.alliance_station() == alliance_station {
                 return Some(ds.clone());
             }
@@ -368,8 +368,8 @@ impl DriverStations {
         };
 
         tokio::select! {
-            _ = cancellation_token.cancelled() => Ok(()),
-            _ = interval_tick_loop => Err(anyhow::anyhow!("Tick loop closed unexpectedly")),
+            () = cancellation_token.cancelled() => Ok(()),
+            () = interval_tick_loop => Err(anyhow::anyhow!("Tick loop closed unexpectedly")),
         }
     }
 
@@ -380,13 +380,15 @@ impl DriverStations {
             // Throw conditional faults
             if ds.enabled() && field.is_safe() {
                 let _ = field.alarm_handler().throw_alarm(
-                    FMSAlarmType::Fault,
-                    "FIELD_SAFE_MISMATCH",
-                    "Driver Station is set to ENABLED but field SAFE flag was set. Invalid state.",
-                    "fms.field.driverstations",
-                    "fms.field",
-                    true,
-                    false,
+                    FMSAlarmThrowable {
+                        alarm_type: FMSAlarmType::Fault,
+                        code: "FIELD_SAFE_MISMATCH".to_string(),
+                        description: "Driver Station is set to ENABLED but field SAFE flag was set. Invalid state.".to_string(),
+                        source_id: "fms.field.driverstations".to_string(),
+                        target_scope: "fms.field".to_string(),
+                        require_release: true,
+                        auto_clear: false
+                    }
                 );
             }
             ds.tick().await;
@@ -428,12 +430,11 @@ impl DriverStations {
         if let Some(ds) = self.get_driverstation_by_team_number(team_number) {
             ds.set_confirmed_state(Some(confirmed_state));
             if let Some(active_connection) = ds.active_connection() {
-                active_connection.update_last_udp_packet_reception(Utc::now())
+                active_connection.update_last_udp_packet_reception(Utc::now());
             }
         } else {
             warn!(
-                "Received a packet from a driver station that is not in the list of known driver stations. Team Number: {}",
-                team_number
+                "Received a packet from a driver station that is not in the list of known driver stations. Team Number: {team_number}"
             );
         }
 

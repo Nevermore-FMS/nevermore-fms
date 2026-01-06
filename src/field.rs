@@ -9,7 +9,7 @@ use std::{
 };
 
 use anyhow::Context;
-use log::*;
+use log::{error, info};
 use tokio::{
     net::{TcpListener, UdpSocket},
     task::JoinSet,
@@ -137,7 +137,7 @@ impl Field {
     }
 
     pub fn match_abort(&self) {
-        self.stop_timer()
+        self.stop_timer();
         //TODO Other actions related to match abort
     }
 
@@ -160,7 +160,7 @@ impl Field {
     pub fn set_is_safe(&self, is_safe: bool) {
         let mut raw = self.raw.write().unwrap();
         raw.is_safe = is_safe;
-        info!("Field safe flag set to {}", is_safe);
+        info!("Field safe flag set to {is_safe}");
     }
 
     // Internal API -->
@@ -265,7 +265,7 @@ impl Field {
                 let driverstations = self.driverstations();
 
                 let mut buf = vec![0; 1024];
-                info!("Listening for UDP messages on {}", addr);
+                info!("Listening for UDP messages on {addr}");
                 loop {
                     match socket.recv_from(&mut buf).await {
                         Ok((size, _)) => {
@@ -274,11 +274,11 @@ impl Field {
                                 .await
                                 && e.to_string() != "unexpected end of file"
                             {
-                                error!("Error decoding UDP message: {}", e);
+                                error!("Error decoding UDP message: {e}");
                             }
                         }
                         Err(e) => {
-                            error!("Error when reading UDP Message: {}", e);
+                            error!("Error when reading UDP Message: {e}");
                         }
                     }
                 }
@@ -286,8 +286,8 @@ impl Field {
         };
 
         tokio::select! {
-            _ = cancellation_token.cancelled() => Ok(()),
-            _ = listen_with_retry_loop => Err(anyhow::anyhow!("UDP Listener closed unexpectedly")),
+            () = cancellation_token.cancelled() => Ok(()),
+            () = listen_with_retry_loop => Err(anyhow::anyhow!("UDP Listener closed unexpectedly")),
         }
     }
 
@@ -318,7 +318,7 @@ impl Field {
                 }
                 let driverstations = self.driverstations();
 
-                info!("Listening for TCP connections on {}", addr);
+                info!("Listening for TCP connections on {addr}");
                 loop {
                     match listener.accept().await {
                         Ok((stream, socket)) => {
@@ -326,11 +326,11 @@ impl Field {
                                 .handle_tcp_stream(stream, socket.ip(), cancellation_token.clone())
                                 .await
                             {
-                                error!("Error accepting TCP stream: {}", e);
+                                error!("Error accepting TCP stream: {e}");
                             }
                         }
                         Err(e) => {
-                            error!("Error when accepting TCP Connection: {}", e);
+                            error!("Error when accepting TCP Connection: {e}");
                         }
                     }
                 }
@@ -338,8 +338,8 @@ impl Field {
         };
 
         tokio::select! {
-            _ = cancellation_token.cancelled() => Ok(()),
-            _ = listen_with_retry_loop => Err(anyhow::anyhow!("TCP Listener closed unexpectedly")),
+            () = cancellation_token.cancelled() => Ok(()),
+            () = listen_with_retry_loop => Err(anyhow::anyhow!("TCP Listener closed unexpectedly")),
         }
     }
 
@@ -355,8 +355,8 @@ impl Field {
         };
 
         tokio::select! {
-            _ = cancellation_token.cancelled() => Ok(()),
-            _ = interval_tick_loop => Err(anyhow::anyhow!("Tick loop closed unexpectedly")),
+            () = cancellation_token.cancelled() => Ok(()),
+            () = interval_tick_loop => Err(anyhow::anyhow!("Tick loop closed unexpectedly")),
         }
     }
 
@@ -373,7 +373,6 @@ impl Field {
 
 fn new_bind_err(conn_type: &str, addr: SocketAddr) -> String {
     format!(
-        "Coult not bind to {} {}. The host device may not have an interface with that address. To change the ds address, use the --ds-address option. Attempting bind again in 15 seconds.",
-        conn_type, addr
+        "Coult not bind to {conn_type} {addr}. The host device may not have an interface with that address. To change the ds address, use the --ds-address option. Attempting bind again in 15 seconds.",
     )
 }

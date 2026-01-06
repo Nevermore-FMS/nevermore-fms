@@ -1,3 +1,5 @@
+#![allow(clippy::wildcard_imports)]
+
 use crate::field::connection::DriverStationConnection;
 use crate::field::driverstation::{
     DriverStation, DriverStationConfirmedState, DriverStationLogData, DriverStationLogMessage,

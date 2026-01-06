@@ -6,7 +6,7 @@ pub mod web;
 // TODO These do not need to be pub
 
 use clap::{Parser, ValueEnum};
-use log::*;
+use log::info;
 use std::{
     env,
     net::{IpAddr, SocketAddr},
@@ -59,11 +59,11 @@ async fn main() -> anyhow::Result<()> {
         .parse_filters(&env::var("NEVERMORE_LOG").unwrap_or(String::from("info")))
         .init();
 
-    info!("{}", BIRD);
+    info!("{BIRD}");
 
     let cli = Cli::parse();
 
-    info!("Starting {} v{} by {}...", NAME, VERSION, AUTHORS);
+    info!("Starting {NAME} v{VERSION} by {AUTHORS}...");
 
     let field = Field::new();
 

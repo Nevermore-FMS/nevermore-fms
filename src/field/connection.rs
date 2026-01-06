@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::Context;
 use chrono::{DateTime, Datelike, Local, Timelike, Utc};
-use log::*;
+use log::{error, info, warn};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
@@ -97,7 +97,7 @@ impl DriverStationConnection {
                 );
             }
             if let Err(e) = tcp_writer.shutdown().await {
-                error!("Failed to shutdown TCP stream: {}", e);
+                error!("Failed to shutdown TCP stream: {e}");
             }
         }
     }
@@ -141,8 +141,8 @@ impl DriverStationConnection {
                     .handle_tcp_stream(owned_read_half, cancellation_token)
                     .await
                 {
-                    warn!("Error handling TCP stream from driverstation: {}", e);
-                    self.kill().await
+                    warn!("Error handling TCP stream from driverstation: {e}");
+                    self.kill().await;
                 }
             })?;
 
@@ -192,11 +192,10 @@ impl DriverStationConnection {
                                 old_conn.kill().await;
                             }
                             ds.set_active_connection(self.clone());
-                            info!("Driver station {} connected", team_number);
+                            info!("Driver station {team_number} connected");
                         } else {
                             warn!(
-                                "Received a connection from a driver station that is not in the list of known driver stations. Team Number: {}",
-                                team_number
+                                "Received a connection from a driver station that is not in the list of known driver stations. Team Number: {team_number}"
                             );
                         }
 
@@ -208,10 +207,10 @@ impl DriverStationConnection {
                         //TODO Maybe use regex?
                         let mut version_unparsed = String::new();
                         reader.read_to_string(&mut version_unparsed).await.ok();
-                        let split: Vec<&str> = version_unparsed.split(">").collect();
+                        let split: Vec<&str> = version_unparsed.split('>').collect();
                         let (status, version) = if split.len() > 1 {
                             (
-                                split[0].trim_start_matches("<").to_string(),
+                                split[0].trim_start_matches('<').to_string(),
                                 split[1].to_string(),
                             )
                         } else {
@@ -237,8 +236,8 @@ impl DriverStationConnection {
                         let lost_packets = reader.read_u8().await?;
 
                         let voltage_byte = reader.read_u16().await?;
-                        let voltage = (voltage_byte >> 8 & 0xff) as f32
-                            + ((voltage_byte & 0xff) as f32 / 256.0);
+                        let voltage = f32::from(voltage_byte >> 8 & 0xff)
+                            + (f32::from(voltage_byte & 0xff) / 256.0);
 
                         let status_byte = reader.read_u8().await?;
                         let brownout = (status_byte >> 7 & 0x01) == 1;
@@ -252,7 +251,7 @@ impl DriverStationConnection {
 
                         let can_utilization = reader.read_u8().await? / 2;
                         let signal = reader.read_u8().await? / 2;
-                        let bandwidth = reader.read_u16().await? as f32 / 256.0;
+                        let bandwidth = f32::from(reader.read_u16().await?) / 256.0;
 
                         if let Some(ds) = self.parent() {
                             ds.record_log_data(DriverStationLogData {
@@ -278,7 +277,7 @@ impl DriverStationConnection {
                         // Log Message Packet
                         let timestamp = Utc::now().timestamp() as u64;
                         let _ = reader.read_u32().await?; // Message Count (Seems to always be 1?) - Chase
-                        let local_timestamp = reader.read_u64().await? - 2082844800; // Offset from LabView epoch to UNIX Epoch
+                        let local_timestamp = reader.read_u64().await? - 2_082_844_800; // Offset from LabView epoch to UNIX Epoch
                         reader.read_u64().await?;
                         let mut data = String::new();
                         reader.read_u32().await?;
@@ -295,8 +294,7 @@ impl DriverStationConnection {
                     0x1d => { /* Keep-Alive Packet, doesn't need a reply */ }
                     unknown_id => {
                         warn!(
-                            "Received a TCP packet from a driverstation with an unknown id {:#x} and size {}",
-                            unknown_id, packet_length
+                            "Received a TCP packet from a driverstation with an unknown id {unknown_id:#x} and size {packet_length}",
                         );
                     }
                 }
@@ -310,11 +308,11 @@ impl DriverStationConnection {
         };
 
         tokio::select! {
-            _ = cancellation_token.cancelled() => {
+            () = cancellation_token.cancelled() => {
                 self.kill().await;
                 Ok(())
             },
-            _ = died => Ok(()),
+            () = died => Ok(()),
             res = read_stream() => res.context("TCP Stream handler closed unexpectedly"),
         }
     }
@@ -428,7 +426,7 @@ impl DriverStationConnection {
         }
 
         if ds.enabled() {
-            control_byte |= 0x04
+            control_byte |= 0x04;
         }
 
         if field
@@ -436,7 +434,7 @@ impl DriverStationConnection {
             .is_target_faulted(field.alarm_target().as_str())
         {
             // EStop DS if field is faulted
-            control_byte |= 0x80
+            control_byte |= 0x80;
         }
 
         packet.write_u8(control_byte).await?;

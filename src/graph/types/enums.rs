@@ -1,3 +1,5 @@
+#![allow(clippy::wildcard_imports)]
+
 use async_graphql::*;
 
 #[derive(Enum, Copy, Clone, Eq, PartialEq)]

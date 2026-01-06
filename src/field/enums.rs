@@ -14,6 +14,7 @@ pub enum Mode {
 
 impl Mode {
     pub fn from_byte(integer: u8) -> Mode {
+        #[allow(clippy::match_same_arms)]
         match integer {
             0 => Mode::TeleOp,
             1 => Mode::Test,
@@ -54,6 +55,7 @@ pub enum DriverstationStatus {
 
 impl DriverstationStatus {
     pub fn from_byte(integer: u8) -> DriverstationStatus {
+        #[allow(clippy::match_same_arms)]
         match integer {
             0 => DriverstationStatus::Good,
             1 => DriverstationStatus::Bad,
@@ -103,7 +105,7 @@ impl AllianceStation {
             3 => AllianceStation::Blue1,
             4 => AllianceStation::Blue2,
             5 => AllianceStation::Blue3,
-            _ => AllianceStation::Red1,
+            _ => AllianceStation::None,
         }
     }
 
@@ -115,7 +117,7 @@ impl AllianceStation {
             AllianceStation::Blue1 => 3,
             AllianceStation::Blue2 => 4,
             AllianceStation::Blue3 => 5,
-            AllianceStation::None => 0,
+            AllianceStation::None => u8::MAX,
         }
     }
 }
@@ -144,6 +146,7 @@ pub enum TournamentLevel {
 
 impl TournamentLevel {
     pub fn from_byte(integer: u8) -> TournamentLevel {
+        #[allow(clippy::match_same_arms)]
         match integer {
             0 => TournamentLevel::Test,
             1 => TournamentLevel::Practice,

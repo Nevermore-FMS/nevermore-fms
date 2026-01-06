@@ -21,7 +21,7 @@ impl DiffTimer {
     pub fn new(time_remaining: Duration, start_running: bool) -> DiffTimer {
         let mut started_at: Option<Instant> = None;
         if start_running {
-            started_at = Some(Instant::now())
+            started_at = Some(Instant::now());
         }
         DiffTimer {
             started_at,
@@ -46,15 +46,17 @@ impl DiffTimer {
         }
     }
 
-    pub fn start(&self) -> DiffTimer {
-        DiffTimer {
+    #[must_use]
+    pub fn start(&self) -> Self {
+        Self {
             started_at: Some(Instant::now()),
             time_remaining: self.time_remaining,
         }
     }
 
-    pub fn stop(&self) -> DiffTimer {
-        DiffTimer {
+    #[must_use]
+    pub fn stop(&self) -> Self {
+        Self {
             started_at: None,
             time_remaining: self.current_time_remaining(),
         }

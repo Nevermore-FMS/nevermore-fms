@@ -29,7 +29,7 @@ pub async fn run(
                 .allow_method(Method::POST),
         );
 
-    info!("Web server started on {}", web_address);
+    info!("Web server started on {web_address}");
 
     let server = Server::new(TcpListener::bind(web_address));
 
