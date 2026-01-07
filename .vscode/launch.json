@@ -12,6 +12,10 @@
             "environment": [{
                 "name": "NEVERMORE_LOG",
                 "value": "trace"
+            },
+        {
+                "name": "NEVERMORE_DATA_DIR",
+                "value": "./data"
             }],
             "console": "integratedTerminal",
             "preLaunchTask": "cargo build"

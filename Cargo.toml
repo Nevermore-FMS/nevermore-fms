@@ -16,7 +16,10 @@ log = "0.4.27"
 pretty_env_logger = "0.5.0"
 
 # Database
-rusqlite = { version = "0.37.0", features = ["bundled"] }
+diesel = { version = "2.3.5", features = ["sqlite", "returning_clauses_for_sqlite_3_35"] }
+diesel_migrations = "2.3.1"
+libsqlite3-sys = { version = "0.35", features = ["bundled"] }
+directories = "6.0.0"
 
 # Utils
 anyhow = "1.0.99"

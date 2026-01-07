@@ -3,6 +3,7 @@ pub mod difftimer;
 pub mod field;
 pub mod graph;
 pub mod web;
+pub mod database;
 // TODO These do not need to be pub
 
 use clap::{Parser, ValueEnum};
@@ -37,14 +38,21 @@ struct Cli {
     #[clap(long, default_value = "0.0.0.0:8000", env = "NEVERMORE_WEB_ADDRESS")]
     web_address: SocketAddr,
 
+    #[clap(short, long, default_value = "info", env = "NEVERMORE_LOG")]
+    log_level: String,
+
+    /// Set a custom data directory.
+    #[clap(long, env = "NEVERMORE_DATA_DIR")]
+    data_dir: Option<std::path::PathBuf>,
+
     #[clap(short, long)]
     tray: bool,
 
-    // Opens only a specific window on startup, and stops once that window is closed.
+    /// Opens only a specific window on startup, and stops once that window is closed.
     #[clap(value_enum, short, long, env = "NEVERMORE_UI_WINDOW")]
     window: Option<UIWindow>,
 
-    // Opens the window in fullscreen.
+    /// Opens the window in fullscreen.
     #[clap(short, long)]
     fullscreen: bool,
 }
@@ -54,16 +62,18 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(debug_assertions)]
     console_subscriber::init();
 
+    let cli = Cli::parse();
+
     pretty_env_logger::formatted_timed_builder()
         .filter_level(log::LevelFilter::Info)
-        .parse_filters(&env::var("NEVERMORE_LOG").unwrap_or(String::from("info")))
+        .parse_filters(cli.log_level.as_str())
         .init();
 
     info!("{BIRD}");
 
-    let cli = Cli::parse();
-
     info!("Starting {NAME} v{VERSION} by {AUTHORS}...");
+
+    database::init::init_main_db_pool(cli.data_dir)?;
 
     let field = Field::new();
 
