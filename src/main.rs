@@ -73,7 +73,7 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting {NAME} v{VERSION} by {AUTHORS}...");
 
-    database::init::init_main_db_pool(cli.data_dir)?;
+    let mut conn = database::init::init_main_db_pool(cli.data_dir)?;
 
     let field = Field::new();
 
