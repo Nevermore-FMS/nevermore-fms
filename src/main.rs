@@ -1,6 +1,7 @@
 pub mod alarms;
 pub mod difftimer;
 pub mod field;
+pub mod fmscore;
 pub mod graph;
 pub mod web;
 pub mod database;
@@ -14,12 +15,12 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
-use crate::field::Field;
+use crate::{fmscore::FMSCore};
 
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
-const BIRD: &str = include_str!("../assets/eaobird.txt");
+const BIRD: &str = include_str!("../assets/nevermorebird.txt");
 
 #[derive(ValueEnum, PartialEq, Debug, Clone)]
 pub enum UIWindow {
@@ -73,15 +74,13 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting {NAME} v{VERSION} by {AUTHORS}...");
 
-    let mut conn = database::init::init_main_db_pool(cli.data_dir)?;
-
-    let field = Field::new();
+    let fms_core = FMSCore::new(cli.data_dir)?;
 
     let cancellation_token = CancellationToken::new();
 
     let res = tokio::try_join!(
-        field.run(cli.ds_address, cancellation_token.clone()),
-        web::run(cli.web_address, field.clone(), cancellation_token.clone())
+        fms_core.run(cli.ds_address, cancellation_token.clone()),
+        web::run(cli.web_address, fms_core.clone(), cancellation_token.clone())
     );
 
     if let Err(e) = res {

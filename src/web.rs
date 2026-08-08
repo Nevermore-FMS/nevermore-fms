@@ -6,14 +6,14 @@ use poem::{
 };
 use tokio_util::sync::CancellationToken;
 
-use crate::{field::Field, graph};
+use crate::{fmscore::FMSCore, graph};
 
 pub async fn run(
     web_address: SocketAddr,
-    field: Field,
+    fms_core: FMSCore,
     cancellation_token: CancellationToken,
 ) -> anyhow::Result<()> {
-    let schema = graph::schema::create_schema(field);
+    let schema = graph::schema::create_schema(fms_core);
     let app = Route::new()
         .at(
             "/api/graphql",

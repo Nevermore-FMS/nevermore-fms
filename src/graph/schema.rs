@@ -2,14 +2,13 @@ use async_graphql::{EmptySubscription, ObjectType, Schema, SubscriptionType};
 use async_graphql_poem::GraphQL;
 
 use crate::{
-    field::Field,
-    graph::{mutation::Mutation, query::Query},
+    fmscore::FMSCore, graph::{mutation::Mutation, query::Query},
 };
 
 
-pub fn create_schema(field: Field) -> Schema<Query, Mutation, EmptySubscription> {
+pub fn create_schema(fms_core: FMSCore) -> Schema<Query, Mutation, EmptySubscription> {
     Schema::build(Query, Mutation, EmptySubscription)
-        .data(field)
+        .data(fms_core)
         .finish()
 }
 

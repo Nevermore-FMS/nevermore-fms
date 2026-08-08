@@ -6,7 +6,6 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, bail};
 use chrono::Utc;
 use cidr::AnyIpCidr;
 use log::{info, error, warn};
@@ -228,7 +227,7 @@ impl DriverStations {
         alliance_station: AllianceStation,
     ) -> anyhow::Result<DriverStation> {
         if self.get_driverstation_by_team_number(team_number).is_some() {
-            bail!(
+            anyhow::bail!(
                 "Driverstation with team number {} already exists",
                 team_number
             );
@@ -238,7 +237,7 @@ impl DriverStations {
             .get_driverstation_by_position(alliance_station)
             .is_some()
         {
-            bail!(
+            anyhow::bail!(
                 "Driverstation already exists in alliance station {:?}",
                 alliance_station
             );
@@ -278,7 +277,7 @@ impl DriverStations {
             raw_driverstations.all_driverstations = new_driverstations;
             Ok(())
         } else {
-            Err(anyhow!(
+            Err(anyhow::anyhow!(
                 "Failed to delete driverstation {} - driverstation does not exist",
                 team_number
             ))
@@ -350,7 +349,7 @@ impl DriverStations {
     pub(super) fn set_field(&self, field: Field) -> anyhow::Result<()> {
         let mut raw_driverstations = self.raw.write().unwrap();
         if raw_driverstations.field.is_some() {
-            bail!("Field already set");
+            anyhow::bail!("Field already set");
         }
         raw_driverstations.field = Some(field);
         Ok(())

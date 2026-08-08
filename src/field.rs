@@ -16,11 +16,12 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
-use crate::{alarms::FMSAlarmHandler, difftimer};
+use crate::{alarms::FMSAlarmHandler, difftimer, fmscore::FMSCore};
 
 use self::{driverstation::DriverStations, enums::TournamentLevel};
 
 struct RawField {
+    fms_core: Option<FMSCore>,
     event_name: String,
     tournament_level: TournamentLevel,
     match_number: u16,
@@ -95,7 +96,7 @@ impl Field {
     pub fn set_match_number(&self, match_number: u16) {
         let mut raw = self.raw.write().unwrap();
         raw.match_number = match_number;
-        info!("Match Number set to {}", &raw.match_number);
+        info!("Match Number set to {}", raw.match_number);
     }
 
     pub fn play_number(&self) -> u8 {
@@ -106,7 +107,7 @@ impl Field {
     pub fn set_play_number(&self, play_number: u8) {
         let mut raw = self.raw.write().unwrap();
         raw.play_number = play_number;
-        info!("Play number set to {}", &raw.play_number);
+        info!("Play number set to {}", raw.play_number);
     }
 
     pub fn timer(&self) -> difftimer::DiffTimer {
@@ -167,6 +168,7 @@ impl Field {
 
     pub(super) fn new() -> Self {
         let field = RawField {
+            fms_core: None,
             event_name: "nvmre".to_string(),
             tournament_level: TournamentLevel::Test,
             match_number: 1,
@@ -187,6 +189,15 @@ impl Field {
         field.driverstations().set_field(field.clone()).unwrap();
 
         field
+    }
+
+    pub(super) fn set_fms_core(&self, fms_core: FMSCore) -> anyhow::Result<()> {
+        let mut raw = self.raw.write().unwrap();
+        if raw.fms_core.is_some() {
+            anyhow::bail!("FMSCore already set");
+        }
+        raw.fms_core = Some(fms_core);
+        Ok(())
     }
 
     pub(super) async fn run(

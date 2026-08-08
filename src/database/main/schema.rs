@@ -1,8 +1,10 @@
+// @generated automatically by Diesel CLI.
+
 diesel::table! {
-    grades (student, subject, grade, time) {
-        student -> Uuid,
-        subject -> Int4,
-        grade -> Float4,
-        time -> Time,
+    users (id) {
+        id -> Text,
+        username -> Text,
+        full_name -> Text,
+        permissions -> Text,
     }
 }

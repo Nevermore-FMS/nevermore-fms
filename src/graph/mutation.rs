@@ -4,7 +4,7 @@
 use anyhow::bail;
 use async_graphql::*;
 
-use crate::field::Field;
+use crate::fmscore::FMSCore;
 use crate::graph::inputs::*;
 use crate::graph::types::*;
 
@@ -17,14 +17,14 @@ impl Mutation {
 
     #[graphql(name = "clearFMSAlarm")]
     async fn clear_fms_alarm(&self, ctx: &Context<'_>, code: String) -> anyhow::Result<bool> {
-        let field = ctx.data::<Field>().unwrap();
-        field.alarm_handler().clear_alarm(&code)
+        let fms_core = ctx.data::<FMSCore>().unwrap();
+        fms_core.field().alarm_handler().clear_alarm(&code)
     }
 
     #[graphql(name = "clearAllFMSAlarms")]
     async fn clear_all_fms_alarms(&self, ctx: &Context<'_>) -> anyhow::Result<bool> {
-        let field = ctx.data::<Field>().unwrap();
-        field.alarm_handler().clear_all_alarms()
+        let fms_core = ctx.data::<FMSCore>().unwrap();
+        fms_core.field().alarm_handler().clear_all_alarms()
     }
 
     #[graphql(name = "setDS")]
@@ -33,8 +33,8 @@ impl Mutation {
         ctx: &Context<'_>,
         new_driver_stations: Vec<GQLNewDsInput>,
     ) -> anyhow::Result<Vec<GQLDriverStation>> {
-        let field = ctx.data::<Field>().unwrap();
-        let driverstations = field.driverstations();
+        let fms_core = ctx.data::<FMSCore>().unwrap();
+        let driverstations = fms_core.field().driverstations();
         let mut added_dss = Vec::new();
         for new_ds in new_driver_stations {
             if let Some(existing_ds) =
@@ -65,8 +65,8 @@ impl Mutation {
         ctx: &Context<'_>,
         criteria: GQLDriverStationByCriteriaInput,
     ) -> anyhow::Result<bool> {
-        let field = ctx.data::<Field>().unwrap();
-        let driverstations = field.driverstations();
+        let fms_core = ctx.data::<FMSCore>().unwrap();
+        let driverstations = fms_core.field().driverstations();
         let current_ds = match criteria {
             GQLDriverStationByCriteriaInput::AllianceStation(alliance_station) => {
                 driverstations.get_driverstation_by_position(alliance_station.into())
@@ -76,7 +76,7 @@ impl Mutation {
             }
         };
         if let Some(ds) = current_ds {
-            field
+            fms_core.field()
                 .driverstations()
                 .delete_driverstation(ds.team_number()).await?;
             Ok(true)

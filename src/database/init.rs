@@ -3,11 +3,13 @@ use std::{
     path::PathBuf,
 };
 
-use diesel::prelude::*;
+use diesel::{prelude::*, r2d2::{ConnectionManager, Pool}};
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use directories::ProjectDirs;
 
-const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/main");
+use crate::database::main::interface::{MainDbInterface};
+
+const MAIN_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/main");
 
 fn get_db_path(override_default_path: Option<PathBuf>, db_name: &str) -> anyhow::Result<PathBuf> {
     let dir_path = if let Some(custom_path) = override_default_path {
@@ -23,24 +25,43 @@ fn get_db_path(override_default_path: Option<PathBuf>, db_name: &str) -> anyhow:
     Ok(db_path)
 }
 
-pub fn init_main_db_pool(
+fn init_db_pool(
     override_default_path: Option<PathBuf>,
-) -> anyhow::Result<SqliteConnection> {
-    let main_db_path = get_db_path(override_default_path, "main")?;
+    db_name: &str,
+) -> anyhow::Result<Pool<ConnectionManager<SqliteConnection>>> {
+    let db_path = get_db_path(override_default_path, db_name)?;
 
-    if let Some(parent_dir) = main_db_path.parent() {
+    if let Some(parent_dir) = db_path.parent() {
         fs::create_dir_all(parent_dir)?;
     }
-    let _ = OpenOptions::new().create(true).append(true).open(main_db_path.clone())?;
+    let _ = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(db_path.clone())?;
 
-    let mut conn = SqliteConnection::establish(
-        main_db_path
+    let manager = ConnectionManager::<SqliteConnection>::new(
+        db_path
             .to_str()
             .ok_or(anyhow::anyhow!("Invalid database path provided"))?,
-    )?;
+    );
 
-    conn.run_pending_migrations(MIGRATIONS)
+    let pool = Pool::builder()
+        .test_on_check_out(true)
+        .build(manager)
+        .expect("Could not build connection pool");
+
+    Ok(pool)
+}
+
+pub fn open_main_db(override_default_path: Option<PathBuf>) -> anyhow::Result<MainDbInterface> {
+    let pool = init_db_pool(override_default_path, "main")?;
+
+    let mut conn = pool.get()?;
+
+    conn.run_pending_migrations(MAIN_MIGRATIONS)
         .map_err(|e| anyhow::anyhow!("{}", e.to_string()))?;
 
-    Ok(conn)
+    let interface = MainDbInterface::new(pool);
+
+    Ok(interface)
 }
