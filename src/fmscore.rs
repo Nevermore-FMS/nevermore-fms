@@ -1,9 +1,16 @@
-use std::{net::IpAddr, path::PathBuf, sync::{Arc, RwLock}};
+use std::{
+    net::{IpAddr, SocketAddr},
+    path::PathBuf,
+    sync::{Arc, RwLock},
+};
 
 use tokio_util::sync::CancellationToken;
 
-use crate::{database::{init::open_main_db, main::interface::MainDbInterface}, field::Field};
-
+use crate::{
+    database::{init::open_main_db, main::interface::MainDbInterface},
+    field::Field,
+    web,
+};
 
 struct RawFMSCore {
     field: Field,
@@ -31,7 +38,7 @@ impl FMSCore {
 
         let fms_core = RawFMSCore {
             field: Field::new(),
-            main_db
+            main_db,
         };
 
         let fms_core = Self {
@@ -46,9 +53,20 @@ impl FMSCore {
     pub(super) async fn run(
         &self,
         ds_address: IpAddr,
+        web_address: SocketAddr,
         cancellation_token: CancellationToken,
     ) -> anyhow::Result<()> {
-        self.field().run(ds_address, cancellation_token).await
-    }
+        let field = self.field();
 
+        let res = tokio::try_join!(
+            field.run(ds_address, cancellation_token.clone()),
+            web::run(web_address, self.clone(), cancellation_token.clone())
+        );
+
+        if let Err(e) = res {
+            return Err(e.context("FMSCore run terminated unexpectedly"));
+        }
+
+        Ok(())
+    }
 }

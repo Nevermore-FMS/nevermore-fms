@@ -1,10 +1,10 @@
 pub mod alarms;
+pub mod database;
 pub mod difftimer;
 pub mod field;
 pub mod fmscore;
 pub mod graph;
 pub mod web;
-pub mod database;
 // TODO These do not need to be pub
 
 use clap::{Parser, ValueEnum};
@@ -15,7 +15,7 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
-use crate::{fmscore::FMSCore};
+use crate::fmscore::FMSCore;
 
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -78,10 +78,9 @@ async fn main() -> anyhow::Result<()> {
 
     let cancellation_token = CancellationToken::new();
 
-    let res = tokio::try_join!(
-        fms_core.run(cli.ds_address, cancellation_token.clone()),
-        web::run(cli.web_address, fms_core.clone(), cancellation_token.clone())
-    );
+    let res = fms_core
+        .run(cli.ds_address, cli.web_address, cancellation_token.clone())
+        .await;
 
     if let Err(e) = res {
         return Err(e.context("Main process terminated unexpectedly"));
