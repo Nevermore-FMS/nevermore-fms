@@ -1,3 +1,4 @@
+pub mod error;
 pub mod inputs;
 pub mod mutation;
 pub mod query;

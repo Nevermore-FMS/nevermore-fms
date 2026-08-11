@@ -1,8 +1,9 @@
-#![allow(clippy::wildcard_imports)]
+#![allow(clippy::unused_async)]
 
 use async_graphql::*;
 
 use crate::fmscore::FMSCore;
+use crate::graph::error::internalize_err;
 use crate::graph::inputs::*;
 use crate::graph::types::*;
 
@@ -12,6 +13,17 @@ pub struct Query;
 #[Object]
 impl Query {
     //TODO Auth
+
+    async fn users(&self, ctx: &Context<'_>) -> anyhow::Result<Vec<GQLUser>> {
+        let fms_core = ctx.data::<FMSCore>().unwrap();
+        Ok(fms_core
+            .main_db()
+            .get_users().map_err(internalize_err)?
+            .iter()
+            .cloned()
+            .map(|user| GQLUser { obj_user: user })
+            .collect())
+    }
 
     async fn field_state(&self, ctx: &Context<'_>) -> GQLFieldState {
         let fms_core = ctx.data::<FMSCore>().unwrap();
@@ -23,7 +35,8 @@ impl Query {
     #[graphql(name = "activeFMSAlarms")]
     async fn active_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
-        fms_core.field()
+        fms_core
+            .field()
             .alarm_handler()
             .active_alarms()
             .iter()
@@ -37,7 +50,8 @@ impl Query {
     #[graphql(name = "historicFMSAlarms")]
     async fn historic_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
-        fms_core.field()
+        fms_core
+            .field()
             .alarm_handler()
             .historic_alarms()
             .iter()
@@ -50,7 +64,8 @@ impl Query {
 
     async fn driver_stations(&self, ctx: &Context<'_>) -> Vec<GQLDriverStation> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
-        fms_core.field()
+        fms_core
+            .field()
             .driverstations()
             .get_all_driverstations()
             .iter()
@@ -67,13 +82,15 @@ impl Query {
     ) -> Option<GQLDriverStation> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
         match criteria {
-            GQLDriverStationByCriteriaInput::AllianceStation(alliance_station) => fms_core.field()
+            GQLDriverStationByCriteriaInput::AllianceStation(alliance_station) => fms_core
+                .field()
                 .driverstations()
                 .get_driverstation_by_position(alliance_station.into())
                 .map(|ds| GQLDriverStation {
                     obj_driverstation: ds,
                 }),
-            GQLDriverStationByCriteriaInput::TeamNumber(team_number) => fms_core.field()
+            GQLDriverStationByCriteriaInput::TeamNumber(team_number) => fms_core
+                .field()
                 .driverstations()
                 .get_driverstation_by_team_number(team_number)
                 .map(|ds| GQLDriverStation {

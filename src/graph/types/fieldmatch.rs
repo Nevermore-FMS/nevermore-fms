@@ -1,5 +1,3 @@
-#![allow(clippy::wildcard_imports)]
-
 use async_graphql::*;
 
 use crate::graph::types::GQLAllianceStation;

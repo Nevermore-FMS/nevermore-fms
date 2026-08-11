@@ -1,5 +1,4 @@
 #![allow(clippy::unused_async)]
-#![allow(clippy::wildcard_imports)]
 
 use anyhow::bail;
 use async_graphql::*;

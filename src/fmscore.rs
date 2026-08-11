@@ -31,6 +31,11 @@ impl FMSCore {
         raw.field.clone()
     }
 
+    pub fn main_db(&self) -> MainDbInterface {
+        let raw = self.raw.read().unwrap();
+        raw.main_db.clone()
+    }
+
     // Internal API -->
 
     pub(super) fn new(override_default_data_path: Option<PathBuf>) -> anyhow::Result<Self> {

@@ -1,5 +1,3 @@
-#![allow(clippy::wildcard_imports)]
-
 use async_graphql::*;
 use cidr::AnyIpCidr;
 

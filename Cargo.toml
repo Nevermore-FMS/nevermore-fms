@@ -16,10 +16,18 @@ log = "0.4.27"
 pretty_env_logger = "0.5.0"
 
 # Database
-diesel = { version = "2.3.5", features = ["sqlite", "returning_clauses_for_sqlite_3_35", "r2d2", "serde_json"] }
+diesel = { version = "2.3.5", features = ["sqlite", "returning_clauses_for_sqlite_3_35", "r2d2"] }
 diesel_migrations = "2.3.1"
 libsqlite3-sys = { version = "0.35", features = ["bundled"] }
 directories = "6.0.0"
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+
+# Web
+poem = "3.1.12"
+async-graphql = "7.0.17"
+async-graphql-poem = "7.0.17"
+openidconnect = "4.0.1"
 
 # Utils
 anyhow = "1.0.99"
@@ -27,12 +35,7 @@ async-trait = "0.1.89"
 chrono = "0.4.41"
 uuid = { version = "1.18.1", features = ["v4", "fast-rng"] }
 cidr = "0.3.1"
-poem = "3.1.12"
-async-graphql = "7.0.17"
-async-graphql-poem = "7.0.17"
 console-subscriber = "0.5.0"
-openidconnect = "4.0.1"
-serde_json = "1.0.151"
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
@@ -46,3 +49,4 @@ cast_possible_truncation = "allow"
 struct_excessive_bools = "allow"
 unused_async = "warn"
 unchecked_time_subtraction = "allow"
+wildcard_imports = "allow"

@@ -137,6 +137,8 @@ type User {
   id: ID!
   name: String!
   username: String!
+  full_name: String!
+  permissions: [String!]!
 }
 
 enum VersionType {
