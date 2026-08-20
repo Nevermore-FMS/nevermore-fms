@@ -13,21 +13,17 @@ pub async fn run(
     fms_core: FMSCore,
     cancellation_token: CancellationToken,
 ) -> anyhow::Result<()> {
-    let schema = graph::schema::create_schema(fms_core);
+    let schema = graph::schema::create_schema();
     let app = Route::new()
-        .at(
-            "/api/graphql",
-            post(graph::schema::create_graphql_endpoint(schema.clone())),
-        )
-        .at(
-            "/api/schema.graphql",
-            get(graph::schema::create_sdl_endpoint(schema)),
-        )
+        .at("/api/graphql", post(graph::schema::graphql_endpoint))
+        .at("/api/schema.graphql", get(graph::schema::sdl_endpoint))
         .with(
             Cors::new()
                 .allow_method(Method::GET)
                 .allow_method(Method::POST),
-        );
+        )
+        .data(schema)
+        .data(fms_core);
 
     info!("Web server started on {web_address}");
 

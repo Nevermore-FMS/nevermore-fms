@@ -7,6 +7,8 @@ use crate::graph::error::internalize_err;
 use crate::graph::inputs::*;
 use crate::graph::types::*;
 
+use super::authentication::PermissionGuard;
+
 pub struct Query;
 
 #[allow(unreachable_code)]
@@ -14,11 +16,13 @@ pub struct Query;
 impl Query {
     //TODO Auth
 
+    #[graphql(guard = "PermissionGuard::requires(\"nevermore-fms.manage-users\")")]
     async fn users(&self, ctx: &Context<'_>) -> anyhow::Result<Vec<GQLUser>> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
         Ok(fms_core
             .main_db()
-            .get_users().map_err(internalize_err)?
+            .get_users()
+            .map_err(internalize_err)?
             .iter()
             .cloned()
             .map(|user| GQLUser { obj_user: user })
