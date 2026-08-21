@@ -3,7 +3,9 @@
 use anyhow::bail;
 use async_graphql::*;
 
+use crate::authentication::nevermore_fms_permissions;
 use crate::fmscore::FMSCore;
+use crate::graph::guard::PermissionGuard;
 use crate::graph::inputs::*;
 use crate::graph::types::*;
 
@@ -12,21 +14,28 @@ pub struct Mutation;
 #[allow(unreachable_code)]
 #[Object]
 impl Mutation {
-    //TODO Auth
-
-    #[graphql(name = "clearFMSAlarm")]
+    #[graphql(
+        name = "clearFMSAlarm",
+        guard = "PermissionGuard::requires(nevermore_fms_permissions::CommandField)"
+    )]
     async fn clear_fms_alarm(&self, ctx: &Context<'_>, code: String) -> anyhow::Result<bool> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
         fms_core.field().alarm_handler().clear_alarm(&code)
     }
 
-    #[graphql(name = "clearAllFMSAlarms")]
+    #[graphql(
+        name = "clearAllFMSAlarms",
+        guard = "PermissionGuard::requires(nevermore_fms_permissions::CommandField)"
+    )]
     async fn clear_all_fms_alarms(&self, ctx: &Context<'_>) -> anyhow::Result<bool> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
         fms_core.field().alarm_handler().clear_all_alarms()
     }
 
-    #[graphql(name = "setDS")]
+    #[graphql(
+        name = "setDS",
+        guard = "PermissionGuard::requires(nevermore_fms_permissions::CommandField)"
+    )]
     async fn set_ds(
         &self,
         ctx: &Context<'_>,
@@ -39,13 +48,17 @@ impl Mutation {
             if let Some(existing_ds) =
                 driverstations.get_driverstation_by_position(new_ds.alliance_station.into())
             {
-                driverstations.delete_driverstation(existing_ds.team_number()).await?;
+                driverstations
+                    .delete_driverstation(existing_ds.team_number())
+                    .await?;
             }
 
             if let Some(existing_ds) =
                 driverstations.get_driverstation_by_team_number(new_ds.team_number)
             {
-                driverstations.delete_driverstation(existing_ds.team_number()).await?;
+                driverstations
+                    .delete_driverstation(existing_ds.team_number())
+                    .await?;
             }
 
             let added_ds = driverstations
@@ -58,7 +71,10 @@ impl Mutation {
         Ok(added_dss)
     }
 
-    #[graphql(name = "removeDS")]
+    #[graphql(
+        name = "removeDS",
+        guard = "PermissionGuard::requires(nevermore_fms_permissions::CommandField)"
+    )]
     async fn remove_ds(
         &self,
         ctx: &Context<'_>,
@@ -75,9 +91,11 @@ impl Mutation {
             }
         };
         if let Some(ds) = current_ds {
-            fms_core.field()
+            fms_core
+                .field()
                 .driverstations()
-                .delete_driverstation(ds.team_number()).await?;
+                .delete_driverstation(ds.team_number())
+                .await?;
             Ok(true)
         } else {
             bail!("DriverStation does not exist")

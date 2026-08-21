@@ -24,12 +24,12 @@ impl DBUser {
 }
 
 impl MainDbInterface {
-    pub fn get_users(self) -> anyhow::Result<Vec<DBUser>> {
+    pub fn get_users(&self) -> anyhow::Result<Vec<DBUser>> {
         let result = DBUser::query().load(&mut self.db_pool.get()?)?;
         Ok(result)
     }
 
-    pub fn get_user_by_id(self, user_id: String) -> anyhow::Result<Option<DBUser>> {
+    pub fn get_user_by_id(&self, user_id: String) -> anyhow::Result<Option<DBUser>> {
         let result = DBUser::query()
             .find(user_id)
             .get_result(&mut self.db_pool.get()?)
@@ -37,7 +37,7 @@ impl MainDbInterface {
         Ok(result)
     }
 
-    pub fn update_user(self, new_user: DBUser) -> anyhow::Result<()> {
+    pub fn update_user(&self, new_user: DBUser) -> anyhow::Result<()> {
         use super::super::schema::users::dsl::*;
 
         diesel::update(users.find(new_user.id.clone()))
@@ -46,7 +46,7 @@ impl MainDbInterface {
         Ok(())
     }
 
-    pub fn insert_user(self, new_user: DBUser) -> anyhow::Result<()> {
+    pub fn insert_user(&self, new_user: DBUser) -> anyhow::Result<()> {
         use super::super::schema::users::dsl::*;
 
         diesel::insert_into(users)

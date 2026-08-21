@@ -1,4 +1,4 @@
-pub mod authentication;
+pub mod guard;
 pub mod error;
 pub mod inputs;
 pub mod mutation;

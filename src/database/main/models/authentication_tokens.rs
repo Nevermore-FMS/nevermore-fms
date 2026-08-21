@@ -39,14 +39,15 @@ impl DBAuthenticationToken {
 }
 
 impl MainDbInterface {
-    pub fn get_authentication_token_by_token_hash(self, token_hash: String) -> anyhow::Result<Option<DBAuthenticationToken>> {
+    pub fn get_active_authentication_token_by_token_hash(&self, token_hash: String) -> anyhow::Result<Option<DBAuthenticationToken>> {
         let result = DBAuthenticationToken::query()
             .filter(authentication_tokens::token_hash.eq(token_hash))
+            .filter(authentication_tokens::expires_at_timestamp.gt(Utc::now().timestamp()))
             .get_result(&mut self.db_pool.get()?).optional()?;
         Ok(result)
     }
 
-    pub fn insert_authentication_token(self, new_authentication_token: DBAuthenticationToken) -> anyhow::Result<()> {
+    pub fn insert_authentication_token(&self, new_authentication_token: DBAuthenticationToken) -> anyhow::Result<()> {
         use super::super::schema::authentication_tokens::dsl::*;
 
         diesel::insert_into(authentication_tokens)

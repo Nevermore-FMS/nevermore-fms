@@ -29,7 +29,7 @@ impl DBUserCredential {
 }
 
 impl MainDbInterface {
-    pub fn get_user_credential_by_entry(self, user_id: String, credential_type: String, credential_body: String) -> anyhow::Result<Option<DBUserCredential>> {
+    pub fn get_user_credential_by_entry(&self, user_id: String, credential_type: String, credential_body: String) -> anyhow::Result<Option<DBUserCredential>> {
         let result = DBUserCredential::query()
             .filter(user_credentials::user_id.eq(user_id))
             .filter(user_credentials::credential_type.eq(credential_type))
@@ -38,7 +38,7 @@ impl MainDbInterface {
         Ok(result)
     }
 
-    pub fn get_user_credential_by_body(self, credential_type: String, credential_body: String) -> anyhow::Result<Option<DBUserCredential>> {
+    pub fn get_user_credential_by_body(&self, credential_type: String, credential_body: String) -> anyhow::Result<Option<DBUserCredential>> {
         let result = DBUserCredential::query()
             .filter(user_credentials::credential_type.eq(credential_type))
             .filter(user_credentials::credential_body.eq(credential_body))
@@ -46,7 +46,7 @@ impl MainDbInterface {
         Ok(result)
     }
 
-    pub fn insert_user_credential(self, new_user_credential: DBUserCredential) -> anyhow::Result<()> {
+    pub fn insert_user_credential(&self, new_user_credential: DBUserCredential) -> anyhow::Result<()> {
         use super::super::schema::user_credentials::dsl::*;
 
         diesel::insert_into(user_credentials)

@@ -1,4 +1,5 @@
 pub mod alarms;
+pub mod authentication;
 pub mod database;
 pub mod difftimer;
 pub mod field;

@@ -204,28 +204,28 @@ impl DriverStationConnection {
                     }
                     0x00..=0x07 => {
                         // Version Codes
-                        //TODO Maybe use regex?
+                        // Format: "<status>version"
                         let mut version_unparsed = String::new();
-                        reader.read_to_string(&mut version_unparsed).await.ok();
-                        let split: Vec<&str> = version_unparsed.split('>').collect();
-                        let (status, version) = if split.len() > 1 {
-                            (
-                                split[0].trim_start_matches('<').to_string(),
-                                split[1].to_string(),
-                            )
-                        } else {
-                            (String::new(), String::new())
-                        };
+                        reader.read_to_string(&mut version_unparsed).await?;
 
-                        let version_type = VersionType::from_byte(id).unwrap();
-                        let version = VersionData {
-                            version_type,
-                            status,
-                            version,
-                        };
+                        if let Some((status, version)) =
+                            version_unparsed.split_once('>').map(|(status, version)| {
+                                (
+                                    status.trim_start_matches('<').to_owned(),
+                                    version.to_owned(),
+                                )
+                            })
+                        {
+                            let version_type = VersionType::from_byte(id).unwrap();
+                            let version = VersionData {
+                                version_type,
+                                status,
+                                version,
+                            };
 
-                        if let Some(ds) = self.parent() {
-                            ds.set_version(version_type, version);
+                            if let Some(ds) = self.parent() {
+                                ds.set_version(version_type, version);
+                            }
                         }
                     }
                     0x16 => {
@@ -281,7 +281,7 @@ impl DriverStationConnection {
                         reader.read_u64().await?;
                         let mut data = String::new();
                         reader.read_u32().await?;
-                        reader.read_to_string(&mut data).await.ok();
+                        reader.read_to_string(&mut data).await?;
 
                         if let Some(ds) = self.parent() {
                             ds.add_log_message(DriverStationLogMessage {

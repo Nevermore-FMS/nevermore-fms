@@ -2,21 +2,19 @@
 
 use async_graphql::*;
 
+use crate::authentication::nevermore_fms_permissions;
 use crate::fmscore::FMSCore;
 use crate::graph::error::internalize_err;
+use crate::graph::guard::PermissionGuard;
 use crate::graph::inputs::*;
 use crate::graph::types::*;
-
-use super::authentication::PermissionGuard;
 
 pub struct Query;
 
 #[allow(unreachable_code)]
 #[Object]
 impl Query {
-    //TODO Auth
-
-    #[graphql(guard = "PermissionGuard::requires(\"nevermore-fms.manage-users\")")]
+    #[graphql(guard = "PermissionGuard::requires(nevermore_fms_permissions::ManageUsers)")]
     async fn users(&self, ctx: &Context<'_>) -> anyhow::Result<Vec<GQLUser>> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
         Ok(fms_core
@@ -29,6 +27,7 @@ impl Query {
             .collect())
     }
 
+    #[graphql(guard = "PermissionGuard::requires(nevermore_fms_permissions::ReadField)")]
     async fn field_state(&self, ctx: &Context<'_>) -> GQLFieldState {
         let fms_core = ctx.data::<FMSCore>().unwrap();
         GQLFieldState {
@@ -36,7 +35,10 @@ impl Query {
         }
     }
 
-    #[graphql(name = "activeFMSAlarms")]
+    #[graphql(
+        name = "activeFMSAlarms",
+        guard = "PermissionGuard::requires(nevermore_fms_permissions::ReadField)"
+    )]
     async fn active_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
         fms_core
@@ -51,7 +53,10 @@ impl Query {
             .collect()
     }
 
-    #[graphql(name = "historicFMSAlarms")]
+    #[graphql(
+        name = "historicFMSAlarms",
+        guard = "PermissionGuard::requires(nevermore_fms_permissions::ReadField)"
+    )]
     async fn historic_fms_alarms(&self, ctx: &Context<'_>) -> Vec<GQLFMSAlarm> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
         fms_core
@@ -66,6 +71,7 @@ impl Query {
             .collect()
     }
 
+    #[graphql(guard = "PermissionGuard::requires(nevermore_fms_permissions::ReadField)")]
     async fn driver_stations(&self, ctx: &Context<'_>) -> Vec<GQLDriverStation> {
         let fms_core = ctx.data::<FMSCore>().unwrap();
         fms_core
@@ -79,6 +85,7 @@ impl Query {
             .collect()
     }
 
+    #[graphql(guard = "PermissionGuard::requires(nevermore_fms_permissions::ReadField)")]
     async fn driver_station(
         &self,
         ctx: &Context<'_>,
@@ -103,6 +110,7 @@ impl Query {
         }
     }
 
+    #[graphql(guard = "PermissionGuard::requires(nevermore_fms_permissions::ReadField)")]
     async fn current_match(&self, ctx: &Context<'_>) -> Option<GQLFieldMatch> {
         let _fms_core = ctx.data::<FMSCore>().unwrap();
         None
