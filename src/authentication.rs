@@ -49,6 +49,8 @@ pub trait AuthenticatedContext {
     fn user_context(self) -> Option<UserAuthenticatedContext>;
     fn app_context(self) -> Option<AppAuthenticatedContext>;
     fn app_on_behalf_of_user_context(self) -> Option<AppOnBehalfOfUserAuthenticatedContext>;
+    fn plugin_context(self) -> Option<PluginAuthenticatedContext>;
+    fn plugin_through_user_context(self) -> Option<PluginThroughUserAuthenticatedContext>;
 }
 
 pub struct UserAuthenticatedContext {
@@ -73,6 +75,12 @@ impl AuthenticatedContext for UserAuthenticatedContext {
         None
     }
     fn app_on_behalf_of_user_context(self) -> Option<AppOnBehalfOfUserAuthenticatedContext> {
+        None
+    }
+    fn plugin_context(self) -> Option<PluginAuthenticatedContext> {
+        None
+    }
+    fn plugin_through_user_context(self) -> Option<PluginThroughUserAuthenticatedContext> {
         None
     }
 }
@@ -111,6 +119,12 @@ impl AuthenticatedContext for AppAuthenticatedContext {
     fn app_on_behalf_of_user_context(self) -> Option<AppOnBehalfOfUserAuthenticatedContext> {
         None
     }
+        fn plugin_context(self) -> Option<PluginAuthenticatedContext> {
+        None
+    }
+    fn plugin_through_user_context(self) -> Option<PluginThroughUserAuthenticatedContext> {
+        None
+    }
 }
 
 impl AppAuthenticatedContext {
@@ -144,6 +158,12 @@ impl AuthenticatedContext for AppOnBehalfOfUserAuthenticatedContext {
     fn app_on_behalf_of_user_context(self) -> Option<AppOnBehalfOfUserAuthenticatedContext> {
         Some(self)
     }
+        fn plugin_context(self) -> Option<PluginAuthenticatedContext> {
+        None
+    }
+    fn plugin_through_user_context(self) -> Option<PluginThroughUserAuthenticatedContext> {
+        None
+    }
 }
 
 impl AppOnBehalfOfUserAuthenticatedContext {
@@ -151,6 +171,90 @@ impl AppOnBehalfOfUserAuthenticatedContext {
         &self.app_id
     }
     pub fn user_id(&self) -> &str {
+        &self.user_id
+    }
+    pub fn username(&self) -> &str {
+        &self.username
+    }
+    pub fn full_name(&self) -> &str {
+        &self.full_name
+    }
+}
+
+pub struct PluginAuthenticatedContext {
+    token: String,
+    plugin_id: String,
+    permissions: Permissions,
+}
+
+impl AuthenticatedContext for PluginAuthenticatedContext {
+    fn permissions(&self) -> Permissions {
+        self.permissions.clone()
+    }
+    fn token(&self) -> &str {
+        &self.token
+    }
+    fn user_context(self) -> Option<UserAuthenticatedContext> {
+       None
+    }
+    fn app_context(self) -> Option<AppAuthenticatedContext> {
+        None
+    }
+    fn app_on_behalf_of_user_context(self) -> Option<AppOnBehalfOfUserAuthenticatedContext> {
+        None
+    }
+    fn plugin_context(self) -> Option<PluginAuthenticatedContext> {
+        Some(self)
+    }
+    fn plugin_through_user_context(self) -> Option<PluginThroughUserAuthenticatedContext> {
+        None
+    }
+}
+
+impl PluginAuthenticatedContext {
+    pub fn plugin_id(&self) -> &str {
+        &self.plugin_id
+    }
+}
+
+pub struct PluginThroughUserAuthenticatedContext {
+    token: String,
+    plugin_id: String,
+    user_id: String,
+    username: String,
+    full_name: String,
+    permissions: Permissions,
+}
+
+impl AuthenticatedContext for PluginThroughUserAuthenticatedContext {
+    fn permissions(&self) -> Permissions {
+        self.permissions.clone()
+    }
+    fn token(&self) -> &str {
+        &self.token
+    }
+    fn user_context(self) -> Option<UserAuthenticatedContext> {
+       None
+    }
+    fn app_context(self) -> Option<AppAuthenticatedContext> {
+        None
+    }
+    fn app_on_behalf_of_user_context(self) -> Option<AppOnBehalfOfUserAuthenticatedContext> {
+        None
+    }
+    fn plugin_context(self) -> Option<PluginAuthenticatedContext> {
+        None
+    }
+    fn plugin_through_user_context(self) -> Option<PluginThroughUserAuthenticatedContext> {
+        Some(self)
+    }
+}
+
+impl PluginThroughUserAuthenticatedContext {
+    pub fn plugin_id(&self) -> &str {
+        &self.plugin_id
+    }
+        pub fn user_id(&self) -> &str {
         &self.user_id
     }
     pub fn username(&self) -> &str {
