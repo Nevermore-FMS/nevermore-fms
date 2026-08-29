@@ -1,3 +1,5 @@
+pub mod openid;
+
 use std::net::SocketAddr;
 
 use log::info;
@@ -17,6 +19,9 @@ pub async fn run(
     let app = Route::new()
         .at("/api/graphql", post(graph::schema::graphql_endpoint))
         .at("/api/schema.graphql", get(graph::schema::sdl_endpoint))
+
+        .at("/.well-known/openid-configuration", get(openid::openid_configuration_endpoint))
+        
         .with(
             Cors::new()
                 .allow_method(Method::GET)
