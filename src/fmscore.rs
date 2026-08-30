@@ -8,9 +8,7 @@ use directories::ProjectDirs;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    database::{init::open_main_db, main::interface::MainDbInterface},
-    field::Field,
-    web::{self, openid::OpenidProvider},
+    database::{init::open_main_db, main::interface::MainDbInterface}, field::Field, web::{self, openid::provider::OpenidProvider},
 };
 
 struct RawFMSCore {

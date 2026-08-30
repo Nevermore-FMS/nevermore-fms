@@ -1,9 +1,13 @@
 use std::str::FromStr;
 
-use oauth2::{ClientId, RedirectUrl, url::Url};
-use openidconnect::core::{CoreClient};
+use oauth2::{ClientId, RedirectUrl, Scope, url::Url};
+use openidconnect::core::CoreClient;
+use serde::{Deserialize, Serialize};
 
-use crate::web::openid::OpenidProvider;
+use crate::web::openid::provider::OpenidProvider;
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub struct Scopes(#[serde(deserialize_with = "oauth2::helpers::deserialize_space_delimited_vec")] Vec<Scope>);
 
 pub type OidcClient = openidconnect::Client<
     openidconnect::EmptyAdditionalClaims,
@@ -43,7 +47,11 @@ pub fn get_oauth_client_from_id(
 ) -> anyhow::Result<Option<OidcClient>> {
     if client_id == ClientId::new("nevermore-fms.internal".to_string()) {
         let hostname = openid_provider.hostname();
-        let scheme = if openid_provider.tls() { "https" } else { "http" };
+        let scheme = if openid_provider.tls() {
+            "https"
+        } else {
+            "http"
+        };
         let callback_url: &str = &format!("{scheme}://{hostname}/logincallback");
         let client: OidcClient =
             CoreClient::from_provider_metadata(openid_provider.metadata(), client_id, None)
