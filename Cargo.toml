@@ -11,7 +11,7 @@ tokio = { version = "1", features = ["full", "tracing"] }
 tokio-util = "0.7.17"
 
 # CLI
-clap = { version = "4.5.47", features = ["derive", "env"] }
+clap = { version = "4.6.6", features = ["derive", "env"] }
 log = "0.4.27"
 pretty_env_logger = "0.5.0"
 
@@ -28,6 +28,7 @@ poem = "3.1.12"
 async-graphql = "7.0.17"
 async-graphql-poem = "7.0.17"
 openidconnect = "4.0.1"
+oauth2 = "5.0.0"
 
 # Utils
 anyhow = "1.0.99"
@@ -38,6 +39,9 @@ cidr = "0.3.1"
 console-subscriber = "0.5.0"
 sha2 = "0.11.0"
 hex = "0.4.3"
+rsa = "0.9"
+pkcs8 = "0.11"
+rand = "0.8"
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }

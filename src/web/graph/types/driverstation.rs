@@ -3,7 +3,7 @@ use crate::field::driverstation::{
     DriverStation, DriverStationConfirmedState, DriverStationLogData, DriverStationLogMessage,
 };
 use crate::field::enums::VersionData;
-use crate::graph::types::*;
+use crate::web::graph::types::*;
 use async_graphql::*;
 
 pub struct GQLDriverStation {

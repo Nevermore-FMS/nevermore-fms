@@ -1,35 +1,23 @@
 use std::{
-    fs::{self, OpenOptions},
-    path::PathBuf,
+    fs::{self, OpenOptions}, path::Path,
 };
 
 use diesel::{prelude::*, r2d2::{ConnectionManager, Pool}};
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
-use directories::ProjectDirs;
 
 use crate::database::main::interface::{MainDbInterface};
 
 const MAIN_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/main");
 
-fn get_db_path(override_default_path: Option<PathBuf>, db_name: &str) -> anyhow::Result<PathBuf> {
-    let dir_path = if let Some(custom_path) = override_default_path {
-        custom_path
-    } else if let Some(proj_dirs) = ProjectDirs::from("com", "edgarallanohms", "Nevermore-FMS") {
-        proj_dirs.data_local_dir().to_path_buf()
-    } else {
-        anyhow::bail!("Unable to establish connection to database using provided path information");
-    };
-
-    let db_path = dir_path.join(format!("{db_name}.nvdb"));
-
-    Ok(db_path)
+fn get_db_path(data_path: &Path, db_name: &str) -> std::path::PathBuf {
+    data_path.join(format!("{db_name}.nvdb"))
 }
 
 fn init_db_pool(
-    override_default_path: Option<PathBuf>,
+    data_path: &Path,
     db_name: &str,
 ) -> anyhow::Result<Pool<ConnectionManager<SqliteConnection>>> {
-    let db_path = get_db_path(override_default_path, db_name)?;
+    let db_path = get_db_path(data_path, db_name);
 
     if let Some(parent_dir) = db_path.parent() {
         fs::create_dir_all(parent_dir)?;
@@ -53,8 +41,8 @@ fn init_db_pool(
     Ok(pool)
 }
 
-pub fn open_main_db(override_default_path: Option<PathBuf>) -> anyhow::Result<MainDbInterface> {
-    let pool = init_db_pool(override_default_path, "main")?;
+pub fn open_main_db(data_path: &Path) -> anyhow::Result<MainDbInterface> {
+    let pool = init_db_pool(data_path, "main")?;
 
     let mut conn = pool.get()?;
 

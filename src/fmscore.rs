@@ -4,18 +4,21 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use directories::ProjectDirs;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
     database::{init::open_main_db, main::interface::MainDbInterface},
     field::Field,
-    web,
+    web::{self, openid::OpenidProvider},
 };
 
 struct RawFMSCore {
+    data_dir: PathBuf,
     field: Field,
     main_db: MainDbInterface,
     // event_db: EventDbInterface
+    openid_provider: OpenidProvider,
 }
 
 #[derive(Clone)]
@@ -36,14 +39,41 @@ impl FMSCore {
         raw.main_db.clone()
     }
 
+    pub fn openid_provider(&self) -> OpenidProvider {
+        let raw = self.raw.read().unwrap();
+        raw.openid_provider.clone()
+    }
+
+    pub fn data_dir(&self) -> PathBuf {
+        let raw = self.raw.read().unwrap();
+        raw.data_dir.clone()
+    }
+
     // Internal API -->
 
-    pub(super) fn new(override_default_data_path: Option<PathBuf>) -> anyhow::Result<Self> {
-        let main_db = open_main_db(override_default_data_path)?;
+    pub(super) fn new(
+        override_default_data_path: Option<PathBuf>,
+        web_hostname: String,
+        web_tls: bool,
+    ) -> anyhow::Result<Self> {
+        let data_dir_path = if let Some(custom_path) = override_default_data_path {
+            custom_path
+        } else if let Some(proj_dirs) = ProjectDirs::from("com", "edgarallanohms", "Nevermore-FMS")
+        {
+            proj_dirs.data_local_dir().to_path_buf()
+        } else {
+            anyhow::bail!("Unable to create data directory");
+        };
+
+        let main_db = open_main_db(&data_dir_path)?;
+
+        let openid_provider = OpenidProvider::new(web_hostname, web_tls, &data_dir_path)?;
 
         let fms_core = RawFMSCore {
+            data_dir: data_dir_path,
             field: Field::new(),
             main_db,
+            openid_provider,
         };
 
         let fms_core = Self {

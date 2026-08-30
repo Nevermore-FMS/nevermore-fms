@@ -4,7 +4,6 @@ pub mod database;
 pub mod difftimer;
 pub mod field;
 pub mod fmscore;
-pub mod graph;
 pub mod web;
 // TODO These do not need to be pub
 
@@ -30,25 +29,30 @@ pub enum UIWindow {
 
 /// An alternative FIRST FMS designed around extensibility and compatibility.
 #[derive(Parser, Clone)]
-#[clap(author, version, about, long_about = None)]
-struct Cli {
+#[command(author, version, about, long_about = None)]
+struct Args {
     /// Sets the address that the FMS listens to for driver stations.
-    #[clap(long, default_value = "10.0.100.5", env = "NEVERMORE_DS_ADDRESS")]
+    #[arg(long, default_value = "10.0.100.5", env = "NEVERMORE_DS_ADDRESS")]
     ds_address: IpAddr,
 
     /// Sets the listening address of the http server.
-    #[clap(long, default_value = "0.0.0.0:8000", env = "NEVERMORE_WEB_ADDRESS")]
+    #[arg(short = 'a', long, default_value = "0.0.0.0:8000", env = "NEVERMORE_WEB_ADDRESS")]
     web_address: SocketAddr,
 
-    #[clap(short, long, default_value = "info", env = "NEVERMORE_LOG")]
+    /// Sets the expected hostname for the http server
+    #[arg(short = 'n', long, default_value = "10.0.100.5:8000", env = "NEVERMORE_WEB_HOSTNAME")]
+    web_hostname: String,
+
+    /// Enables tls for the http server
+    #[arg(long, env = "NEVERMORE_WEB_TLS")]
+    web_tls: bool,
+
+    #[arg(short, long, default_value = "info", env = "NEVERMORE_LOG")]
     log_level: String,
 
     /// Set a custom data directory.
-    #[clap(long, env = "NEVERMORE_DATA_DIR")]
+    #[arg(long, env = "NEVERMORE_DATA_DIR")]
     data_dir: Option<std::path::PathBuf>,
-
-    #[clap(short, long)]
-    tray: bool,
 
     /// Opens only a specific window on startup, and stops once that window is closed.
     #[clap(value_enum, short, long, env = "NEVERMORE_UI_WINDOW")]
@@ -64,23 +68,23 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(debug_assertions)]
     console_subscriber::init();
 
-    let cli = Cli::parse();
+    let args = Args::parse();
 
     pretty_env_logger::formatted_timed_builder()
         .filter_level(log::LevelFilter::Info)
-        .parse_filters(cli.log_level.as_str())
+        .parse_filters(args.log_level.as_str())
         .init();
 
     info!("{BIRD}");
 
     info!("Starting {NAME} v{VERSION} by {AUTHORS}...");
 
-    let fms_core = FMSCore::new(cli.data_dir)?;
+    let fms_core = FMSCore::new(args.data_dir, args.web_hostname, args.web_tls)?;
 
     let cancellation_token = CancellationToken::new();
 
     let res = fms_core
-        .run(cli.ds_address, cli.web_address, cancellation_token.clone())
+        .run(args.ds_address, args.web_address, cancellation_token.clone())
         .await;
 
     if let Err(e) = res {

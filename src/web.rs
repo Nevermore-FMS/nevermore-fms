@@ -1,4 +1,5 @@
 pub mod openid;
+pub mod graph;
 
 use std::net::SocketAddr;
 
@@ -8,26 +9,28 @@ use poem::{
 };
 use tokio_util::sync::CancellationToken;
 
-use crate::{fmscore::FMSCore, graph};
+use crate::{fmscore::FMSCore};
 
 pub async fn run(
     web_address: SocketAddr,
     fms_core: FMSCore,
     cancellation_token: CancellationToken,
 ) -> anyhow::Result<()> {
-    let schema = graph::schema::create_schema();
+    let gql_schema = graph::schema::create_schema();
     let app = Route::new()
         .at("/api/graphql", post(graph::schema::graphql_endpoint))
         .at("/api/schema.graphql", get(graph::schema::sdl_endpoint))
 
-        .at("/.well-known/openid-configuration", get(openid::openid_configuration_endpoint))
+        .at("/openid/.well-known/openid-configuration", get(openid::openid_configuration_endpoint))
+        .at("/openid/keys", get(openid::openid_jwks_endpoint))
+        .at("/openid/authorize", get(openid::openid_authorization_endpoint))
         
         .with(
             Cors::new()
                 .allow_method(Method::GET)
                 .allow_method(Method::POST),
         )
-        .data(schema)
+        .data(gql_schema)
         .data(fms_core);
 
     info!("Web server started on {web_address}");

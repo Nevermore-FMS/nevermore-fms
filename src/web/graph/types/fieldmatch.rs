@@ -1,6 +1,6 @@
 use async_graphql::*;
 
-use crate::graph::types::GQLAllianceStation;
+use crate::web::graph::types::GQLAllianceStation;
 
 pub struct GQLFieldMatch {
     //pub obj_match: DriverStation,

@@ -1,5 +1,5 @@
 use crate::field::Field;
-use crate::graph::types::*;
+use crate::web::graph::types::*;
 use async_graphql::*;
 
 pub struct GQLFieldState {

@@ -9,14 +9,24 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [{
-                "name": "NEVERMORE_LOG",
-                "value": "trace"
-            },
-        {
-                "name": "NEVERMORE_DATA_DIR",
-                "value": "./data"
-            }],
+            "environment": [
+                {
+                    "name": "NEVERMORE_LOG",
+                    "value": "trace"
+                },
+                {
+                    "name": "NEVERMORE_DATA_DIR",
+                    "value": "./data"
+                },
+                {
+                    "name": "NEVERMORE_WEB_TLS",
+                    "value": "true"
+                },
+                {
+                    "name": "NEVERMORE_WEB_HOSTNAME",
+                    "value": "fms.nevermore:8000"
+                }
+            ],
             "console": "integratedTerminal",
             "preLaunchTask": "cargo build"
         }

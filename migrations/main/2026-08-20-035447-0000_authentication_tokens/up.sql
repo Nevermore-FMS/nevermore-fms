@@ -3,6 +3,7 @@ CREATE TABLE authentication_tokens (
   target_type TEXT NOT NULL,
   target_id TEXT NOT NULL,
   token_hash TEXT NOT NULL,
+  permissions TEXT NOT NULL DEFAULT "",
   created_timestamp INTEGER NOT NULL,
   expires_at_timestamp INTEGER NOT NULL
 );

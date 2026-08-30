@@ -1,6 +1,6 @@
 use async_graphql::Object;
 
-use crate::{alarms::FMSAlarm, graph::types::GQLFMSAlarmType};
+use crate::{alarms::FMSAlarm, web::graph::types::GQLFMSAlarmType};
 
 pub struct GQLFMSAlarm {
     pub obj_fmsalarm: FMSAlarm,

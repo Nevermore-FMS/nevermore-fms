@@ -4,10 +4,10 @@ use async_graphql::*;
 
 use crate::authentication::nevermore_fms_permissions;
 use crate::fmscore::FMSCore;
-use crate::graph::error::internalize_err;
-use crate::graph::guard::PermissionGuard;
-use crate::graph::inputs::*;
-use crate::graph::types::*;
+use crate::web::graph::error::internalize_err;
+use crate::web::graph::guard::PermissionGuard;
+use crate::web::graph::inputs::*;
+use crate::web::graph::types::*;
 
 pub struct Query;
 

@@ -1,6 +1,6 @@
 use async_graphql::*;
 
-use crate::graph::types::*;
+use crate::web::graph::types::*;
 
 #[derive(OneofObject)]
 #[graphql(input_name = "DriverStationByCriteriaInput")]

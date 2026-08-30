@@ -9,7 +9,7 @@ use poem::{
 use crate::{
     authentication::exchange_token,
     fmscore::FMSCore,
-    graph::{mutation::Mutation, query::Query},
+    web::graph::{mutation::Mutation, query::Query},
 };
 
 type GQLSchema = Schema<Query, Mutation, EmptySubscription>;

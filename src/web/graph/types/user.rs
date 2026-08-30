@@ -2,7 +2,7 @@
 
 use async_graphql::Object;
 
-use crate::{database::main::models::DBUser, graph::error::internalize_err};
+use crate::{database::main::models::DBUser, web::graph::error::internalize_err};
 
 pub struct GQLUser {
     pub obj_user: DBUser,
